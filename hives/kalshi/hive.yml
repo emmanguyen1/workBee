@@ -1,0 +1,4 @@
+hive: kalshi
+bots:
+  HiveStatus:
+    module: hives.kalshi.bots.health
