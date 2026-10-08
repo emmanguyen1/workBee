@@ -35,8 +35,8 @@ async def home():
     :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--line:#253047;--text:#edf2ff;--muted:#98a5bd;--green:#55d6a0;--amber:#ffc66d}
     *{box-sizing:border-box}
     body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#263754 0,transparent 55%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    main{width:min(100% - 40px,960px);margin:0 auto;padding:42px 0 64px}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:54px}
+    main{width:min(100% - 40px,1120px);margin:0 auto;padding:34px 0 64px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}
     .brand{display:flex;align-items:center;gap:11px;font-size:16px;font-weight:700;letter-spacing:.01em}
     .mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid #35425d;border-radius:12px;background:#18243a;color:#a8c7ff;font-size:17px}
     .live{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
@@ -69,7 +69,29 @@ async def home():
     .message{padding:28px 24px;color:var(--muted)}
     .footer{display:flex;justify-content:space-between;gap:12px;margin-top:17px;color:#7e8ba4;font-size:12px}
     .error{color:#ff9d9d}
-    @media(max-width:640px){main{width:min(100% - 28px,960px);padding-top:26px}header{margin-bottom:40px}.grid{grid-template-columns:1fr}.summary{min-height:136px}.updated{min-height:122px}.updated time{margin-top:12px}.row{grid-template-columns:1fr auto;gap:6px;padding:10px 0}.row .mode{grid-column:1/-1}.rows{padding:0 18px}.history-head{padding:18px}.footer{font-size:11px}}
+    .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+    .section-head h1{font-size:clamp(30px,4vw,40px)}
+    .section-head .eyebrow{margin-bottom:7px}
+    .snapshot-note{margin:0 0 4px;color:var(--muted);font-size:12px;text-align:right}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .metric{min-height:104px;padding:17px 19px}
+    .metric .label{margin-bottom:8px}
+    .metric-value{font-size:23px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+    .metric-value.positive{color:var(--green)}
+    .portfolio{margin-bottom:34px}
+    .positions{overflow:hidden}
+    .portfolio-tabs{display:flex;align-items:center;gap:26px;padding:0 22px;border-bottom:1px solid var(--line)}
+    .portfolio-tabs button{position:relative;padding:15px 0 13px;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+    .portfolio-tabs button[aria-selected="true"]{color:var(--text)}
+    .portfolio-tabs button[aria-selected="true"]::after{position:absolute;right:0;bottom:-1px;left:0;height:2px;background:#a8c7ff;content:""}
+    .empty-position{display:grid;justify-items:center;gap:7px;min-height:150px;align-content:center;color:var(--muted);text-align:center}
+    .empty-icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:3px;border-radius:50%;background:#202a3c;color:#9eabc1;font-size:19px}
+    .empty-position strong{color:#cbd4e5;font-size:15px}
+    .empty-position span{font-size:13px}
+    .hive-section{margin-top:0}
+    .subhead{margin:0 0 15px;font-size:20px;letter-spacing:-.02em}
+    @media(max-width:760px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:640px){main{width:min(100% - 28px,1120px);padding-top:26px}header{margin-bottom:32px}.section-head{align-items:flex-start;flex-direction:column}.snapshot-note{text-align:left;margin-top:-10px}.metrics{gap:9px}.metric{min-height:94px;padding:14px}.metric-value{font-size:20px}.grid{grid-template-columns:1fr}.summary{min-height:136px}.updated{min-height:122px}.updated time{margin-top:12px}.row{grid-template-columns:1fr auto;gap:6px;padding:10px 0}.row .mode{grid-column:1/-1}.rows{padding:0 18px}.history-head{padding:18px}.footer{font-size:11px}.portfolio-tabs{gap:20px;padding:0 16px}}
   </style>
 </head>
 <body>
@@ -78,19 +100,45 @@ async def home():
       <div class="brand"><span class="mark" aria-hidden="true">H</span><span>Hivework</span></div>
       <div class="live"><span class="live-dot" aria-hidden="true"></span>Live monitor</div>
     </header>
-    <p class="eyebrow">Kalshi hive</p>
-    <h1>Hive status</h1>
-    <p class="intro">A live view of the latest bot activity.</p>
-    <section class="grid" aria-label="Current hive status">
+    <section class="portfolio" aria-labelledby="portfolio-title">
+      <div class="section-head">
+        <div><p class="eyebrow">Kalshi demo account</p><h1 id="portfolio-title">Portfolio</h1></div>
+        <p class="snapshot-note">Demo snapshot · not live account data</p>
+      </div>
+      <div class="metrics" aria-label="Demo portfolio metrics">
+        <article class="card metric"><p class="label">Predictions</p><div class="metric-value">$100</div></article>
+        <article class="card metric"><p class="label">Change (24h)</p><div class="metric-value positive">+$0 <small>(+0%)</small></div></article>
+        <article class="card metric"><p class="label">Unrealized return</p><div class="metric-value positive">+$0 <small>(+0%)</small></div></article>
+        <article class="card metric"><p class="label">Positions</p><div class="metric-value">$0</div></article>
+        <article class="card metric"><p class="label">Cash</p><div class="metric-value">$100</div></article>
+        <article class="card metric"><p class="label">Interest</p><div class="metric-value">3.25%</div></article>
+        <article class="card metric"><p class="label">Rewards (Oct)</p><div class="metric-value">$0.00</div></article>
+      </div>
+      <div class="card positions">
+        <div class="portfolio-tabs" role="tablist" aria-label="Portfolio sections">
+          <button type="button" role="tab" id="tab-positions" aria-selected="true" aria-controls="portfolio-empty" data-copy="No open positions">Positions</button>
+          <button type="button" role="tab" id="tab-orders" aria-selected="false" aria-controls="portfolio-empty" data-copy="No open orders">Orders</button>
+          <button type="button" role="tab" id="tab-history" aria-selected="false" aria-controls="portfolio-empty" data-copy="No portfolio history yet">History</button>
+        </div>
+        <div class="empty-position" id="portfolio-empty" role="tabpanel" aria-live="polite">
+          <span class="empty-icon" aria-hidden="true">⌁</span><strong>No open positions</strong><span>Demo portfolio snapshot</span>
+        </div>
+      </div>
+    </section>
+    <section class="hive-section" aria-labelledby="hive-title">
+      <div class="section-head"><div><p class="eyebrow">Kalshi hive</p><h2 class="subhead" id="hive-title">Hive status</h2></div><p class="snapshot-note">Bot updates refresh automatically</p></div>
+      <p class="intro">A live view of the latest bot activity.</p>
+      <section class="grid" aria-label="Current hive status">
       <div class="card summary">
         <div><p class="label">Current state</p><div id="current-state" class="state"><span class="state-dot" aria-hidden="true"></span><span>Loading</span></div></div>
         <span class="pill">Demo only</span>
       </div>
       <div class="card updated"><p class="label">Last update</p><time id="last-update">—</time><small id="update-relative">Waiting for status</small></div>
     </section>
-    <section class="card history" aria-labelledby="history-title">
-      <div class="history-head"><h2 id="history-title">Recent activity</h2><span id="event-count" class="count">Loading</span></div>
-      <div id="events" class="rows" aria-live="polite"><div class="message">Connecting to the status stream…</div></div>
+      <section class="card history" aria-labelledby="history-title">
+        <div class="history-head"><h2 id="history-title">Recent bot activity</h2><span id="event-count" class="count">Loading</span></div>
+        <div id="events" class="rows" aria-live="polite"><div class="message">Connecting to the status stream…</div></div>
+      </section>
     </section>
     <div class="footer"><span>Refreshes automatically</span><span id="refresh-time">—</span></div>
   </main>
@@ -116,6 +164,14 @@ async def home():
         const status=document.createElement('span');status.className='row-state';const dot=document.createElement('span');dot.className='state-dot'+(String(event.state).toLowerCase()==='running'?'':' idle');dot.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=String(event.state||'unknown');status.append(dot,label);
         const mode=document.createElement('span');mode.className='mode';mode.textContent=String(event.mode||'—');row.append(stamp,status,mode);eventsNode.append(row)
       }
+    }
+    for(const tab of document.querySelectorAll('[role="tab"]')){
+      tab.addEventListener('click',()=>{
+        document.querySelectorAll('[role="tab"]').forEach(item=>item.setAttribute('aria-selected',String(item===tab)));
+        const panel=document.querySelector('#portfolio-empty');
+        panel.querySelector('strong').textContent=tab.dataset.copy;
+        panel.querySelector('span:last-child').textContent=tab.id==='tab-positions'?'Demo portfolio snapshot':'This demo snapshot does not include live '+tab.textContent.toLowerCase();
+      });
     }
     async function refresh(){
       try{const response=await fetch('/api/topics/kalshi/status?count=30',{cache:'no-store'});if(!response.ok)throw new Error(`Status request failed (${response.status})`);const data=await response.json();render(data.events||[]);document.querySelector('#refresh-time').textContent=`Updated ${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'})}`}
