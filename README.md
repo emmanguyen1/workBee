@@ -55,6 +55,17 @@ For a Kalshi demo integration, put the replacement `KALSHI_API_KEY_ID` and `KALS
 
 Events are Redis streams named `<hive>:<topic>`. Read recent events at `/api/topics/{hive}/{topic}?count=50`; counts from 1 to 500 are accepted. `/health` is a basic dashboard health endpoint.
 
+## Connect the Vercel dashboard to local Redis
+
+The Vercel dashboard can read the local `kalshi:status` stream through the authenticated, read-only `redis-bridge` service. Keep Redis private; the bridge binds to `127.0.0.1:8765` and only serves that status topic. Set a strong `REDIS_BRIDGE_TOKEN` in `.env` and as a sensitive Production environment variable in Vercel, then start the bridge and a Cloudflare Quick Tunnel:
+
+```bash
+docker compose up -d --build redis-bridge
+cloudflared tunnel --url http://localhost:8765
+```
+
+Set the generated HTTPS URL as Vercel's `REDIS_BRIDGE_URL` Production environment variable and redeploy with `vercel deploy --prod`. Quick Tunnels have no uptime guarantee; the local computer, Docker services, and tunnel process must stay online for the public dashboard to show live events.
+
 ## Project rules
 
 - Never pay for services or enter payment details for this project without checking with the project owner.
