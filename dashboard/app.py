@@ -1,9 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse
 
 from core import bus
+from hives.kalshi.client import DemoUnavailable, portfolio
 
 app = FastAPI(title="Hivework", version="0.1.0")
+
+
+@app.get("/api/kalshi/portfolio")
+async def demo_portfolio(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await portfolio()
+    except DemoUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.get("/health")
@@ -78,6 +88,8 @@ async def home():
     .metric .label{margin-bottom:8px}
     .metric-value{font-size:23px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
     .metric-value.positive{color:var(--green)}
+    .negative{color:#ff9d9d}
+    .metric small{display:block;color:var(--muted);font-size:11px;margin-top:6px}
     .portfolio{margin-bottom:34px}
     .positions{overflow:hidden}
     .portfolio-tabs{display:flex;align-items:center;gap:26px;padding:0 22px;border-bottom:1px solid var(--line)}
@@ -103,16 +115,17 @@ async def home():
     <section class="portfolio" aria-labelledby="portfolio-title">
       <div class="section-head">
         <div><p class="eyebrow">Kalshi demo account</p><h1 id="portfolio-title">Portfolio</h1></div>
-        <p class="snapshot-note">Demo snapshot · not live account data</p>
+        <p class="snapshot-note">Connecting to Kalshi demo…</p>
       </div>
       <div class="metrics" aria-label="Demo portfolio metrics">
-        <article class="card metric"><p class="label">Predictions</p><div class="metric-value">$100</div></article>
-        <article class="card metric"><p class="label">Change (24h)</p><div class="metric-value positive">+$0 <small>(+0%)</small></div></article>
-        <article class="card metric"><p class="label">Unrealized return</p><div class="metric-value positive">+$0 <small>(+0%)</small></div></article>
-        <article class="card metric"><p class="label">Positions</p><div class="metric-value">$0</div></article>
-        <article class="card metric"><p class="label">Cash</p><div class="metric-value">$100</div></article>
-        <article class="card metric"><p class="label">Interest</p><div class="metric-value">3.25%</div></article>
-        <article class="card metric"><p class="label">Rewards (Oct)</p><div class="metric-value">$0.00</div></article>
+        <article class="card metric"><p class="label">Total account value</p><div id="account-total" class="metric-value">—</div></article>
+        <article class="card metric"><p class="label">Cash</p><div id="account-cash" class="metric-value">—</div></article>
+        <article class="card metric"><p class="label">Positions value</p><div id="account-value" class="metric-value">—</div></article>
+        <article class="card metric"><p class="label">Open positions</p><div id="account-count" class="metric-value">—</div></article>
+        <article class="card metric"><p class="label">Unrealized gain / loss</p><div id="account-pnl" class="metric-value">—</div><small id="pnl-detail">Current value minus position cost · before fees</small></article>
+        <article class="card metric"><p class="label">Open position cost</p><div id="account-cost" class="metric-value">—</div><small>Cost of remaining contracts</small></article>
+        <article class="card metric"><p class="label">Fees on open markets</p><div id="account-fees" class="metric-value">—</div><small>Reported fees, including earlier trades in these markets</small></article>
+        <article class="card metric"><p class="label">Value change since opening page</p><div id="account-change" class="metric-value">—</div><small>Account value movement · includes deposits and trades</small></article>
       </div>
       <div class="card positions">
         <div class="portfolio-tabs" role="tablist" aria-label="Portfolio sections">
@@ -126,17 +139,17 @@ async def home():
       </div>
     </section>
     <section class="hive-section" aria-labelledby="hive-title">
-      <div class="section-head"><div><p class="eyebrow">Kalshi hive</p><h2 class="subhead" id="hive-title">Hive status</h2></div><p class="snapshot-note">Bot updates refresh automatically</p></div>
-      <p class="intro">A live view of the latest bot activity.</p>
+      <div class="section-head"><div><p class="eyebrow">Kalshi hive</p><h2 class="subhead" id="hive-title">Hive status</h2></div><p class="snapshot-note">Read-only demo connection</p></div>
+      <p class="intro">Live connection to your Kalshi demo account.</p>
       <section class="grid" aria-label="Current hive status">
       <div class="card summary">
         <div><p class="label">Current state</p><div id="current-state" class="state"><span class="state-dot" aria-hidden="true"></span><span>Loading</span></div></div>
         <span class="pill">Demo only</span>
       </div>
-      <div class="card updated"><p class="label">Last update</p><time id="last-update">—</time><small id="update-relative">Waiting for status</small></div>
+      <div class="card updated"><p class="label">Last update</p><time id="last-update">—</time><small id="update-relative">Waiting for Kalshi demo</small></div>
     </section>
       <section class="card history" aria-labelledby="history-title">
-        <div class="history-head"><h2 id="history-title">Recent bot activity</h2><span id="event-count" class="count">Loading</span></div>
+        <div class="history-head"><h2 id="history-title">Recent connection checks</h2><span id="event-count" class="count">Loading</span></div>
         <div id="events" class="rows" aria-live="polite"><div class="message">Connecting to the status stream…</div></div>
       </section>
     </section>
@@ -161,23 +174,79 @@ async def home():
       for(const event of newest.slice(0,10)){
         const row=document.createElement('div');row.className='row';
         const stamp=document.createElement('time');const eventDate=eventTime(event.id);stamp.textContent=eventDate?eventDate.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}):'Unknown time';if(eventDate)stamp.dateTime=eventDate.toISOString();
-        const status=document.createElement('span');status.className='row-state';const dot=document.createElement('span');dot.className='state-dot'+(String(event.state).toLowerCase()==='running'?'':' idle');dot.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=String(event.state||'unknown');status.append(dot,label);
+        const status=document.createElement('span');status.className='row-state';const dot=document.createElement('span');dot.className='state-dot'+(['running','connected'].includes(String(event.state).toLowerCase())?'':' idle');dot.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=String(event.state||'unknown');status.append(dot,label);
         const mode=document.createElement('span');mode.className='mode';mode.textContent=String(event.mode||'—');row.append(stamp,status,mode);eventsNode.append(row)
+      }
+    }
+    let portfolioData=null;
+    let startingValue=null;
+    const checks=[];
+    const money=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents)/100);
+    function amount(selector,value,signed=false){
+      const node=document.querySelector(selector);
+      node.textContent=value==null?'Unavailable':(signed&&value>0?'+':'')+money(value);
+      node.classList.toggle('positive',signed&&value>0);node.classList.toggle('negative',signed&&value<0);
+    }
+    function showPortfolio(){
+      const panel=document.querySelector('#portfolio-empty');panel.replaceChildren();
+      const selected=document.querySelector('[role="tab"][aria-selected="true"]').id;
+      const kind=selected==='tab-positions'?'positions':selected==='tab-orders'?'orders':'fills';
+      const items=portfolioData?.[kind]||[];
+      if(!portfolioData||!items.length){
+        const title=document.createElement('strong');title.textContent=portfolioData?(kind==='fills'?'No recent fills':`No open ${kind}`):'Waiting for live demo data';
+        const note=document.createElement('span');note.textContent=kind==='fills'?'Most recent 50 fills':'Kalshi demo · read only';panel.append(title,note);return;
+      }
+      panel.style.display='block';panel.style.textAlign='left';panel.style.padding='0 24px';
+      for(const item of items){
+        const row=document.createElement('div');row.className='row';
+        const ticker=document.createElement('strong');ticker.textContent=item.ticker||item.market_ticker||'Market';
+        const detail=document.createElement('span');
+        detail.textContent=kind==='positions'?`Position: ${item.position_fp??item.position??'—'}`:`${item.action||''} ${item.side||''} · ${item.remaining_count_fp??item.remaining_count??item.count_fp??item.count??'—'} contracts`;
+        if(kind==='positions'&&item.market_exposure_dollars!=null)detail.textContent+=` · Cost ${money(Number(item.market_exposure_dollars)*100)}`;
+        const extra=document.createElement('span');extra.className='mode';extra.textContent=kind==='positions'?'Open position':(item.created_time||item.status||'');
+        row.append(ticker,detail,extra);panel.append(row);
       }
     }
     for(const tab of document.querySelectorAll('[role="tab"]')){
       tab.addEventListener('click',()=>{
-        document.querySelectorAll('[role="tab"]').forEach(item=>item.setAttribute('aria-selected',String(item===tab)));
-        const panel=document.querySelector('#portfolio-empty');
-        panel.querySelector('strong').textContent=tab.dataset.copy;
-        panel.querySelector('span:last-child').textContent=tab.id==='tab-positions'?'Demo portfolio snapshot':'This demo snapshot does not include live '+tab.textContent.toLowerCase();
+        document.querySelectorAll('[role="tab"]').forEach(item=>item.setAttribute('aria-selected',String(item===tab)));showPortfolio();
       });
     }
     async function refresh(){
-      try{const response=await fetch('/api/topics/kalshi/status?count=30',{cache:'no-store'});if(!response.ok)throw new Error(`Status request failed (${response.status})`);const data=await response.json();render(data.events||[]);document.querySelector('#refresh-time').textContent=`Updated ${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'})}`}
-      catch(error){document.querySelector('#event-count').textContent='Unavailable';document.querySelector('#current-state').lastElementChild.textContent='Offline';document.querySelector('#current-state').querySelector('.state-dot').classList.add('idle');document.querySelector('#last-update').textContent='—';document.querySelector('#update-relative').textContent='Could not reach the status stream';setMessage('Status data is temporarily unavailable. Retrying automatically.',true);document.querySelector('#refresh-time').textContent='Retrying'}
+      try{
+        const response=await fetch('/api/kalshi/portfolio',{cache:'no-store'});
+        const data=await response.json();if(!response.ok)throw new Error(data.detail||'Kalshi demo unavailable');
+        portfolioData=data;
+        document.querySelector('#account-total').textContent=money(data.cash_cents+data.positions_value_cents);
+        document.querySelector('#account-cash').textContent=money(data.cash_cents);
+        document.querySelector('#account-value').textContent=money(data.positions_value_cents);
+        document.querySelector('#account-count').textContent=data.positions.length;
+        amount('#account-pnl',data.unrealized_pnl_cents,true);
+        amount('#account-cost',data.open_cost_cents);
+        amount('#account-fees',data.open_market_fees_cents);
+        const total=data.cash_cents+data.positions_value_cents;
+        if(startingValue===null)startingValue=total;
+        amount('#account-change',total-startingValue,true);
+        const percent=data.unrealized_return_percent;
+        const direction=data.unrealized_pnl_cents==null?'Return unavailable':data.unrealized_pnl_cents>0?'Gaining value':data.unrealized_pnl_cents<0?'Losing value':'Break even';
+        document.querySelector('#pnl-detail').textContent=direction+(percent==null?'':` · ${percent>0?'+':''}${percent.toFixed(2)}%`)+' · before fees';
+        showPortfolio();
+        const stamp=new Date(data.updated_at);
+        document.querySelector('.portfolio .snapshot-note').textContent=`Live demo · updated ${stamp.toLocaleTimeString()}`;
+        checks.push({id:String(stamp.getTime())+'-0',state:'connected',mode:'Kalshi demo · read only'});if(checks.length>10)checks.shift();
+        render(checks);document.querySelector('#current-state .state-dot').classList.remove('idle');
+        document.querySelector('#refresh-time').textContent='Refreshes every 15 seconds';
+        document.querySelector('.live').lastChild.textContent='Live demo';
+      }catch(error){
+        document.querySelector('.portfolio .snapshot-note').textContent=portfolioData?'Connection lost · showing last successful update':'Kalshi demo unavailable';
+        document.querySelector('#event-count').textContent='Unavailable';document.querySelector('#current-state').lastElementChild.textContent='Disconnected';
+        document.querySelector('#current-state .state-dot').classList.add('idle');
+        document.querySelector('#update-relative').textContent=portfolioData?'Last successful connection':'No successful connection';
+        setMessage(error.message,true);document.querySelector('#refresh-time').textContent='Retrying automatically';
+        document.querySelector('.live').lastChild.textContent='Disconnected';
+      }
     }
-    refresh();setInterval(refresh,5000);
+    refresh();setInterval(refresh,15000);
   </script>
 </body>
 </html>"""

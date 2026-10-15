@@ -4,6 +4,9 @@
 .pytest_cache/
 __pycache__/
 .venv/
+venv/
+logs/
+.DS_Store
 docker-compose.yml
 Dockerfile
 postgres_data/

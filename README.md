@@ -53,6 +53,24 @@ For a Kalshi demo integration, put the replacement `KALSHI_API_KEY_ID` and `KALS
 
 ## Shared topics and dashboard API
 
+The portfolio dashboard reads Kalshi's demo API directly on the server using
+`KALSHI_API_KEY_ID` and `KALSHI_PRIVATE_KEY`. Configure both as sensitive Production
+environment variables in Vercel. The client is read-only and fixed to the demo
+API host. It refreshes every 15 seconds, caches successful results for 10 seconds,
+and backs off for 60 seconds after rate limiting. Positions and resting orders
+are paginated; History shows the latest 50 fills. Unsupported snapshot metrics
+are omitted. The portfolio no longer requires the local Redis bridge.
+
+Unrealized gain/loss compares Kalshi's portfolio value with the summed remaining
+`market_exposure_dollars`, before fees. It is not an all-time realized return.
+Fees are shown separately because fees on currently open markets can include
+earlier trades. Account value change starts at the first successful refresh of
+the current page and includes non-profit movements such as deposits.
+
+The deployed portfolio endpoint displays demo account balances and positions to
+website visitors. Credentials stay server-side. Hive status describes the demo
+API connection; the separate Redis topic API still reports bot runtime activity.
+
 Events are Redis streams named `<hive>:<topic>`. Read recent events at `/api/topics/{hive}/{topic}?count=50`; counts from 1 to 500 are accepted. `/health` is a basic dashboard health endpoint.
 
 ## Connect the Vercel dashboard to local Redis
