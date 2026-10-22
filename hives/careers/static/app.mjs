@@ -9,8 +9,8 @@ let saved=read(SAVED_KEY,{});if(!saved||typeof saved!=='object'||Array.isArray(s
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {query:$('query').value,role_type:$('role').value,career_field:$('field').value,location:$('area').value,workplace:$('workplace').value,company:$('company').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);for(const [key,id,fallback] of [['query','query',''],['role_type','role','early_career'],['career_field','field','all'],['location','area',''],['workplace','workplace','all'],['company','company',''],['sort','sort','fit']]){const node=$(id),value=p[key]??fallback;if(node.tagName==='SELECT'&&![...node.options].some(o=>o.value===value)){const option=make('option',value);option.value=value;node.append(option)}node.value=value}}
+function preferences(){return {opportunity_type:$('opportunity-type').value,query:$('query').value,role_type:$('role').value,career_field:$('field').value,location:$('area').value,workplace:$('workplace').value,company:$('company').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);for(const [key,id,fallback] of [['opportunity_type','opportunity-type','all'],['query','query',''],['role_type','role','all'],['career_field','field','all'],['location','area',''],['workplace','workplace','all'],['company','company',''],['sort','sort','fit']]){const node=$(id),value=p[key]??fallback;if(node.tagName==='SELECT'&&![...node.options].some(o=>o.value===value)){const option=make('option',value);option.value=value;node.append(option)}node.value=value}}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
 function accountView(data,restore=true){accountUser=data.user;accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore&&Object.keys(data.profile||{}).length){fill(data.profile);fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.'}}
 $('auth-mode').onchange=()=>{$('account-password').autocomplete=$('auth-mode').value==='register'?'new-password':'current-password'};
@@ -74,10 +74,11 @@ function options(id, items, first) {
 
 function facets(data) {
   fieldLabels=Object.fromEntries(data.facets.fields.map(f=>[f.value,f.label]));
-  options('field', data.facets.fields.map(f=>({value:f.value,label:f.label+' ('+f.count+')'})), 'All fields');
+  options('field', data.facets.fields.map(f=>({value:f.value,label:f.label+' ('+f.count+')'})), 'All fields ('+data.facets.field_total+')');
+  for(const option of $('opportunity-type').options){const names={all:'All opportunities',internship:'Internships & co-ops',job:'Jobs',research:'Research & fellowships'};option.textContent=names[option.value]+' ('+(data.facets.opportunity_types[option.value]||0)+')';}
   options('company',data.facets.companies.map(c=>({value:c,label:c})),'All employers');
   $('areas').replaceChildren(...data.facets.locations.map(value=>{const node=make('option');node.value=value;return node}));
-  $('coverage').replaceChildren(...[[data.catalog_total,'Listed opportunities'],[data.early_career_total,'Early-career roles'],[data.facets.companies.length,'Employers to explore'],[data.facets.fields.filter(f=>f.count>0).length,'Career fields']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
+  $('coverage').replaceChildren(...[[data.catalog_total,'Listed opportunities'],[data.early_career_total,'Early-career roles'],[data.facets.companies.length,'Employers to explore'],[data.catalog_field_total,'Career fields in catalog']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
 }
 
 function tags(job) {
@@ -85,6 +86,7 @@ function tags(job) {
   const stage={internship:'Internship / co-op',new_grad:'New graduate',entry_level:'Entry level',apprenticeship:'Apprenticeship',other:'Other career levels'}[job.role_type];
   node.append(make('span',stage||job.role_type,'tag stage'),make('span',fieldLabels[job.career_field]||job.career_field,'tag field'));
   if(job.workplace!=='unspecified')node.append(make('span',job.workplace==='onsite'?'On-site':job.workplace[0].toUpperCase()+job.workplace.slice(1),'tag remote'));
+  if(job.opportunity_types?.includes('research'))node.append(make('span','Research / fellowship','tag research'));
   if(job.terms?.length)node.append(make('span',job.terms.join(' · '),'tag'));
   return node;
 }
@@ -108,6 +110,7 @@ function matchBox(result, expanded=false) {
 }
 
 function applicationLink(job,label='Apply ↗') {
+  if(job.availability?.state==='removed')return null;
   try{const url=new URL(job.apply_url);if(url.protocol==='https:'){const node=make('a',label,'button-link');node.href=url.href;node.target='_blank';node.rel='noopener noreferrer';return node}}catch{}
   return null;
 }
@@ -135,18 +138,51 @@ function card(job) {
   const location=make('div',undefined,'job-location');location.append(icon('pin'),make('span',(job.locations||[]).join(' · ')||job.location||'Location not specified'));article.append(location,tags(job),matchBox(job.match));
   if(job.match.has_conflict)article.append(make('p','Possible qualification conflict · review before applying','notice conflict'));
   const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const apply=applicationLink(job);if(apply)actions.append(apply);article.append(actions,tracking(job));
+  if(job.availability)article.append(availabilityBox(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
-  const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));fresh.append(icon('clock',11),document.createTextNode(relativeTime(job.last_seen)));article.append(fresh);return article;
+  const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));fresh.append(icon('clock',11),document.createTextNode(relativeTime(job.last_seen).replace('Source checked','Last seen in source')));article.append(fresh);return article;
+}
+
+function availabilityBox(job, interactive=false) {
+  const status=job.availability||{state:'stale',label:'Availability not checked'},box=make('div',undefined,'availability '+status.state);
+  box.append(make('strong',status.label));
+  if(status.checked_at){const time=make('time',relativeTime(status.checked_at));time.dateTime=status.checked_at;time.title=new Date(status.checked_at).toLocaleString();box.append(time)}
+  if(interactive){
+    box.append(make('p',status.note||'Confirm application availability on the employer website.','notice'));
+    if(status.verification_supported){
+      const button=make('button','Check source now','secondary');button.type='button';const message=make('p','','notice');message.setAttribute('role','status');
+      button.onclick=async()=>{button.disabled=true;message.textContent='Checking the configured source feed…';try{
+        const response=await fetch('/api/careers/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_id:job.id})});const result=await response.json();if(!response.ok)throw new Error(apiError(result));job.availability=result;
+        $('jobs').replaceChildren(...visibleJobs.map(card));
+        const updated=availabilityBox(job,true);box.replaceWith(updated);
+        const actions=document.querySelector('#dialog-content [data-application-actions]');if(actions){const link=applicationLink(job,'Open employer application ↗');actions.replaceChildren(...(link?[link]:[]));}
+      }catch(error){message.textContent=error.message}finally{button.disabled=false}};
+      box.append(button,message);
+    }
+  }
+  return box;
 }
 
 function renderMatchDetails(node,result) {
   node.replaceChildren(make('h3','How your profile compares'),matchBox(result,true));
+  const breakdown=result.breakdown;
+  if(breakdown){
+    const explanation=make('div',undefined,'score-explanation');explanation.append(make('h3','Why this score?'));
+    for(const [key,label] of [['required','Required skill groups'],['preferred','Preferred skill groups']]){const value=breakdown[key];explanation.append(make('p',label+': '+value.matched+' / '+value.total+' supported'));}
+    explanation.append(make('p','Required groups count twice; preferred groups count once. Contextual mentions do not affect the score.','notice'));
+    if(result.score!=null)explanation.append(make('p',breakdown.earned_weight+' of '+breakdown.total_weight+' weighted points = '+result.score+'% skill coverage.','score-formula'));
+    if(breakdown.self_reported)explanation.append(make('p',breakdown.self_reported+' supported group(s) rely on skills listed without a project or work example. These are self-reported, not verified.','notice unknown'));
+    if(breakdown.missing_required.length)explanation.append(make('p','Required skills to review: '+breakdown.missing_required.join(' · '),'notice'));
+    explanation.append(make('p','Eligibility checks are separate from the skill score. Missing profile information remains unknown; the parser may miss requirements.','notice'));
+    node.append(explanation);
+  }
   const summary=result.qualification_summary,stats=make('div',undefined,'qualification-stats');
   for(const [count,label] of [[summary.matched,'Matched checks'],[summary.conflicts,'Possible conflicts'],[summary.unclear,'Need clarification']]){const item=make('div');item.append(make('strong',count),document.createTextNode(label));stats.append(item)}node.append(stats);
   const skills=section('Skills & supporting evidence ('+result.checks.length+')');
   if(!result.checks.length)skills.append(make('p','No supported skill requirements recognized. Check the employer description.','notice muted'));
   for(const check of result.checks){const row=make('div',undefined,'check');row.append(make('strong',check.skills.join(' or ')+' · '+check.kind),make('div',check.status==='supported'?'Supported by your profile':'No profile evidence found',check.status==='supported'?'badge':'unknown'),make('p','Employer: '+check.quote,'quote'));for(const evidence of check.evidence)row.append(make('p','Your profile · '+evidence.skill+': '+evidence.text));skills.append(row)}
-  const qualifications=section('Education, eligibility & availability');
+  skills.open=true;
+  const qualifications=section('Education, eligibility & availability');qualifications.open=true;
   for(const check of result.eligibility){const row=make('div',undefined,'check'),label={matches:'Matched',conflict:'Possible conflict',unknown:'Needs clarification'}[check.status]||check.status;row.append(make('strong',check.criterion+' · '+label,check.status==='conflict'?'conflict':check.status==='unknown'?'unknown':''),make('p',(check.kind==='unspecified'?'Check: ':'Employer: ')+check.quote,'quote'));if(check.evidence)row.append(make('p','Your profile: '+check.evidence));row.append(make('p',check.explanation,'meta'));qualifications.append(row)}
   const next=section('Your next steps'),list=make('ul',undefined,'next-steps');for(const text of result.next_steps)list.append(make('li',text));next.append(list);
   node.append(skills,qualifications,next,make('p','Skill coverage measures supported skill groups, not your eligibility or likelihood of being hired.','summary-note'));
@@ -156,8 +192,8 @@ function showDetails(job) {
   const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
   const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close opportunity details');close.onclick=()=>dialog.close();header.append(logo(job),heading,close);
-  const body=make('div',undefined,'dialog-body');body.append(tags(job),make('p',(job.locations||[]).join(' · ')||job.location||'Location not specified','muted'));
-  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');if(apply)actions.append(apply);body.append(actions);
+  const body=make('div',undefined,'dialog-body');body.append(availabilityBox(job,true));body.append(tags(job),make('p',(job.locations||[]).join(' · ')||job.location||'Location not specified','muted'));
+  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
   const comparison=make('div');renderMatchDetails(comparison,job.match);body.append(comparison);
@@ -213,7 +249,7 @@ async function load() {
     const normalized=data.profile_skills||[];
     $('match-notice').classList.toggle('active',normalized.length>0);
     $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing roles with comparable requirements.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
-    $('sort-note').textContent=$('sort').value==='newest'?'Sorted by first discovery in this catalog, not employer publication date.':'Sorted by skill coverage, with possible eligibility conflicts last. Scores are not hiring predictions.';
+    $('sort-note').textContent=data.effective_sort==='newest'?'Sorted by first discovery in this catalog, not employer publication date.':'Sorted by skill coverage, with possible eligibility conflicts last. Scores are not hiring predictions.';
     $('status').textContent=total.toLocaleString()+' opportunities in this view';
     $('sources').replaceChildren();const sources=section('Source checks · '+data.boards.length+' feeds'),grid=make('div',undefined,'source-grid');for(const board of data.boards){const stale=!board.checked_at||Date.now()-Date.parse(board.checked_at)>30*60000;grid.append(make('div',board.company+': '+(board.error||(!board.checked_at?'Waiting for first check':relativeTime(board.checked_at))),'source'+(board.error||stale?' unknown':'')))}sources.append(grid);$('sources').append(sources);
     $('previous').disabled=offset===0;$('next').disabled=offset+PAGE>=total;$('page').textContent=total?`${offset+1}–${Math.min(offset+PAGE,total)} of ${total.toLocaleString()}`:'0 roles';
@@ -225,7 +261,11 @@ async function load() {
 function resetFilters(){fillPreferences({});offset=0;load()}
 $('profile').onsubmit=event=>{event.preventDefault();applyProfile()};
 $('profile').addEventListener('input',()=>{$('profile-message').className='notice';$('profile-message').textContent='Profile changed. Apply it to update your matches.'});
-$('filters').onsubmit=event=>{event.preventDefault();offset=0;load()};
+$('filters').onsubmit=event=>{event.preventDefault();refreshFilters()};
+let filterTimer;
+function refreshFilters(){clearTimeout(filterTimer);offset=0;load()}
+$('filters').addEventListener('change',event=>{if(event.target.tagName==='SELECT'||event.target.type==='checkbox')refreshFilters()});
+for(const id of ['query','area'])$(id).addEventListener('input',()=>{clearTimeout(filterTimer);filterTimer=setTimeout(refreshFilters,400)});
 $('reset-filters').onclick=resetFilters;
 $('previous').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};
 $('next').onclick=()=>{offset+=PAGE;load()};

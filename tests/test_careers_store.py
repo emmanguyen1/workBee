@@ -1,5 +1,6 @@
 """Optional real-Postgres lifecycle test: CAREERS_DB_TEST=1 python -m unittest discover -s tests."""
 import os
+from datetime import datetime, timezone, timedelta
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -20,6 +21,13 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         try:
             self.assertEqual((await store.save_snapshot(employer, [job]))[0]["kind"], "discovered")
             self.assertEqual(await store.save_snapshot(employer, [job]), [])
+            checked = datetime.now(timezone.utc)
+            verification = {"state": "removed", "label": "No longer listed", "checked_at": checked.isoformat()}
+            await store.save_verification(job["id"], verification)
+            await store.save_verification(job["id"], {**verification, "state": "listed", "checked_at": (checked-timedelta(minutes=1)).isoformat()})
+            self.assertEqual((await store.catalog())["jobs"][0]["verification"]["state"], "removed")
+            self.assertTrue((await store.get_job(job["id"]))["open"])
+            self.assertIsNone(await store.get_job(key + ":missing"))
             job = {**job, "description": "Python and SQL"}
             self.assertEqual((await store.save_snapshot(employer, [job]))[0]["kind"], "changed")
             await store.record_error(employer, "Feed unavailable")

@@ -12,14 +12,16 @@ HivePath collects
 public Greenhouse, Lever, and Ashby employer feeds every 15 minutes. No job API
 keys are required. Configure employers in `hives/careers/employers.yml`; these are
 individual employer boards, not a global search of all jobs. The initial directory
-now includes 18 employers across technology, financial services, aerospace,
+now includes 22 employers across technology, financial services, aerospace,
 autonomous vehicles, healthcare technology, and nonprofit work.
 
 Search across 14 inferred career fields, including marketing, finance, design,
 HR, legal, operations, science, hardware, software, and customer-facing work.
-The default view includes internships/co-ops, explicit new-grad roles, junior or
-entry-level titles, and apprenticeships. Select "All roles & levels" for the full
-catalog. Career stages rely on explicit title signals: an "associate" title alone
+The web discovery view starts with all career levels. Choose Internships, Jobs,
+or Research & fellowships as the opportunity type, then narrow the career stage
+to early career, new graduate, junior, or apprenticeship as needed. Research
+internships appear under both Internships and Research. The API retains its
+early-career default for existing clients. Career stages rely on explicit title signals: an "associate" title alone
 does not prove a role is entry level. Fields are title/department heuristics and
 can be imperfect.
 
@@ -29,8 +31,12 @@ explicitly supplied. Common location aliases (NYC, UK, USA) are recognized, but
 the app does not infer countries for city-only listings or treat remote roles as
 worldwide. An unspecified workplace is kept separate from on-site roles.
 "Recently discovered" sorts by first observation in this database, not the
-employer publication date. Coverage counters and filter counts describe the
-whole currently stored catalog, including potentially stale snapshots.
+employer publication date. Hero coverage counters describe the stored catalog, including potentially stale
+snapshots. Career-field counts respect the current query, career stage,
+opportunity type, location, employer, workplace, and comparable-requirements
+filter; each field count excludes only the field selection itself. Search and
+filter changes refresh the results automatically. Obvious talent-network and
+general-interest posts are excluded from discovery counts.
 
 Start with the existing local `.env` and `docker compose up --build`, then open
 <http://localhost:8000/careers>. Kalshi remains at <http://localhost:8000/kalshi>.
@@ -65,6 +71,22 @@ filter to include community listings without descriptions. Unavailable scores
 are shown separately from a measured 0% skill coverage. In an opportunity's
 details, paste the employer's requirements to compare an otherwise unscored
 listing; this text is processed without saving it and does not alter the source.
+
+Each card distinguishes recently listed employer roles, community discoveries,
+stale snapshots, and failed source checks. Open details and choose "Check source
+now" to check membership in the configured employer/community feed. Checks use
+only configured public feeds, cache each board for 60 seconds, and save the
+result for reloads. Results remain current for 30 minutes or until a newer
+successful collector observation supersedes them. Removed listings lose their
+Apply action; the collector removes them from discovery after its next successful
+snapshot. A source failure never means a job is closed. Feed presence does not
+prove that an application form still accepts submissions; community-list presence
+never becomes employer verification. Arbitrary application URLs are not fetched.
+
+The match details show required/preferred group counts, weighted points, missing
+required skills, source excerpts, and supporting profile examples. Skills without
+examples are explicitly marked self-reported. Eligibility checks remain separate
+from the skill coverage score.
 
 Guest profiles submitted for matching are not persisted on the server or
 published into Redis. "Save on device" stores a guest profile in browser local
@@ -273,3 +295,10 @@ Set the generated HTTPS URL as Vercel's `REDIS_BRIDGE_URL` Production environmen
 - Use official APIs and respect rate limits. Back off after HTTP 429 responses.
 - Do not track private individuals.
 - Keep changes in your hive folder where possible and use pull requests for shared work.
+
+Additional employer feeds include [Ai2](https://job-boards.greenhouse.io/thealleninstitute),
+[Anthropic](https://www.anthropic.com/careers/jobs),
+[Recursion](https://job-boards.greenhouse.io/recursionpharmaceuticals), and
+[Klaviyo](https://job-boards.greenhouse.io/klaviyo). These provide live research,
+fellowship, engineering, business, and marketing listings; configured sources do
+not imply every source currently has internships.

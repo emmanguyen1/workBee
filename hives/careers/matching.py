@@ -183,7 +183,15 @@ def match(job, profile: Profile):
     summary = {"matched": sum(c["status"] == "matches" for c in eligibility),
                "conflicts": sum(c["status"] == "conflict" for c in eligibility),
                "unclear": sum(c["status"] == "unknown" for c in eligibility), "required_skill_gaps": len(gaps)}
-    return {"score": score, "assessment": assessment, "comparable": bool(total), "checks": checks, "eligibility": eligibility, "location_fit": location,
+    breakdown = {
+        "required": {"matched": sum(c["status"] == "supported" for c in checks if c["kind"] == "required"), "total": sum(c["kind"] == "required" for c in checks)},
+        "preferred": {"matched": sum(c["status"] == "supported" for c in checks if c["kind"] == "preferred"), "total": sum(c["kind"] == "preferred" for c in checks)},
+        "earned_weight": sum(w for c, w in weighted if c["status"] == "supported"),
+        "total_weight": total,
+        "self_reported": sum(c["status"] == "supported" and not any(evidence.get(s) for s in c["skills"]) for c in checks if c["kind"] != "mentioned"),
+        "missing_required": gaps,
+    }
+    return {"breakdown": breakdown, "score": score, "assessment": assessment, "comparable": bool(total), "checks": checks, "eligibility": eligibility, "location_fit": location,
             "qualification_summary": summary, "next_steps": next_steps[:5],
             "has_conflict": any(c["status"] == "conflict" for c in eligibility),
             "note": "Rule-based evidence coverage, not hiring probability. Review the full description for unrecognized requirements."}

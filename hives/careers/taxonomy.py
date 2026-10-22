@@ -67,3 +67,15 @@ def role_type(title, employment=""):
     if re.search(r"\b(entry[ -]?level|junior|jr\.?|trainee)\b", title, re.I):
         return "entry_level"
     return "other"
+
+
+@lru_cache(maxsize=8192)
+def opportunity_types(title, stage):
+    kinds = ["internship"] if stage == "internship" else ["job"]
+    if re.search(r"\bresearch(?:er)?\b|\bpost[ -]?doc\w*\b|\bfellow(?:ship|s)?\b|\bREU\b|\b(?:young investigator|predoctoral|postbaccalaureate)\b", title, re.I):
+        kinds.append("research")
+    return kinds
+
+
+def talent_pool(title):
+    return bool(re.search(r"talent (?:pool|network|community)|general (?:interest|application)|expression of interest|interested in (?:an? )?internship|don.t see what you.re looking for", title, re.I))

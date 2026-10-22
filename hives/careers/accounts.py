@@ -139,6 +139,7 @@ class Credentials(BaseModel):
 
 
 class Preferences(BaseModel):
+    opportunity_type: Literal["all", "internship", "job", "research"] = "all"
     query: str = Field(default="", max_length=200)
     role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
     career_field: str = Field(default="all", pattern="^(all|" + "|".join(FIELDS) + ")$")

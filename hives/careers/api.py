@@ -10,10 +10,11 @@ from starlette.concurrency import run_in_threadpool
 
 from hives.careers import store
 from hives.careers.matching import Profile, match
-from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches
+from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches, opportunity_types, talent_pool
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
 from hives.careers.simplify import deduplicate
 from hives.careers.branding import company_brand
+from hives.careers.availability import availability, verify
 
 router = APIRouter()
 resume_slots = asyncio.Semaphore(2)
@@ -30,6 +31,7 @@ class Search(BaseModel):
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
     comparable_only: bool = False
+    opportunity_type: Literal["all", "internship", "job", "research"] = "all"
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=30, ge=1, le=100)
 
@@ -89,24 +91,22 @@ async def search(request: Search, response: Response):
 def search_catalog(data, request):
     jobs, catalog = [], []
     for job in deduplicate(data["jobs"]):
+        if talent_pool(job["title"]):
+            continue
         # Reclassify legacy snapshots without requiring a database migration.
         job = {**job, "career_field": job.get("career_field", "other") if job.get("source") == "simplify" else career_field(job["title"], job.get("department", "")),
                "role_type": "internship" if job["role_type"] == "internship" else role_type(job["title"]),
                "locations": job.get("locations") or [job["location"]],
                "workplace": job.get("workplace", "unspecified").lower()}
         catalog.append(job)
-    fields = Counter(j["career_field"] for j in catalog)
+    rank_by_fit = request.sort == "fit" and bool(request.profile.model_dump(exclude_defaults=True))
     types = Counter(j["role_type"] for j in catalog)
-    facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in FIELDS.items()],
-              "companies": sorted({j["company"] for j in catalog}),
-              "locations": sorted({v for j in catalog for v in j["locations"] if v}),
-              "role_types": dict(types)}
+    fields, categories = Counter(), Counter()
     for job in catalog:
+        job["opportunity_types"] = opportunity_types(job["title"], job["role_type"])
         if request.role_type == "early_career" and job["role_type"] == "other":
             continue
         if request.role_type not in {"all", "early_career"} and job["role_type"] != request.role_type:
-            continue
-        if request.career_field != "all" and job["career_field"] != request.career_field:
             continue
         if request.company and job["company"] != request.company:
             continue
@@ -117,21 +117,58 @@ def search_catalog(data, request):
         text = " ".join([job["title"], job["company"], *job["locations"], job["description"]]).casefold()
         if not all(word in text for word in request.query.casefold().split()):
             continue
-        if request.sort == "newest" and not request.comparable_only:
-            jobs.append(job)
-            continue
-        result = match(job, request.profile)
+        result = match(job, request.profile) if request.comparable_only else None
         if request.comparable_only and not result["comparable"]:
             continue
-        jobs.append({**job, "match": result})
-    if request.sort == "newest":
+        # Each facet respects every active filter except its own selection.
+        if request.career_field == "all" or job["career_field"] == request.career_field:
+            categories.update(job["opportunity_types"])
+            categories["all"] += 1
+        if request.opportunity_type != "all" and request.opportunity_type not in job["opportunity_types"]:
+            continue
+        fields[job["career_field"]] += 1
+        if request.career_field != "all" and job["career_field"] != request.career_field:
+            continue
+        if rank_by_fit and result is None:
+            result = match(job, request.profile)
+        jobs.append({**job, "match": result} if result else job)
+    facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in FIELDS.items()],
+              "field_total": sum(fields.values()),
+              "opportunity_types": dict(categories),
+              "companies": sorted({j["company"] for j in catalog}),
+              "locations": sorted({v for j in catalog for v in j["locations"] if v}),
+              "role_types": dict(types)}
+    if not rank_by_fit:
         jobs.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
     else:
         jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"]))
     page = jobs[request.offset:request.offset + request.limit]
-    if request.sort == "newest" and not request.comparable_only:
+    if not rank_by_fit and not request.comparable_only:
         page = [{**j, "match": match(j, request.profile)} for j in page]
-    page = [{**job, **company_brand(job["company"])} for job in page]
+    boards = {b["key"]: b for b in data["boards"]}
+    page = [{**job, **company_brand(job["company"]), "availability": availability(job, boards.get(f"{job.get('source')}:{job.get('board')}"))} for job in page]
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
             "profile_skills": [s.skill for s in request.profile.skills],
-            "catalog_total": len(catalog), "early_career_total": len(catalog) - types["other"]}
+            "effective_sort": "fit" if rank_by_fit else "newest", "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": len(catalog) - types["other"]}
+
+
+class VerifyOpportunity(BaseModel):
+    job_id: str = Field(min_length=1, max_length=500)
+
+
+@router.post("/api/careers/verify")
+async def verify_opportunity(request: VerifyOpportunity, response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    try:
+        job = await store.get_job(request.job_id)
+    except Exception as exc:
+        raise HTTPException(503, "Careers database unavailable", headers=PRIVATE_HEADERS) from exc
+    if not job:
+        raise HTTPException(404, "Opportunity not found", headers=PRIVATE_HEADERS)
+    result = await verify(job)
+    if result.get('checked_at') and result['state'] != 'unsupported':
+        try:
+            await store.save_verification(request.job_id, result)
+        except Exception as exc:
+            raise HTTPException(503, "Source checked, but the result could not be saved. Please try again.", headers=PRIVATE_HEADERS) from exc
+    return result

@@ -1,5 +1,6 @@
 """Persist complete board snapshots; errors never turn open jobs into closed jobs."""
 import json
+from datetime import datetime
 
 from core import db
 from hives.careers.feeds import employers
@@ -21,6 +22,7 @@ async def initialize():
                 changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                 open BOOLEAN NOT NULL DEFAULT true
             );
+            ALTER TABLE career_jobs ADD COLUMN IF NOT EXISTS verification JSONB;
             CREATE INDEX IF NOT EXISTS career_jobs_board_idx ON career_jobs(board_key);
         """)
     finally:
@@ -75,7 +77,28 @@ async def catalog():
         jobs = []
         for row in rows:
             data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
-            jobs.append({**data, "first_seen": row["first_seen"].isoformat(), "last_seen": row["last_seen"].isoformat(), "changed_at": row["changed_at"].isoformat()})
+            verification = json.loads(row["verification"]) if isinstance(row["verification"], str) else row["verification"]
+            jobs.append({**data, "verification": verification, "first_seen": row["first_seen"].isoformat(), "last_seen": row["last_seen"].isoformat(), "changed_at": row["changed_at"].isoformat()})
         return {"jobs": jobs, "boards": [{**dict(b), "checked_at": b["checked_at"].isoformat() if b["checked_at"] else None, "attempted_at": b["attempted_at"].isoformat()} for b in boards]}
+    finally:
+        await conn.close()
+
+
+async def get_job(job_id):
+    conn = await db.connect()
+    try:
+        row = await conn.fetchrow("SELECT data, open, last_seen FROM career_jobs WHERE id=$1", job_id)
+        if not row:
+            return None
+        data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
+        return {**data, "open": row["open"], "last_seen": row["last_seen"].isoformat()}
+    finally:
+        await conn.close()
+
+
+async def save_verification(job_id, result):
+    conn = await db.connect()
+    try:
+        await conn.execute("UPDATE career_jobs SET verification=$2::jsonb WHERE id=$1 AND (verification IS NULL OR (verification->>'checked_at')::timestamptz <= $3::timestamptz)", job_id, json.dumps(result), datetime.fromisoformat(result['checked_at']))
     finally:
         await conn.close()
