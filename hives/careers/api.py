@@ -4,7 +4,7 @@ import asyncio
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -13,6 +13,7 @@ from hives.careers.matching import Profile, match
 from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
 from hives.careers.simplify import deduplicate
+from hives.careers.branding import company_brand
 
 router = APIRouter()
 resume_slots = asyncio.Semaphore(2)
@@ -28,6 +29,7 @@ class Search(BaseModel):
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
+    comparable_only: bool = False
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=30, ge=1, le=100)
 
@@ -36,6 +38,14 @@ class Search(BaseModel):
 @router.get("/careers", response_class=HTMLResponse)
 async def careers():
     return Path(__file__).with_name("page.html").read_text()
+
+
+@router.get("/careers/assets/{asset}")
+async def careers_asset(asset: str):
+    if asset not in {"styles.css", "app.mjs", "logic.mjs"}:
+        raise HTTPException(404, "Asset not found")
+    media = "text/css" if asset.endswith(".css") else "text/javascript"
+    return FileResponse(Path(__file__).with_name("static") / asset, media_type=media, headers={"Cache-Control": "no-cache"})
 
 
 @router.post("/api/careers/resume")
@@ -52,6 +62,18 @@ async def resume(request: Request, response: Response, format: Literal["pdf", "d
             return await run_in_threadpool(import_resume, b"".join(chunks), format)
         except ResumeError as exc:
             raise HTTPException(422, str(exc), headers=PRIVATE_HEADERS) from exc
+
+
+class ManualMatch(BaseModel):
+    profile: Profile
+    description: str = Field(min_length=20, max_length=100000)
+    location: str = Field(default="", max_length=500)
+
+
+@router.post("/api/careers/match")
+async def manual_match(request: ManualMatch, response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return await run_in_threadpool(match, {"description": request.description, "location": request.location}, request.profile)
 
 
 @router.post("/api/careers/search")
@@ -95,16 +117,21 @@ def search_catalog(data, request):
         text = " ".join([job["title"], job["company"], *job["locations"], job["description"]]).casefold()
         if not all(word in text for word in request.query.casefold().split()):
             continue
-        if request.sort == "newest":
+        if request.sort == "newest" and not request.comparable_only:
             jobs.append(job)
             continue
-        jobs.append({**job, "match": match(job, request.profile)})
+        result = match(job, request.profile)
+        if request.comparable_only and not result["comparable"]:
+            continue
+        jobs.append({**job, "match": result})
     if request.sort == "newest":
         jobs.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
     else:
-        jobs.sort(key=lambda job: (job["match"]["has_conflict"], -(job["match"]["score"] or 0)))
+        jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"]))
     page = jobs[request.offset:request.offset + request.limit]
-    if request.sort == "newest":
+    if request.sort == "newest" and not request.comparable_only:
         page = [{**j, "match": match(j, request.profile)} for j in page]
+    page = [{**job, **company_brand(job["company"])} for job in page]
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
+            "profile_skills": [s.skill for s in request.profile.skills],
             "catalog_total": len(catalog), "early_career_total": len(catalog) - types["other"]}

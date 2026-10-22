@@ -42,7 +42,12 @@ careers tables automatically. For a single collection inside the running stack:
 docker compose exec careers-queen python -m hives.careers.collector
 ```
 
-Enter skills one per line, optionally followed by `|` and a project, coursework,
+Opportunities use a light card layout with company branding, location, career
+stage, skill coverage, application tracking, and a detailed requirements dialog.
+Known employer domains load logos through Google's favicon service; unavailable
+or unmapped logos fall back to company initials. No logo API key is needed.
+
+Enter skills separated by commas, semicolons, or new lines, optionally followed by `|` and a project, coursework,
 or work example. Add graduation year, enrollment, sponsorship needs, an optional
 GPA on the 4.0 scale, and a preferred location. The skill vocabulary includes
 business, marketing, design, finance, engineering, and laboratory tools. Explicit
@@ -52,6 +57,14 @@ eligibility rules and unknowns. Required skills have twice the weight of
 preferred skills; contextual mentions are excluded from the score. This limited,
 rule-based parser is not a hiring prediction or comprehensive eligibility check.
 Review the full description and employer application page before applying.
+
+“Match my profile” normalizes skill names, switches to fit ranking, and selects
+listings with comparable skill requirements when skills are supplied. Filters
+such as location and employer remain in place. Clear the comparable-requirements
+filter to include community listings without descriptions. Unavailable scores
+are shown separately from a measured 0% skill coverage. In an opportunity's
+details, paste the employer's requirements to compare an otherwise unscored
+listing; this text is processed without saving it and does not alter the source.
 
 Guest profiles submitted for matching are not persisted on the server or
 published into Redis. "Save on device" stores a guest profile in browser local

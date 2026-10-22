@@ -4,6 +4,7 @@ from urllib.parse import urlparse, parse_qs, parse_qsl, urlencode
 
 from hives.careers.feeds import safe_url
 from hives.careers.taxonomy import career_field
+from hives.careers.matching import REQUIREMENTS_VERSION
 
 SOURCE_URL = "https://github.com/SimplifyJobs/Summer2027-Internships"
 DATA_URL = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json"
@@ -34,7 +35,7 @@ def normalize_list(rows):
                      "company": row["company_name"], "title": row["title"], "location": locations[0] if locations else "",
                      "locations": locations, "countries": [], "workplace": "remote" if locations and all(v.lower() == "remote" for v in locations) else "unspecified",
                      "department": category, "career_field": field, "role_type": "internship", "description": "",
-                     "requirements": [], "requirements_version": 2, "requirements_available": False,
+                     "requirements": [], "requirements_version": REQUIREMENTS_VERSION, "requirements_available": False,
                      "apply_url": url, "published_at": timestamp(row.get("date_posted")), "source_updated_at": timestamp(row.get("date_updated")),
                      "source_url": SOURCE_URL, "attribution": "Pitt CSC & Simplify · Summer 2027 internship list",
                      "listing_status": "community_listed", "terms": ["Summer 2027"]})

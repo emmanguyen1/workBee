@@ -146,6 +146,7 @@ class Preferences(BaseModel):
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
+    comparable_only: bool = False
 
 
 class SavedState(BaseModel):

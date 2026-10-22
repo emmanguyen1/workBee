@@ -9,7 +9,7 @@ import httpx
 import yaml
 
 from hives.careers.taxonomy import career_field, role_type
-from hives.careers.matching import requirements
+from hives.careers.matching import requirements, REQUIREMENTS_VERSION
 
 
 class TextParser(HTMLParser):
@@ -105,7 +105,7 @@ def normalize(employer, raw):
         "career_field": career_field(title, department),
         "role_type": role_type(title, employment), "description": description[:100000],
         "requirements": requirements(description[:100000]),
-        "requirements_version": 2,
+        "requirements_version": REQUIREMENTS_VERSION,
         "apply_url": safe_url(url), "published_at": published,
         "source_updated_at": raw.get("updated_at"),
     }

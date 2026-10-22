@@ -4,9 +4,11 @@ from functools import lru_cache
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 from hives.careers.taxonomy import location_matches
 from hives.careers.qualifications import qualification_checks, requirement_lines
+
+REQUIREMENTS_VERSION = 3
 
 
 SKILLS = {
@@ -38,6 +40,9 @@ SKILLS = {
     "Technical writing": ["technical writing"], "Public speaking": ["public speaking"],
     "Data analysis": ["data analysis"], "Statistics": ["statistics", "statistical analysis"],
     "Laboratory techniques": ["laboratory techniques", "lab techniques"], "PCR": ["pcr"],
+    "Pandas": ["pandas"], "NumPy": ["numpy"], "Scikit-learn": ["scikit-learn", "sklearn"],
+    "FastAPI": ["fastapi"], "Django": ["django"], "Flask": ["flask"],
+    "HTML": ["html", "html5"], "CSS": ["css", "css3"], "GitHub": ["github"],
 }
 
 
@@ -59,6 +64,29 @@ class Profile(BaseModel):
     experience_years: float | None = Field(default=None, ge=0, le=60)
     available_from: date | None = None
     available_until: date | None = None
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def normalize_skills(cls, values):
+        """Accept comma/semicolon/newline lists without splitting evidence prose."""
+        if isinstance(values, str):
+            values = [{"skill": line.split("|", 1)[0], "evidence": line.split("|", 1)[1].strip() if "|" in line else ""} for line in values.splitlines()]
+        if not isinstance(values, list):
+            return values
+        normalized = {}
+        for item in values:
+            if isinstance(item, SkillEvidence):
+                item = item.model_dump()
+            if not isinstance(item, dict) or not isinstance(item.get("skill"), str):
+                return values
+            for raw in re.split(r"[,;\n]", item["skill"]):
+                if raw.strip():
+                    name = canonical(raw.strip())
+                    previous = normalized.get(name.casefold())
+                    evidence = item.get("evidence", "")
+                    if previous is None or (not previous["evidence"] and evidence):
+                        normalized[name.casefold()] = {"skill": name, "evidence": evidence}
+        return list(normalized.values())
 
     @model_validator(mode="after")
     def valid_availability(self):
@@ -129,14 +157,22 @@ def requirements(description):
 def match(job, profile: Profile):
     evidence = {canonical(s.skill): s.evidence for s in profile.skills}
     checks = []
-    extracted = job.get("requirements") if job.get("requirements_version") == 2 else None
+    extracted = job.get("requirements") if job.get("requirements_version") == REQUIREMENTS_VERSION else None
     for requirement in extracted if extracted is not None else requirements(job["description"]):
         supported = [s for s in requirement["skills"] if s in evidence]
         checks.append({**requirement, "status": "supported" if supported else "no_evidence",
                        "evidence": [{"skill": s, "text": evidence[s] or "Self-reported skill; add a project or coursework example."} for s in supported]})
     weighted = [(c, 2 if c["kind"] == "required" else 1) for c in checks if c["kind"] != "mentioned"]
     total = sum(w for _, w in weighted)
-    score = round(100 * sum(w for c, w in weighted if c["status"] == "supported") / total) if total else None
+    score = round(100 * sum(w for c, w in weighted if c["status"] == "supported") / total) if total and evidence else None
+    if not job["description"].strip():
+        assessment = "requirements_unavailable"
+    elif not total:
+        assessment = "unrecognized_requirements"
+    elif not evidence:
+        assessment = "needs_profile"
+    else:
+        assessment = "assessed"
     eligibility = qualification_checks(job["description"], profile, skill_quotes=[c["quote"] for c in checks])
     location = "unknown"
     if profile.location and job.get("location"):
@@ -147,7 +183,7 @@ def match(job, profile: Profile):
     summary = {"matched": sum(c["status"] == "matches" for c in eligibility),
                "conflicts": sum(c["status"] == "conflict" for c in eligibility),
                "unclear": sum(c["status"] == "unknown" for c in eligibility), "required_skill_gaps": len(gaps)}
-    return {"score": score, "checks": checks, "eligibility": eligibility, "location_fit": location,
+    return {"score": score, "assessment": assessment, "comparable": bool(total), "checks": checks, "eligibility": eligibility, "location_fit": location,
             "qualification_summary": summary, "next_steps": next_steps[:5],
             "has_conflict": any(c["status"] == "conflict" for c in eligibility),
             "note": "Rule-based evidence coverage, not hiring probability. Review the full description for unrecognized requirements."}
