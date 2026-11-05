@@ -46,6 +46,7 @@ class CurrentProfileTests(unittest.TestCase):
             for id in ['account-toggle','display-name','profile-school','profile-tagline','resume-apply-mode']:
                 self.assertIn('id="'+id+'"',page)
             self.assertEqual(page.count('class="selection-note"'),1)
-            self.assertEqual(page.count('class="multi-filter"'),7)
+            self.assertIn('id="career" class="multi-filter"',page)
+            self.assertIn('id="field" class="multi-filter"',page)
             self.assertNotIn('Class-year wording',page)
             self.assertNotIn('Program guide status',page)

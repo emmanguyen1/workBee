@@ -5,6 +5,7 @@ import json
 import os
 import re
 import secrets
+from datetime import date
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -32,6 +33,7 @@ async def initialize(conn):
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
         ALTER TABLE career_accounts ADD COLUMN IF NOT EXISTS identity JSONB NOT NULL DEFAULT '{}'::jsonb;
+        ALTER TABLE career_accounts ADD COLUMN IF NOT EXISTS application_details JSONB NOT NULL DEFAULT '{}'::jsonb;
         CREATE TABLE IF NOT EXISTS career_sessions (
             token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES career_accounts(id) ON DELETE CASCADE,
             expires_at TIMESTAMPTZ NOT NULL DEFAULT now() + interval '30 days'
@@ -252,7 +254,7 @@ async def save_application(job_id: str, data: Application, request: Request, res
         if data.status:
             await conn.execute("UPDATE career_accounts SET applications=applications || jsonb_build_object($2::text,$3::text) WHERE id=$1", account["id"], job_id, data.status)
         else:
-            await conn.execute("UPDATE career_accounts SET applications=applications-$2::text WHERE id=$1", account["id"], job_id)
+            await conn.execute("UPDATE career_accounts SET applications=applications-$2::text, application_details=application_details-$2::text WHERE id=$1", account["id"], job_id)
         return {"job_id": job_id, "status": data.status}
 
 
@@ -267,4 +269,32 @@ async def saved_applications(request: Request,response: Response):
         for row in rows:
             job=json_value(row['data'])
             found[row['id']]={'id':row['id'],'title':job.get('title','Saved opportunity'),'company':job.get('company','Employer'),'apply_url':job.get('apply_url'),'open':row['open'],'last_seen':row['last_seen'].isoformat()}
-        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status} for id,status in applications.items()]}
+        details=json_value(account['application_details'])
+        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status,'details':details.get(id,{'notes':'','next_action':'','follow_up':None,'revision':0})} for id,status in applications.items()]}
+
+
+class ApplicationDetails(BaseModel):
+    notes: str = Field(default="",max_length=3000)
+    next_action: str = Field(default="",max_length=200)
+    follow_up: date | None = None
+    revision: int = Field(ge=0)
+
+
+@router.put('/application-details/{job_id:path}')
+async def save_application_details(job_id: str,data: ApplicationDetails,request: Request,response: Response):
+    same_origin(request)
+    response.headers.update(PRIVATE)
+    if not re.fullmatch(r"[A-Za-z0-9_:.-]{1,200}",job_id):
+        raise HTTPException(400,"Invalid job identifier.",headers=PRIVATE)
+    async with connection() as conn:
+        async with conn.transaction():
+            account=await user(conn,request)
+            row=await conn.fetchrow('SELECT applications,application_details FROM career_accounts WHERE id=$1 FOR UPDATE',account['id'])
+            if job_id not in json_value(row['applications']):
+                raise HTTPException(404,'Save this opportunity before adding a next step.',headers=PRIVATE)
+            current=json_value(row['application_details']).get(job_id,{})
+            if data.revision!=current.get('revision',0):
+                raise HTTPException(409,'These notes changed elsewhere. Reload saved applications before editing.',headers=PRIVATE)
+            value=data.model_dump(mode='json');value['revision']+=1
+            await conn.execute('UPDATE career_accounts SET application_details=application_details || jsonb_build_object($2::text,$3::jsonb) WHERE id=$1',account['id'],job_id,json.dumps(value))
+            return value

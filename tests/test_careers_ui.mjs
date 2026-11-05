@@ -63,3 +63,9 @@ test('multi-choice preferences restore arrays and legacy saved filters',async()=
   assert.deepEqual(preferenceChoices({career_fields:[],career_field:'finance'},'career_fields','career_field'),['finance']);
   assert.deepEqual(preferenceChoices({career_fields:[],career_field:'all'},'career_fields','career_field'),[]);
 });
+
+test('application CSV preserves multiline notes and neutralizes spreadsheet formulas',async()=>{
+  const {applicationsCSV}=await import('../hives/careers/static/logic.mjs');
+  const csv=applicationsCSV([{company:'=HYPERLINK("evil")',title:'Policy, research',status:'saved',details:{notes:'First line\n"quoted"',next_action:'@formula',follow_up:'2030-01-10'}}]);
+  assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes('"\'=HYPERLINK(""evil"")"'));assert.ok(csv.includes('"Policy, research"'));assert.ok(csv.includes('"First line\n""quoted"""'));assert.ok(csv.includes('"\'@formula"'));
+});

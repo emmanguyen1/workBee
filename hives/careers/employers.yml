@@ -102,3 +102,24 @@ employers:
   - name: Lila Sciences
     source: greenhouse
     board: lilasciences
+  - name: American Public Health Association
+    source: greenhouse
+    board: americanpublichealthassociation
+  - name: ACLU
+    source: greenhouse
+    board: aclu
+  - name: ACLU
+    source: greenhouse
+    board: acluinternships
+  - name: Human Rights Watch
+    source: greenhouse
+    board: humanrightswatch
+  - name: Vera Institute of Justice
+    source: greenhouse
+    board: verainstituteofjustice
+  - name: Achievement First
+    source: greenhouse
+    board: achievementfirst
+  - name: AlphaSights
+    source: greenhouse
+    board: alphasights

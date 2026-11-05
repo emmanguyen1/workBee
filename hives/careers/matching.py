@@ -8,10 +8,20 @@ from pydantic import BaseModel, Field, model_validator, field_validator
 from hives.careers.geography import preferred_matches
 from hives.careers.qualifications import qualification_checks, requirement_lines, QUALIFICATION_VERSION
 
-REQUIREMENTS_VERSION = 4
+REQUIREMENTS_VERSION = 5
 
 
 SKILLS = {
+    "Policy analysis":["policy analysis"], "Literature review":["literature review"],
+    "Grant writing":["grant writing"], "Fundraising":["fundraising"],
+    "Lesson planning":["lesson planning"], "Curriculum development":["curriculum development"],
+    "Classroom management":["classroom management"], "Community outreach":["community outreach"],
+    "Qualitative research":["qualitative research"], "Survey design":["survey design"],
+    "Interviewing":["interviewing", "conducting interviews"], "Case management":["case management"],
+    "Clinical research":["clinical research"], "Good clinical practice":["good clinical practice"],
+    "Patient care":["patient care"], "Medical terminology":["medical terminology"],
+    "Event planning":["event planning"], "Budgeting":["budgeting"],
+    "Legal research":["legal research"], "Writing":["written communication", "writing skills"],
     "Canva": ["canva"], "A/B testing": ["a/b testing", "ab testing", "a/b tests"],
     "SPSS": ["spss"], "Stata": ["stata"], "SAS": ["sas programming", "sas software"],
     "R": ["r programming", "r language", "rstudio"], "Looker": ["looker"],
@@ -165,7 +175,7 @@ def requirements(description):
 
 
 def has_example(text):
-    return bool(re.search(r"\b(?:built|developed|designed|created|analy[sz]ed|implemented|managed|automated|optimized|tested|researched|delivered|led|organized|coursework|capstone|thesis|project|laboratory)\b", text or "", re.I))
+    return bool(re.search(r"\b(?:built|developed|designed|created|analy[sz]ed|implemented|managed|automated|optimized|tested|researched|delivered|led|organized|conducted|taught|wrote|coordinated|interviewed|collected|coursework|capstone|thesis|project|laboratory)\b", text or "", re.I))
 
 
 def match(job, profile: Profile):

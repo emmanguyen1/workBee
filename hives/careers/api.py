@@ -8,6 +8,8 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
+from datetime import datetime, timezone, timedelta
+from hives.careers.opportunity_facts import opportunity_facts
 from hives.careers.deadlines import deadline_info, recency
 from hives.careers import store
 from hives.careers.preferences import MultiPreferences
@@ -95,7 +97,7 @@ async def manual_match(request: ManualMatch, response: Response):
 async def search(request: Search, response: Response):
     response.headers["Cache-Control"] = "no-store"
     try:
-        data = await store.catalog()
+        data = await store.catalog(current_only=request.current_only)
     except Exception as exc:
         raise HTTPException(503, "Careers database unavailable. Start Postgres and the careers collector.") from exc
     return await run_in_threadpool(search_catalog, data, request)
@@ -103,10 +105,11 @@ async def search(request: Search, response: Response):
 
 def search_catalog(data, request):
     jobs, catalog = [], []
+    now=datetime.now(timezone.utc)
     board_status = {b["key"]:b for b in data["boards"]}
     source_jobs = [*data["jobs"], *(program_jobs() if not request.current_only and (request.include_programs or request.opportunity_type == "program") else [])]
     for job in deduplicate(source_jobs):
-        job={**job,"deadline_info":deadline_info(job)}
+        job={**job,"deadline_info":deadline_info(job,now)}
         if request.current_only and job["deadline_info"]["expired"]:continue
         if request.current_only:
             status = availability(job, board_status.get(f"{job.get('source')}:{job.get('board')}"), supported_boards=board_status)
@@ -160,6 +163,14 @@ def search_catalog(data, request):
         result = match(job, request.profile) if request.comparable_only else None
         if request.comparable_only and not result["comparable"]:
             continue
+        facts=job.get('facts') or opportunity_facts(job) if request.pay!='all' or request.commitments else None
+        if request.pay=='disclosed' and not facts['pay_disclosed']:continue
+        if request.pay in {'paid','unpaid'} and facts['pay_status']!=request.pay:continue
+        if request.commitments and not set(request.commitments).intersection(facts['commitments']):continue
+        if request.closing_within_days:
+            day=job['deadline_info']['date']
+            if not day or not now.date().isoformat()<=day<=(now+timedelta(days=request.closing_within_days)).date().isoformat():continue
+        if request.recent_days and recency(job)<(now-timedelta(days=request.recent_days)).timestamp():continue
         # Sector counts exclude only the sector selections.
         if (not selected_fields or job["career_field"] in selected_fields) and (not selected_types or set(selected_types).intersection(job["opportunity_types"])):
             sectors.update(job["sectors"])
@@ -176,7 +187,7 @@ def search_catalog(data, request):
         if rank_by_fit and result is None:
             result = match(job, request.profile)
         jobs.append({**job, "match": result} if result else job)
-    facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in FIELDS.items()],
+    facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in sorted(FIELDS.items(),key=lambda item:item[1].casefold())],
               "field_total": sum(fields.values()),
               "sectors": [{"value":key,"label":label,"count":sectors[key]} for key,label in sorted(SECTORS.items(),key=lambda item:item[1].casefold())],
               "opportunity_types": dict(categories),
@@ -191,7 +202,7 @@ def search_catalog(data, request):
         jobs.sort(key=recency, reverse=True)
     else:
         jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"], -job["match"]["breakdown"]["with_examples"]))
-    page = jobs[request.offset:request.offset + request.limit]
+    page = [{**j,"facts":j.get("facts") or opportunity_facts(j)} for j in jobs[request.offset:request.offset + request.limit]]
     if not rank_by_fit and not request.comparable_only:
         page = [{**j, "match": match(j, request.profile)} for j in page]
     boards = {b["key"]: b for b in data["boards"]}

@@ -1,25 +1,26 @@
 # workBee 🐝
 
-Find current technical internships, jobs, research opportunities, and first-/second-year postings
+Find current internships, jobs, research opportunities, and first-/second-year postings
 that fit your skills and goals.
 
 <img src="hives/careers/static/workbee-logo.png" alt="workBee professional bee" width="112">
 
-**Active development:** [PR #2](https://github.com/emmanguyen1/workBee/pull/2)
-and branch `feat/hivepath-careers`. Check out that branch for the current app.
+**Broader discovery development:** `feat/workbee-beyond-tech`, based on
+the existing `feat/hivepath-careers` development branch. This branch adds nontechnical
+careers, practical comparison tools and a personal application planner.
+See [research and feature details](docs/workbee-expansion.md).
 
 ## Features
 
-- Discover **technical professions across industries**: Health IT, Aerospace,
-  FinTech, Business Systems, Cybersecurity, Cloud/Data Infrastructure, AI/Robotics,
-  Mobility, Bioinformatics, EdTech, Energy Technology, and more.
-- General clinical, recruiting, sales, and administrative jobs are excluded.
-  A tech employer alone does not make a role technical; titles or explicit
-  technical-tool requirements must support the classification.
-- Filter internships, jobs, and research by career stage, employer, country,
-  state/province, workplace, and keywords. Select several options in each menu;
-  results can match any selected option within a group. Field counts follow all
-  other active filters, and selections can be saved to your account.
+- Explore healthcare, education, business, public policy, nonprofits, marketing,
+  finance, research, labs, engineering and technology.
+- Select multiple **career fields** and **employer industries** independently.
+  Industry and career-field menus are alphabetical; counts follow the other filters.
+- Filter by explicit pay information, time-commitment wording, posting recency,
+  upcoming deadlines, geography, employer and career stage.
+- Compare up to three opportunities in a temporary side-by-side shortlist.
+- Add private notes, a next action and a follow-up date to saved applications;
+  see your next steps and export your saved tracker as CSV.
 - Compare skills and qualifications with posting excerpts, missing requirements,
   eligibility questions, and an explained skill-coverage score.
 - Import PDF, DOCX, or text resumes, review supporting examples, and merge or
@@ -42,7 +43,8 @@ The **First & second year postings** opportunity type filters current internship
 with explicit class-year wording in the posting itself. There are no separate
 class-year-wording or program-guide-status controls. Tech sectors, country,
 state/province, employer, workplace, keywords, and career stage remain available
-in a left filter sidebar, with keyword search above the results. A narrow category may have no current listings.
+in a left filter sidebar, with keyword search above the results. A narrow category may have no current listings. Career fields and employer industries
+are distinct, and all professions are included by default on this branch.
 Historical program research remains in the source tree/API for compatibility,
 but closed cycles, general overviews, and signup pages are not web search results.
 
@@ -66,7 +68,7 @@ Requires Git, Docker Desktop/Compose, and Python 3.12+ for development.
 ```sh
 git clone https://github.com/emmanguyen1/workBee.git
 cd workBee
-git switch feat/hivepath-careers
+git switch feat/workbee-beyond-tech
 cp .env.workbee.example .env
 docker compose up -d --build workbee careers-queen
 ```
@@ -81,12 +83,12 @@ already exists, keep it and add only needed settings instead of replacing it.
 Public Greenhouse, Lever, and Ashby boards plus the
 [Simplify/Pitt CSC Summer 2027 list](https://github.com/SimplifyJobs/Summer2027-Internships)
 feed the catalog. Configured boards are checked every 15 minutes while the
-collector runs. Add employers in `hives/careers/employers.yml` (33 direct employers plus the
-community archive source).
+collector runs. Add employers in `hives/careers/employers.yml` (including public-health, policy, education and business boards).
 Manually reviewed program archives live in `hives/careers/programs.yml`.
 Additional healthcare/business feeds include Oscar Health, Commure, Included
 Health, Carta, Gusto, Brex, and Flexport. Aerospace coverage also includes
-Rocket Lab and Astranis alongside SpaceX. Research and lab technology feeds include
+Rocket Lab and Astranis alongside SpaceX. Broader sources include APHA, ACLU,
+Human Rights Watch, Vera, Achievement First and AlphaSights. Research and lab technology feeds include
 Ai2, Recursion, Chan Zuckerberg Initiative, and Lila Sciences.
 
 This is a curated catalog, not every available position. Feed-listed does not
@@ -99,7 +101,9 @@ covers the US and Canada; country filters use explicit feed evidence.
 
 Matching is rule-based coverage, not a hiring probability or complete eligibility
 decision. Unknowns stay explicit; class-year filters show wording from the posting.
-Raw resume files are not persisted or sent to an AI provider. Review extraction
+Pay and commitment filters reflect explicit posting wording; missing information
+stays unknown. Follow-up dates are personal planning dates, with no email or
+background notifications. Raw resume files are not persisted or sent to an AI provider. Review extraction
 drafts before use. Guest application tracking can stay in browser storage; account profiles,
 preferences, and application statuses use Postgres. Email verification and
 account recovery are not implemented. Keep production credentials private;
@@ -128,3 +132,17 @@ See [technical details](docs/workbee-technical.md),
 The unrelated trading demo has its own repository:
 [Kalshi Demo](https://github.com/emmanguyen1/kalshi-demo).
 workBee serves none of its pages or APIs. Public deployment is a separate step.
+
+
+## Lower-battery local use
+
+Keep only the website and Postgres running when you are not collecting new data:
+
+```sh
+docker compose stop careers-queen redis-bridge redis
+docker compose up -d --no-deps workbee
+```
+
+This pauses live feed collection; current-only results age out after 30 minutes.
+Profiles, notes and saved applications remain available. Resume collection when
+needed with `docker compose up -d careers-queen`. The web app does not need Redis.
