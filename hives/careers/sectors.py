@@ -3,17 +3,25 @@ import re
 from hives.careers.matching import requirements, REQUIREMENTS_VERSION
 
 SECTORS={
- 'health_it':'Health IT & digital health','aerospace':'Aerospace & space technology',
- 'fintech':'FinTech & financial technology','business_systems':'Business systems & enterprise IT',
+ 'health_it':'Healthcare & digital health','aerospace':'Aerospace & space technology',
+ 'fintech':'Finance & financial technology','business_systems':'Business systems & enterprise IT',
  'cybersecurity':'Cybersecurity','cloud_data':'Cloud & data infrastructure',
  'ai_robotics':'AI, robotics & autonomous systems','mobility':'Automotive & mobility technology',
- 'biotech':'Bioinformatics & biotechnology','edtech':'Education technology',
- 'energy':'Energy, climate & sustainability technology','commerce':'Commerce & logistics technology',
+ 'biotech':'Biotechnology & life sciences','edtech':'Education & learning',
+ 'energy':'Energy, climate & sustainability','commerce':'Commerce & logistics',
  'defense':'Defense & public-sector technology','hardware':'Hardware & semiconductors',
  'enterprise_software':'Enterprise software & SaaS','consumer':'Consumer & communication technology',
+ 'nonprofit':'Nonprofit & social impact','consulting':'Consulting & professional services',
+ 'arts':'Arts, media & culture','hospitality_industry':'Hospitality & travel',
+ 'real_estate_industry':'Real estate & construction','other_industries':'Other / unspecified industries',
  'other_tech':'Other technical fields',
 }
 COMPANY_SECTORS={
+ 'bedrock robotics':'ai_robotics','skydio':'ai_robotics','dv trading':'fintech','virtu financial':'fintech',
+ 'graphcore':'hardware','verkada':'cybersecurity','toyota research institute':'mobility','akuna capital':'fintech',
+ 'cesiumastro':'aerospace','muon space':'aerospace','sigma computing':'cloud_data',
+ 'american public health association':'health_it','aclu':'nonprofit','human rights watch':'nonprofit',
+ 'vera institute of justice':'nonprofit','achievement first':'edtech','alphasights':'consulting','givewell':'nonprofit',
  'chan zuckerberg initiative':'biotech','lila sciences':'biotech',
  'oscar health':'health_it','commure':'health_it','included health':'health_it','flatiron health':'health_it',
  'spacex':'aerospace','rocket lab':'aerospace','astranis':'aerospace',
@@ -60,4 +68,4 @@ def sector_tags(job):
       ('commerce',r'commerce|logistics|supply chain systems|warehouse automation'),
       ('defense',r'defense|defence|national security|public sector')]:
         if re.search(pattern,title,re.I) and key not in result:result.append(key)
-    return result or ['other_tech']
+    return result or ['other_tech' if TECH_TITLE.search(title) else 'other_industries']

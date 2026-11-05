@@ -1,25 +1,33 @@
 # workBee 🐝
 
-Find current technical internships, jobs, research opportunities, and first-/second-year postings
+Find current internships, jobs, research opportunities, and first-/second-year postings
 that fit your skills and goals.
 
 <img src="hives/careers/static/workbee-logo.png" alt="workBee professional bee" width="112">
 
-**Active development:** [PR #2](https://github.com/emmanguyen1/workBee/pull/2)
-and branch `feat/hivepath-careers`. Check out that branch for the current app.
+**Broader discovery development:** `feat/workbee-beyond-tech`, based on
+the existing `feat/hivepath-careers` development branch. This branch adds nontechnical
+careers, practical comparison tools and a personal application planner.
+See [research and feature details](docs/workbee-expansion.md).
 
 ## Features
 
-- Discover **technical professions across industries**: Health IT, Aerospace,
-  FinTech, Business Systems, Cybersecurity, Cloud/Data Infrastructure, AI/Robotics,
-  Mobility, Bioinformatics, EdTech, Energy Technology, and more.
-- General clinical, recruiting, sales, and administrative jobs are excluded.
-  A tech employer alone does not make a role technical; titles or explicit
-  technical-tool requirements must support the classification.
-- Filter internships, jobs, and research by career stage, employer, country,
-  state/province, workplace, and keywords. Select several options in each menu;
-  results can match any selected option within a group. Field counts follow all
-  other active filters, and selections can be saved to your account.
+- Explore healthcare, education, business, public policy, nonprofits, marketing,
+  finance, research, labs, engineering and technology.
+- Select multiple **career fields** and **employer industries** independently.
+  Industry and career-field menus are alphabetical; counts follow the other filters.
+- Filter by time commitment, geography, employer, opportunity type and career stage.
+  Sort from the results header; deadlines and supplied pay facts appear on cards.
+- Refresh sources on demand, inspect timestamps and progress, or cancel an import.
+  Saved listings remain visible with recheck labels when automatic collection is off.
+- Ask **Bee** in the bottom-right corner for source-linked discovery and product help.
+  A local search guide works without a key; optional AI answers use a server-side key.
+  See [Bee setup, privacy and source research](docs/workbee-bee-assistant.md).
+- Optionally include recent **Simplify community discoveries**, clearly marked as
+  employer-unverified, alongside independently collected employer feeds.
+- Compare up to three opportunities in a temporary side-by-side shortlist.
+- Add private notes, a next action and a follow-up date to saved applications;
+  see your next steps and export your saved tracker as CSV.
 - Compare skills and qualifications with posting excerpts, missing requirements,
   eligibility questions, and an explained skill-coverage score.
 - Import PDF, DOCX, or text resumes, review supporting examples, and merge or
@@ -31,20 +39,35 @@ and branch `feat/hivepath-careers`. Check out that branch for the current app.
   fields/posting text; missing dates sort last and past explicit deadlines are excluded.
 - Check source-feed availability; recognize employers through cached logos.
 
-## Current postings only
+## Saved listings and source freshness
 
-The web search includes roles listed in configured employer feeds within the
-last 30 minutes, excluding removed, stale, community-only listings and researched
-program guides. Feed presence is not a guarantee that the application portal
-accepts submissions; confirm on the employer website.
+The website keeps last-known-open listings observed within **seven days** visible
+when background collection is paused. Checks older than thirty minutes are marked
+**needs recheck**. Confirmed removals and explicit past deadlines are excluded.
+Optional Simplify discoveries keep their employer-unverified labels.
+
+Use **Refresh opportunities** to check all sources, selected employers, or one
+source. Watch progress, inspect timestamps, or cancel. Checks run only when asked;
+no background collector is needed. Recent checks are skipped to avoid repeat work.
+
+Search reuses prepared public catalogs; personal matches remain per request.
+See [performance measurements and refresh behavior](docs/workbee-performance-refresh.md).
 
 The **First & second year postings** opportunity type filters current internships
 with explicit class-year wording in the posting itself. There are no separate
 class-year-wording or program-guide-status controls. Tech sectors, country,
 state/province, employer, workplace, keywords, and career stage remain available
-in a left filter sidebar, with keyword search above the results. A narrow category may have no current listings.
+in a left filter sidebar, with keyword search above the results. A narrow category may have no current listings. Career fields and employer industries
+are distinct, and all professions are included by default on this branch.
 Historical program research remains in the source tree/API for compatibility,
 but closed cycles, general overviews, and signup pages are not web search results.
+
+## Account sign-in
+
+Use a workBee username or enable Google/LinkedIn sign-in with your own provider
+app credentials. Existing users can connect providers from Sign-in methods to
+keep the same saved profile. Missing credentials are clearly shown as unavailable.
+See [social sign-in setup and account behavior](docs/workbee-social-signin.md).
 
 ## Resume matching and your profile
 
@@ -66,7 +89,7 @@ Requires Git, Docker Desktop/Compose, and Python 3.12+ for development.
 ```sh
 git clone https://github.com/emmanguyen1/workBee.git
 cd workBee
-git switch feat/hivepath-careers
+git switch feat/workbee-beyond-tech
 cp .env.workbee.example .env
 docker compose up -d --build workbee careers-queen
 ```
@@ -80,13 +103,14 @@ already exists, keep it and add only needed settings instead of replacing it.
 
 Public Greenhouse, Lever, and Ashby boards plus the
 [Simplify/Pitt CSC Summer 2027 list](https://github.com/SimplifyJobs/Summer2027-Internships)
-feed the catalog. Configured boards are checked every 15 minutes while the
-collector runs. Add employers in `hives/careers/employers.yml` (33 direct employers plus the
-community archive source).
+feed the catalog. Additional employer feeds discovered through Simplify include
+Skydio, Toyota Research Institute, Verkada, Muon Space, Graphcore and more. Configured boards are checked every 15 minutes while the
+collector runs. Add employers in `hives/careers/employers.yml` (including public-health, policy, education and business boards).
 Manually reviewed program archives live in `hives/careers/programs.yml`.
 Additional healthcare/business feeds include Oscar Health, Commure, Included
 Health, Carta, Gusto, Brex, and Flexport. Aerospace coverage also includes
-Rocket Lab and Astranis alongside SpaceX. Research and lab technology feeds include
+Rocket Lab and Astranis alongside SpaceX. Broader sources include APHA, ACLU,
+Human Rights Watch, Vera, Achievement First and AlphaSights. Research and lab technology feeds include
 Ai2, Recursion, Chan Zuckerberg Initiative, and Lila Sciences.
 
 This is a curated catalog, not every available position. Feed-listed does not
@@ -99,7 +123,9 @@ covers the US and Canada; country filters use explicit feed evidence.
 
 Matching is rule-based coverage, not a hiring probability or complete eligibility
 decision. Unknowns stay explicit; class-year filters show wording from the posting.
-Raw resume files are not persisted or sent to an AI provider. Review extraction
+Pay and commitment filters reflect explicit posting wording; missing information
+stays unknown. Follow-up dates are personal planning dates, with no email or
+background notifications. Raw resume files are not persisted or sent to an AI provider. Review extraction
 drafts before use. Guest application tracking can stay in browser storage; account profiles,
 preferences, and application statuses use Postgres. Email verification and
 account recovery are not implemented. Keep production credentials private;
@@ -128,3 +154,19 @@ See [technical details](docs/workbee-technical.md),
 The unrelated trading demo has its own repository:
 [Kalshi Demo](https://github.com/emmanguyen1/kalshi-demo).
 workBee serves none of its pages or APIs. Public deployment is a separate step.
+
+
+## Lower-battery local use
+
+Keep only the website and Postgres running when you are not collecting new data:
+
+```sh
+docker compose stop careers-queen redis-bridge redis
+docker compose up -d --no-deps workbee
+```
+
+This pauses automatic collection. Cached last-known-open listings stay visible
+for seven days, with checks older than thirty minutes marked for rechecking.
+Use the website’s Refresh opportunities button for an on-demand check.
+Profiles, notes and saved applications remain available. Resume collection when
+needed with `docker compose up -d careers-queen`. The web app does not need Redis.

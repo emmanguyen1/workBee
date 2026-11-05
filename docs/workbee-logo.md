@@ -26,3 +26,11 @@ Actual transparent background.
 through Google's favicon service using known official employer domains.
 Only configured domain filenames are served. Unmapped employers use initials;
 missing cached images can fall back to the known-domain favicon service.
+
+
+## Assistant variant
+
+`workbee-assistant.png` is a generated transparent sibling of the original mark,
+with one hand waving and the other holding the same tablet. The navy blazer,
+white shirt, face, wings and drawing style are preserved. It is used only in the
+bottom-right help launcher; the former hero mascot callout was removed.

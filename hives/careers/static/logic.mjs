@@ -62,7 +62,7 @@ export function deadlineCalendar(program, now = new Date()) {
 
 export function mergeProfileSkills(existing, imported, replace=false) {
   const merged=new Map();
-  const example=text=>/\b(built|developed|designed|created|analy[sz]ed|implemented|managed|automated|project|coursework|capstone|thesis|laboratory)\b/i.test(text||'');
+  const example=text=>/\b(built|developed|designed|created|analy[sz]ed|implemented|managed|automated|conducted|taught|wrote|coordinated|interviewed|collected|project|coursework|capstone|thesis|laboratory)\b/i.test(text||'');
   for(const skill of [...(replace?[]:existing),...imported]){
     const key=skill.skill.toLowerCase();
     const previous=merged.get(key);
@@ -76,4 +76,10 @@ export function mergeProfileSkills(existing, imported, replace=false) {
 export function preferenceChoices(preferences,key,legacy){
   if(Array.isArray(preferences[key])&&preferences[key].length)return [...new Set(preferences[key])];
   return preferences[legacy]&&preferences[legacy]!=='all'?[preferences[legacy]]:[];
+}
+
+export function applicationsCSV(jobs){
+  // Spreadsheet formula prefixes are neutralized even inside CSV quoting.
+  const cell=value=>{let s=String(value??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
+  return '\uFEFF'+[['Company','Opportunity','Stage','Next action','Follow-up date','Notes','Employer link'],...jobs.map(j=>[j.company,j.title,j.status,j.details?.next_action,j.details?.follow_up,j.details?.notes,j.apply_url])].map(row=>row.map(cell).join(',')).join('\r\n');
 }

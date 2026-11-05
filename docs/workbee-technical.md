@@ -1,3 +1,7 @@
+> On `feat/workbee-beyond-tech`, the default website includes all professions.
+> See [the broader discovery research and implementation](workbee-expansion.md).
+> Technical-only scope described below documents the preceding build.
+
 # workBee
 
 ## workBee — internships, jobs & research

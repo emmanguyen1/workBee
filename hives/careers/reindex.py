@@ -2,6 +2,7 @@
 import asyncio
 import json
 from core import db
+from hives.careers.opportunity_facts import opportunity_facts
 from hives.careers.feeds import employers
 from hives.careers.matching import requirements, REQUIREMENTS_VERSION
 from hives.careers.qualifications import qualification_snapshot, QUALIFICATION_VERSION
@@ -18,11 +19,11 @@ async def main():
             updates=[]
             for row in rows:
                 job=json.loads(row['data']) if isinstance(row['data'],str) else row['data']
-                if job.get('qualification_version')==QUALIFICATION_VERSION and job.get('requirements_version')==REQUIREMENTS_VERSION:continue
+                if job.get('qualification_version')==QUALIFICATION_VERSION and job.get('requirements_version')==REQUIREMENTS_VERSION and job.get('facts_version')==1:continue
                 description=job.get('description','')
                 analysis={'qualification_snapshot':qualification_snapshot(description),'qualification_version':QUALIFICATION_VERSION,
                           'requirements':job['requirements'] if job.get('requirements_version')==REQUIREMENTS_VERSION else requirements(description),
-                          'requirements_version':REQUIREMENTS_VERSION}
+                          'requirements_version':REQUIREMENTS_VERSION,'facts':opportunity_facts(job),'facts_version':1}
                 updates.append((row['id'],json.dumps(analysis),description))
             if updates:
                 await conn.executemany("UPDATE career_jobs SET data=data || $2::jsonb WHERE id=$1 AND data->>'description'=$3",updates)

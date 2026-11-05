@@ -4,6 +4,10 @@ from hives.careers.taxonomy import FIELDS
 from hives.careers.sectors import SECTORS
 
 class MultiPreferences(BaseModel):
+    pay: Literal["all","paid","unpaid","disclosed"] = "all"
+    commitments: list[Literal["part_time","full_time","temporary"]] = Field(default_factory=list,max_length=3)
+    closing_within_days: int = Field(default=0,ge=0,le=90)
+    recent_days: int = Field(default=0,ge=0,le=90)
     sectors: list[str] = Field(default_factory=list,max_length=30)
     career_fields: list[str] = Field(default_factory=list,max_length=40)
     companies: list[Annotated[str,Field(min_length=1,max_length=100)]] = Field(default_factory=list,max_length=60)
@@ -22,5 +26,5 @@ class MultiPreferences(BaseModel):
     @field_validator("sectors")
     @classmethod
     def known_sectors(cls,values):
-        if any(v not in SECTORS for v in values):raise ValueError("Unknown technical sector")
+        if any(v not in SECTORS for v in values):raise ValueError("Unknown industry")
         return list(dict.fromkeys(values))

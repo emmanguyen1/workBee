@@ -69,7 +69,7 @@ def location_matches(query, locations):
 
 @lru_cache(maxsize=8192)
 def role_type(title, employment=""):
-    if re.search(r"\b(intern(ship)?|co[ -]?op)\b", f"{title} {employment}", re.I):
+    if re.search(r"\b(intern(ship)?|co[ -]?op|summer associate)\b|^placement,", f"{title} {employment}", re.I):
         return "internship"
     if re.search(r"\bapprentic\w*\b", title, re.I):
         return "apprenticeship"

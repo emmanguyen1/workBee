@@ -55,8 +55,15 @@ services:
     restart: unless-stopped
   workbee:
     build: .
-    command: ["uvicorn", "hives.careers.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    command: ["uvicorn", "hives.careers.app:app", "--host", "0.0.0.0", "--port", "8001", "--no-access-log"]
     environment:
+      WORKBEE_PUBLIC_URL: ${WORKBEE_PUBLIC_URL:-http://localhost:8001}
+      WORKBEE_GOOGLE_CLIENT_ID: ${WORKBEE_GOOGLE_CLIENT_ID:-}
+      WORKBEE_GOOGLE_CLIENT_SECRET: ${WORKBEE_GOOGLE_CLIENT_SECRET:-}
+      WORKBEE_LINKEDIN_CLIENT_ID: ${WORKBEE_LINKEDIN_CLIENT_ID:-}
+      WORKBEE_LINKEDIN_CLIENT_SECRET: ${WORKBEE_LINKEDIN_CLIENT_SECRET:-}
+      WORKBEE_OPENAI_API_KEY: ${WORKBEE_OPENAI_API_KEY:-}
+      WORKBEE_AI_MODEL: ${WORKBEE_AI_MODEL:-gpt-5-mini}
       DATABASE_URL: postgresql://hivework:hivework@postgres:5432/hivework
     depends_on:
       postgres: { condition: service_healthy }

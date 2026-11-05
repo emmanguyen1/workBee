@@ -20,6 +20,12 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         configured.start()
         try:
             self.assertEqual((await store.save_snapshot(employer, [job]))[0]["kind"], "discovered")
+            self.assertEqual(len((await store.catalog(current_only=True))["jobs"]),1)
+            conn=await db.connect()
+            try:await conn.execute("UPDATE career_jobs SET last_seen=now()-interval '31 minutes' WHERE id=$1",job['id'])
+            finally:await conn.close()
+            self.assertEqual((await store.catalog(current_only=True))["jobs"],[])
+            self.assertEqual(len((await store.catalog())["jobs"]),1)
             self.assertEqual(await store.save_snapshot(employer, [job]), [])
             checked = datetime.now(timezone.utc)
             verification = {"state": "removed", "label": "No longer listed", "checked_at": checked.isoformat()}

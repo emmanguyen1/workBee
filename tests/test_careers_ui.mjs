@@ -63,3 +63,20 @@ test('multi-choice preferences restore arrays and legacy saved filters',async()=
   assert.deepEqual(preferenceChoices({career_fields:[],career_field:'finance'},'career_fields','career_field'),['finance']);
   assert.deepEqual(preferenceChoices({career_fields:[],career_field:'all'},'career_fields','career_field'),[]);
 });
+
+test('application CSV preserves multiline notes and neutralizes spreadsheet formulas',async()=>{
+  const {applicationsCSV}=await import('../hives/careers/static/logic.mjs');
+  const csv=applicationsCSV([{company:'=HYPERLINK("evil")',title:'Policy, research',status:'saved',details:{notes:'First line\n"quoted"',next_action:'@formula',follow_up:'2030-01-10'}}]);
+  assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes('"\'=HYPERLINK(""evil"")"'));assert.ok(csv.includes('"Policy, research"'));assert.ok(csv.includes('"First line\n""quoted"""'));assert.ok(csv.includes('"\'@formula"'));
+});
+
+test('account profile submit applies reviewed changes instead of silently doing nothing',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../hives/careers/static/app.mjs',import.meta.url),'utf8');
+  const binding=source.match(/^\$\('profile'\)\.onsubmit=.*$/m)?.[0];assert.ok(binding);
+  const form={};let applied=0,prevented=0;
+  const bind=new Function('$','applyProfile','isAccountPage','let hasAccountEdits=false;'+binding+';return ()=>hasAccountEdits;');
+  const dirty=bind(()=>form,()=>applied++,true);
+  form.onsubmit({preventDefault(){prevented++}});
+  assert.equal(prevented,1);assert.equal(applied,1);assert.equal(dirty(),true);
+});

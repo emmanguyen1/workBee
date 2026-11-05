@@ -1,10 +1,11 @@
-"""Local account authentication and private state. No third-party identity keys."""
+"""Local sessions and private state; provider identities are handled in oauth.py."""
 import base64
 import hashlib
 import json
 import os
 import re
 import secrets
+from datetime import date
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -32,6 +33,7 @@ async def initialize(conn):
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
         ALTER TABLE career_accounts ADD COLUMN IF NOT EXISTS identity JSONB NOT NULL DEFAULT '{}'::jsonb;
+        ALTER TABLE career_accounts ADD COLUMN IF NOT EXISTS application_details JSONB NOT NULL DEFAULT '{}'::jsonb;
         CREATE TABLE IF NOT EXISTS career_sessions (
             token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES career_accounts(id) ON DELETE CASCADE,
             expires_at TIMESTAMPTZ NOT NULL DEFAULT now() + interval '30 days'
@@ -130,7 +132,7 @@ async def create_session(conn, request, response, user_id):
     await conn.execute("DELETE FROM career_sessions WHERE expires_at < now()")
     await conn.execute("DELETE FROM career_auth_attempts WHERE started_at < now()-interval '1 day'")
     await conn.execute("INSERT INTO career_sessions(token_hash,user_id) VALUES ($1,$2)", token_hash(token), user_id)
-    secure = request.url.scheme == "https" or os.getenv("CAREERS_COOKIE_SECURE", "false").lower() == "true"
+    secure = request.url.scheme == "https" or os.getenv("CAREERS_COOKIE_SECURE", "false").lower() == "true" or os.getenv("WORKBEE_PUBLIC_URL", "").startswith("https://")
     response.set_cookie(COOKIE, token, max_age=30 * 86400, httponly=True, secure=secure, samesite="lax", path="/")
     response.headers.update(PRIVATE)
 
@@ -141,6 +143,8 @@ class Credentials(BaseModel):
 
 
 class Preferences(MultiPreferences):
+    include_community: bool = False
+    include_stale: bool = True
     program_status: Literal["all", "application_window", "watch"] = "all"
     opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
     query: str = Field(default="", max_length=200)
@@ -199,8 +203,8 @@ async def login(data: Credentials, request: Request, response: Response):
     async with connection() as conn:
         key = await throttle(conn, request, "login", data.username.lower())
         row = await conn.fetchrow("SELECT * FROM career_accounts WHERE username=$1", data.username.lower())
-        valid = await run_in_threadpool(verify_password, password, row["password_hash"] if row else DUMMY_HASH)
-        if not row or not valid:
+        valid = await run_in_threadpool(verify_password, password, row["password_hash"] if row and row["password_hash"] else DUMMY_HASH)
+        if not row or not row["password_hash"] or not valid:
             raise HTTPException(401, "Incorrect username or password.", headers=PRIVATE)
         await conn.execute("DELETE FROM career_auth_attempts WHERE key=$1", key)
         await create_session(conn, request, response, row["id"])
@@ -252,7 +256,7 @@ async def save_application(job_id: str, data: Application, request: Request, res
         if data.status:
             await conn.execute("UPDATE career_accounts SET applications=applications || jsonb_build_object($2::text,$3::text) WHERE id=$1", account["id"], job_id, data.status)
         else:
-            await conn.execute("UPDATE career_accounts SET applications=applications-$2::text WHERE id=$1", account["id"], job_id)
+            await conn.execute("UPDATE career_accounts SET applications=applications-$2::text, application_details=application_details-$2::text WHERE id=$1", account["id"], job_id)
         return {"job_id": job_id, "status": data.status}
 
 
@@ -267,4 +271,32 @@ async def saved_applications(request: Request,response: Response):
         for row in rows:
             job=json_value(row['data'])
             found[row['id']]={'id':row['id'],'title':job.get('title','Saved opportunity'),'company':job.get('company','Employer'),'apply_url':job.get('apply_url'),'open':row['open'],'last_seen':row['last_seen'].isoformat()}
-        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status} for id,status in applications.items()]}
+        details=json_value(account['application_details'])
+        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status,'details':details.get(id,{'notes':'','next_action':'','follow_up':None,'revision':0})} for id,status in applications.items()]}
+
+
+class ApplicationDetails(BaseModel):
+    notes: str = Field(default="",max_length=3000)
+    next_action: str = Field(default="",max_length=200)
+    follow_up: date | None = None
+    revision: int = Field(ge=0)
+
+
+@router.put('/application-details/{job_id:path}')
+async def save_application_details(job_id: str,data: ApplicationDetails,request: Request,response: Response):
+    same_origin(request)
+    response.headers.update(PRIVATE)
+    if not re.fullmatch(r"[A-Za-z0-9_:.-]{1,200}",job_id):
+        raise HTTPException(400,"Invalid job identifier.",headers=PRIVATE)
+    async with connection() as conn:
+        async with conn.transaction():
+            account=await user(conn,request)
+            row=await conn.fetchrow('SELECT applications,application_details FROM career_accounts WHERE id=$1 FOR UPDATE',account['id'])
+            if job_id not in json_value(row['applications']):
+                raise HTTPException(404,'Save this opportunity before adding a next step.',headers=PRIVATE)
+            current=json_value(row['application_details']).get(job_id,{})
+            if data.revision!=current.get('revision',0):
+                raise HTTPException(409,'These notes changed elsewhere. Reload saved applications before editing.',headers=PRIVATE)
+            value=data.model_dump(mode='json');value['revision']+=1
+            await conn.execute('UPDATE career_accounts SET application_details=application_details || jsonb_build_object($2::text,$3::jsonb) WHERE id=$1',account['id'],job_id,json.dumps(value))
+            return value

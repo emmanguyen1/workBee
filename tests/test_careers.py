@@ -140,7 +140,7 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(data["total"], 1)
             self.assertEqual(data["jobs"][0]["match"]["score"], 100)
             self.assertEqual(client.post("/api/careers/search", json={"limit": 1000}).status_code, 422)
-            self.assertIn("Your next opportunity", client.get("/careers").text)
+            self.assertIn('id="keyword-search"', client.get("/careers").text)
             self.assertIn("workBee", client.get("/hivepath").text)
             self.assertNotIn("Kalshi", client.get("/").text)
             self.assertEqual(client.get("/kalshi").status_code,404)

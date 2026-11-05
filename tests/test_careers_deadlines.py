@@ -37,3 +37,21 @@ class PageTests(unittest.TestCase):
         self.assertLess(search.index('id="keyword-search"'),search.index('class="filter-sidebar"'))
         self.assertIn('id="account-storage"',search)
         self.assertIn('id="account-private" class="hidden"',Path('hives/careers/account.html').read_text())
+
+
+class SimplifiedFilterTests(unittest.TestCase):
+    def test_sort_is_outside_sidebar_and_removed_filters_are_not_hidden_controls(self):
+        class Controls(HTMLParser):
+            def __init__(self):super().__init__();self.in_form=0;self.sort_in_form=None;self.ids=set();self.sort_attrs={}
+            def handle_starttag(self,tag,attrs):
+                attrs=dict(attrs)
+                if tag=='form':self.in_form+=1
+                if 'id' in attrs:self.ids.add(attrs['id'])
+                if attrs.get('id')=='sort':self.sort_in_form=self.in_form;self.sort_attrs=attrs
+            def handle_endtag(self,tag):
+                if tag=='form':self.in_form-=1
+        p=Controls();p.feed(Path('hives/careers/page.html').read_text())
+        self.assertEqual(p.sort_in_form,0);self.assertEqual(p.sort_attrs.get('form'),'filters')
+        self.assertFalse({'pay-filter','closing-window','recent-window'}&p.ids)
+        account=Controls();account.feed(Path('hives/careers/account.html').read_text())
+        self.assertFalse({'pay-filter','closing-window','recent-window'}&account.ids)
