@@ -51,6 +51,9 @@ source. Watch progress, inspect timestamps, or cancel. Checks run only when aske
 no background collector is needed. Recent checks are skipped to avoid repeat work.
 
 Search reuses prepared public catalogs; personal matches remain per request.
+Listings load compact summaries; opening an opportunity fetches its full posting
+and source evidence. Existing installations can run the one-time search-index
+upgrade described below.
 See [performance measurements and refresh behavior](docs/workbee-performance-refresh.md).
 
 The **First & second year postings** opportunity type filters current internships

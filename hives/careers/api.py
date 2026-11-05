@@ -47,6 +47,7 @@ class Search(MultiPreferences):
     include_programs: bool = False
     include_community: bool = False
     include_stale: bool = False
+    compact: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
     opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
@@ -102,7 +103,10 @@ async def search(request: Search, response: Response):
     response.headers["Cache-Control"] = "no-store"
     try:
         started=perf_counter()
-        data,hit = await catalog_cache.get(current_only=request.current_only,include_community=request.include_community,include_stale=request.include_stale)
+        data,hit = await catalog_cache.get(current_only=request.current_only,include_community=request.include_community,include_stale=request.include_stale,compact=request.compact)
+        if request.compact and request.query.strip():
+            ids=await store.query_ids(request.query,current_only=request.current_only,include_community=request.include_community,include_stale=request.include_stale,compact=True)
+            data={**data,'query_ids':ids}
         loaded=perf_counter()
     except Exception as exc:
         raise HTTPException(503, "Careers database unavailable. Start Postgres and retry; a background collector is not required.") from exc
@@ -143,7 +147,7 @@ def search_catalog(data, request):
             if not cached and not community and (job.get('source') not in {'greenhouse','lever','ashby'} or status['state']!='listed'):continue
             job['needs_recheck']=cached or job.get('source')=='simplify'
         if request.technical_only:
-            technical,reason=technical_role(job)
+            technical,reason=(job['is_technical'],job.get('technical_evidence','')) if 'is_technical' in job else technical_role(job)
             if not technical:continue
             job={**job,'technical_evidence':reason}
         catalog.append(job)
@@ -175,8 +179,11 @@ def search_catalog(data, request):
         if not location_matches(request.location, [*job["locations"], *job.get("countries", [])]):
             continue
         if request.query.strip():
-            text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
-            if not all(word in text for word in request.query.casefold().split()):continue
+            if 'query_ids' in data and not job.get('is_program'):
+                if job['id'] not in data['query_ids']:continue
+            else:
+                text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
+                if not all(word in text for word in request.query.casefold().split()):continue
         result = match(job, request.profile,evidence=evidence) if request.comparable_only else None
         if request.comparable_only and not result["comparable"]:
             continue
@@ -224,6 +231,8 @@ def search_catalog(data, request):
         page = [{**j, "match": match(j, request.profile,evidence=evidence)} for j in page]
     boards = {b["key"]: b for b in data["boards"]}
     page = [{**job, **company_brand(job["company"]), "availability": job["availability"] if job.get("is_program") else availability(job, boards.get(f"{job.get('source')}:{job.get('board')}"))} for job in page]
+    if request.compact:
+        page=[compact_card(job) for job in page]
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
             "profile_skills": [s.skill for s in request.profile.skills],
             "needs_recheck_total":sum(j.get('needs_recheck',False) for j in jobs),
@@ -272,3 +281,31 @@ async def early_college_programs(response: Response):
 async def account_page(response: Response):
     response.headers.update(PRIVATE_HEADERS)
     return Path(__file__).with_name('account.html').read_text()
+
+
+def compact_card(job):
+    if not job.get('description_deferred'):return job
+    result={key:value for key,value in job.items() if key not in {'requirements','qualification_snapshot','application_key'}}
+    result['match']={**job['match'],'checks':[{**c,'quote':None,'quote_deferred':True} for c in job['match']['checks']],'eligibility':[{**c,'quote':None,'quote_deferred':True} for c in job['match']['eligibility']]}
+    return result
+
+
+class DetailsRequest(BaseModel):
+    profile:Profile=Field(default_factory=Profile)
+
+
+@router.post('/api/careers/opportunities/{job_id}/details')
+async def opportunity_details(job_id:str,body:DetailsRequest,response:Response):
+    response.headers.update(PRIVATE_HEADERS)
+    if len(job_id)>500:raise HTTPException(400,'Invalid opportunity identifier.')
+    try:
+        job=await store.get_job(job_id)
+        if not job:raise HTTPException(404,'This opportunity is no longer in the catalog.')
+        board=await store.get_board(job)
+    except HTTPException:raise
+    except Exception as exc:raise HTTPException(503,'Opportunity details are unavailable. Retry shortly.') from exc
+    public=prepare_catalog({'jobs':[job]})['jobs']
+    job=public[0] if public else job
+    job={**job,'deadline_info':deadline_info(job),'facts':opportunity_facts(job),'availability':availability(job,board),'description_deferred':False,**company_brand(job['company'])}
+    job['match']=await run_in_threadpool(match,job,body.profile)
+    return {'job':job}

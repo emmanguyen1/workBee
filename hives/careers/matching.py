@@ -193,7 +193,7 @@ def match(job, profile: Profile, evidence=None):
     weighted = [(c, 2 if c["kind"] == "required" else 1) for c in checks if c["kind"] != "mentioned"]
     total = sum(w for _, w in weighted)
     score = round(100 * sum(w for c, w in weighted if c["status"] == "supported") / total) if total and evidence else None
-    if not job["description"].strip():
+    if not job.get("has_description",bool(job["description"].strip())):
         assessment = "requirements_unavailable"
     elif not total:
         assessment = "unrecognized_requirements"

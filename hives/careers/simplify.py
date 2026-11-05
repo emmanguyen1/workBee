@@ -43,6 +43,8 @@ def normalize_list(rows):
 
 
 def application_key(job):
+    if job.get('application_key') is not None:
+        key=job['application_key'];return tuple(key) if isinstance(key,list) else key
     url = urlparse(job.get("apply_url", ""))
     host, path = (url.hostname or "").lower(), url.path.rstrip("/")
     parts = path.strip("/").split("/")
