@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences, deadlineCalendar} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -9,8 +9,8 @@ let saved=read(SAVED_KEY,{});if(!saved||typeof saved!=='object'||Array.isArray(s
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {opportunity_type:$('opportunity-type').value,query:$('query').value,role_type:$('role').value,career_field:$('field').value,country:$('country').value,region:$('region').value,workplace:$('workplace').value,company:$('company').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);for(const [key,id,fallback] of [['opportunity_type','opportunity-type','all'],['query','query',''],['role_type','role','all'],['career_field','field','all'],['country','country',''],['region','region',''],['workplace','workplace','all'],['company','company',''],['sort','sort','fit']]){const node=$(id),value=p[key]??fallback;if(node.tagName==='SELECT'&&![...node.options].some(o=>o.value===value)){const option=make('option',value);option.value=value;node.append(option)}node.value=value}}
+function preferences(){return {include_programs:true,program_status:$('program-status').value,student_year:$('student-year').value,opportunity_type:$('opportunity-type').value,query:$('query').value,role_type:$('role').value,career_field:$('field').value,country:$('country').value,region:$('region').value,workplace:$('workplace').value,company:$('company').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);for(const [key,id,fallback] of [['program_status','program-status','all'],['student_year','student-year','all'],['opportunity_type','opportunity-type','all'],['query','query',''],['role_type','role','all'],['career_field','field','all'],['country','country',''],['region','region',''],['workplace','workplace','all'],['company','company',''],['sort','sort','fit']]){const node=$(id),value=p[key]??fallback;if(node.tagName==='SELECT'&&![...node.options].some(o=>o.value===value)){const option=make('option',value);option.value=value;node.append(option)}node.value=value}}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
 function accountView(data,restore=true){accountUser=data.user;accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore&&Object.keys(data.profile||{}).length){fill(data.profile);fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.'}}
 $('auth-mode').onchange=()=>{$('account-password').autocomplete=$('auth-mode').value==='register'?'new-password':'current-password'};
@@ -55,9 +55,9 @@ function logo(job) {
   initials.setAttribute('aria-hidden','true'); box.append(initials);
   if (job.company_logo_url) {
     try {
-      const url = new URL(job.company_logo_url);
-      if (url.protocol === 'https:' && url.hostname === 'www.google.com') {
-        const img = make('img'); img.alt = job.company + ' logo'; img.loading='lazy'; img.decoding='async'; img.referrerPolicy='no-referrer'; img.src=url.href; img.onerror=()=>{img.hidden=true}; box.append(img);
+      const url = new URL(job.company_logo_url,location.origin);
+      if ((url.protocol === 'https:' && url.hostname === 'www.google.com') || (url.origin === location.origin && url.pathname.startsWith('/careers/logos/'))) {
+        const img = make('img'); img.alt = job.company + ' logo'; img.loading='lazy'; img.decoding='async'; img.referrerPolicy='no-referrer'; img.src=url.href; img.onerror=()=>{if(!img.dataset.retry&&job.company_domain){img.dataset.retry='1';img.src='https://www.google.com/s2/favicons?domain='+encodeURIComponent(job.company_domain)+'&sz=128'}else img.hidden=true}; box.append(img);
       }
     } catch {}
   }
@@ -75,12 +75,12 @@ function options(id, items, first) {
 function facets(data) {
   fieldLabels=Object.fromEntries(data.facets.fields.map(f=>[f.value,f.label]));
   options('field', data.facets.fields.map(f=>({value:f.value,label:f.label+' ('+f.count+')'})), 'All fields ('+data.facets.field_total+')');
-  for(const option of $('opportunity-type').options){const names={all:'All opportunities',internship:'Internships & co-ops',job:'Jobs',research:'Research & fellowships'};option.textContent=names[option.value]+' ('+(data.facets.opportunity_types[option.value]||0)+')';}
+  for(const option of $('opportunity-type').options){const names={all:'All opportunities',internship:'Internships & co-ops',job:'Jobs',research:'Research & fellowships',program:'First & second year programs'};option.textContent=names[option.value]+' ('+(data.facets.opportunity_types[option.value]||0)+')';}
   options('company',data.facets.companies.map(c=>({value:c,label:c})),'All employers');
   options('country', [...data.facets.countries,{value:'unknown',label:'Country not specified'}], 'Any country');
   options('region', data.facets.regions.filter(r=>!$('country').value||r.country===$('country').value).map(r=>({value:r.value,label:r.label+' · '+r.country})), 'Any state or province');
   $('preferred-regions').replaceChildren(...[...data.facets.countries,...data.facets.regions].map(place=>{const node=make('option');node.value=place.label;return node}));
-  $('coverage').replaceChildren(...[[data.catalog_total,'Listed opportunities'],[data.early_career_total,'Early-career roles'],[data.facets.companies.length,'Employers to explore'],[data.catalog_field_total,'Career fields in catalog']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
+  $('coverage').replaceChildren(...[[data.catalog_total,'Opportunities in catalog'],[data.early_career_total,'Early-career opportunities'],[data.facets.companies.length,'Employers to explore'],[data.catalog_field_total,'Career fields in catalog']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
 }
 
 function tags(job) {
@@ -89,6 +89,7 @@ function tags(job) {
   node.append(make('span',stage||job.role_type,'tag stage'),make('span',fieldLabels[job.career_field]||job.career_field,'tag field'));
   if(job.workplace!=='unspecified')node.append(make('span',job.workplace==='onsite'?'On-site':job.workplace[0].toUpperCase()+job.workplace.slice(1),'tag remote'));
   if(job.opportunity_types?.includes('research'))node.append(make('span','Research / fellowship','tag research'));
+  for(const year of job.student_audience?.years||[])node.append(make('span',year===1?'Mentions first-year':'Mentions second-year','tag'));
   if(job.terms?.length)node.append(make('span',job.terms.join(' · '),'tag'));
   return node;
 }
@@ -133,6 +134,7 @@ function tracking(job) {
 }
 
 function card(job) {
+  if(job.is_program)return programCard(job);
   const article=make('article',undefined,'job'),company=make('div',undefined,'company-row'),identity=make('div',undefined,'company-identity');
   identity.append(make('div',job.company,'company-name'));
   const source=make('div',undefined,'source-tag'+(job.listing_status==='community_listed'?' community':''));source.append(make('span'),document.createTextNode(job.listing_status==='community_listed'?'Community discovery':'Employer feed'));identity.append(source);company.append(logo(job),identity);article.append(company);
@@ -191,6 +193,7 @@ function renderMatchDetails(node,result) {
 }
 
 function showDetails(job) {
+  if(job.is_program)return showProgramDetails(job);
   const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
   const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close opportunity details');close.onclick=()=>dialog.close();header.append(logo(job),heading,close);
@@ -198,6 +201,7 @@ function showDetails(job) {
   const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
+  if(job.student_audience?.evidence?.length){const audience=section('Class-year wording in the posting');audience.open=true;for(const quote of job.student_audience.evidence)audience.append(make('p',quote,'quote'));audience.append(make('p','A class-year mention is not a complete eligibility decision. Review the full requirements.','notice'));body.append(audience)}
   const comparison=make('div');renderMatchDetails(comparison,job.match);body.append(comparison);
   const manual=make('div',undefined,'manual-comparison');manual.append(make('h3',job.description?'Compare an updated employer description':'Compare the employer’s requirements'),make('p','Paste the requirements from the employer posting. We’ll compare them with your current profile. This text is used for this comparison only.'));
   const input=make('textarea');input.maxLength=100000;input.minLength=20;input.placeholder='Paste the actual qualifications, skills, and eligibility requirements…';input.setAttribute('aria-label','Employer requirements for comparison');
@@ -250,9 +254,9 @@ async function load() {
     $('results-count').textContent=total.toLocaleString()+' roles';
     const normalized=data.profile_skills||[];
     $('match-notice').classList.toggle('active',normalized.length>0);
-    $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing roles with comparable requirements.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
+    $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing roles with comparable requirements. Program guides without full postings are hidden; turn off that filter to include them.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
     $('sort-note').textContent=data.effective_sort==='newest'?'Sorted by first discovery in this catalog, not employer publication date.':'Sorted by skill coverage, with possible eligibility conflicts last. Scores are not hiring predictions.';
-    $('status').textContent=total.toLocaleString()+' opportunities in this view';
+    $('status').textContent=total.toLocaleString()+' opportunities · '+data.listing_total+' job listings · '+data.program_total+' program guides (availability varies)';
     $('sources').replaceChildren();const sources=section('Source checks · '+data.boards.length+' feeds'),grid=make('div',undefined,'source-grid');for(const board of data.boards){const stale=!board.checked_at||Date.now()-Date.parse(board.checked_at)>30*60000;grid.append(make('div',board.company+': '+(board.error||(!board.checked_at?'Waiting for first check':relativeTime(board.checked_at))),'source'+(board.error||stale?' unknown':'')))}sources.append(grid);$('sources').append(sources);
     $('previous').disabled=offset===0;$('next').disabled=offset+PAGE>=total;$('page').textContent=total?`${offset+1}–${Math.min(offset+PAGE,total)} of ${total.toLocaleString()}`:'0 roles';
     return true;
@@ -271,4 +275,40 @@ for(const id of ['query'])$(id).addEventListener('input',()=>{clearTimeout(filte
 $('reset-filters').onclick=resetFilters;
 $('previous').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};
 $('next').onclick=()=>{offset+=PAGE;load()};
+function officialLink(url,label){
+  const link=make('a',label,'button-link secondary');
+  try{const parsed=new URL(url);if(parsed.protocol!=='https:')return make('span','Official link unavailable');link.href=parsed.href;link.target='_blank';link.rel='noopener noreferrer';return link}catch{return make('span','Official link unavailable')}
+}
+function programTags(program){
+  const tags=make('div',undefined,'tags');tags.append(make('span',program.kind,'tag field'));
+  for(const year of program.years)tags.append(make('span',{0:'Incoming first-year',1:'Freshman / first-year',2:'Sophomore / second-year'}[year],'tag stage'));
+  return tags;
+}
+function programCalendarButton(program){
+  const button=make('button','Add deadline to calendar','secondary');button.type='button';
+  button.onclick=()=>{const blob=new Blob([deadlineCalendar(program)],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob),link=make('a');link.href=url;link.download=program.id.replaceAll(':','-')+'.ics';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+  return button;
+}
+function programCard(program){
+  const card=make('article',undefined,'job program-card'),company=make('div',undefined,'company-row'),identity=make('div',undefined,'company-identity');
+  identity.append(make('div',program.company,'company-name'),make('div','Program guide · manually researched','source-tag'));company.append(logo(program),identity);card.append(company);
+  const heading=make('h3'),title=make('button',program.title,'job-title');title.type='button';title.onclick=()=>showProgramDetails(program);heading.append(title);card.append(heading,make('p',program.summary,'program-summary'),programTags(program));
+  card.append(make('p',program.status_label,'program-state '+program.status));
+  if(program.deadline)card.append(make('p','Deadline: '+(program.deadline_note||program.deadline+' · cutoff time not published'),'program-deadline'));
+  const actions=make('div',undefined,'card-actions'),details=make('button','Eligibility & preparation','secondary');details.type='button';details.onclick=()=>showProgramDetails(program);actions.append(details,officialLink(program.source_url,'Official page ↗'));card.append(actions,tracking(program));
+  card.append(make('p','Source reviewed '+program.checked_on+' · '+program.cycle,'job-freshness'));
+  return card;
+}
+function showProgramDetails(program){
+  const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');heading.append(make('div',program.company,'company-name'));const title=make('h2',program.title);title.id='opportunity-title';heading.append(title);
+  const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close program details');close.onclick=()=>dialog.close();header.append(logo(program),heading,close);
+  const body=make('div',undefined,'dialog-body');body.append(programTags(program),make('p',program.summary),make('p',program.status_label,'program-state '+program.status),make('p',program.status_note,'notice'));
+  if(program.deadline)body.append(make('p','Published deadline: '+(program.deadline_note||program.deadline+' · cutoff time not published'),'program-deadline'));
+  body.append(make('h3','Who can apply?'),make('p',program.eligibility),make('p','Class-year eligibility is only one requirement. Confirm the full rules on the official page; workBee does not make a complete eligibility decision.','notice muted'));
+  const list=make('ul',undefined,'next-steps');for(const item of program.preparation)list.append(make('li',item));body.append(make('h3','Prepare your application'),list);
+  const actions=make('div',undefined,'actions');actions.append(officialLink(program.source_url,program.status==='application_window'?'View application details ↗':'View official program page ↗'));
+  if(program.eligibility_url)actions.append(officialLink(program.eligibility_url,'Full eligibility ↗'));
+  if(program.deadline&&program.status!=='closed')actions.append(programCalendarButton(program));body.append(actions,make('p','Official sources reviewed '+program.checked_on+'. Program guides are manually maintained, separately from feed-listed jobs.','notice muted'));
+  container.replaceChildren(header,body);dialog.showModal();
+}
 async function start(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation===authGeneration)accountView(data)}catch(error){if(generation===authGeneration)$('account-message').textContent='Account storage is unavailable. You can continue in guest mode.'}if(generation===authGeneration)await load()}start();

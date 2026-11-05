@@ -1,0 +1,117 @@
+# Manually researched official program pages. These are not live job feed rows.
+programs:
+  - id: program:nvidia-ignite
+    company: NVIDIA
+    title: NVIDIA Ignite
+    kind: Pre-internship
+    years: [1, 2]
+    field: software
+    countries: [US]
+    source_url: https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/NVIDIA-2027-Ignite-Internships--Software-Engineering_JR2026958
+    checked_on: '2026-11-05'
+    status: closed
+    deadline: '2026-10-18'
+    cycle: Summer 2027
+    summary: A twelve-week technical introduction through hands-on project work in Santa Clara.
+    eligibility: Designed for current first- and second-year undergraduates. Review each discipline's posting for its specific requirements.
+    status_note: The published 2027 application window ran October 5–18, 2026. Watch for a newly announced cycle; do not assume applications are open.
+    preparation: [Prepare a short project explanation, Review the next cycle's discipline-specific requirements]
+  - id: program:microsoft-explore
+    company: Microsoft
+    title: Explore Microsoft
+    kind: Internship
+    years: [1, 2]
+    field: software
+    countries: [US, IN]
+    source_url: https://careers.microsoft.com/v2/global/en/exploremicrosoft
+    checked_on: '2026-11-05'
+    status: check_postings
+    cycle: Check individual postings
+    summary: An engineering introduction through collaborative software projects; duration differs between the US and India.
+    eligibility: The overview targets first- and/or second-year college students. Eligibility differs by location and individual requisition; some postings may target only second-years.
+    status_note: The program overview is available. An overview page does not confirm an open internship requisition.
+    preparation: [Review the exact class-year requirement on the requisition, Prepare one collaborative coding project]
+  - id: program:microsoft-discovery
+    company: Microsoft
+    title: Microsoft Discovery
+    kind: Pre-college internship
+    years: [0]
+    field: software
+    countries: [US]
+    source_url: https://careers.microsoft.com/v2/global/en/universityinternship
+    checked_on: '2026-11-05'
+    status: check_postings
+    cycle: Check individual postings
+    summary: A four-week introduction to technical work before starting college.
+    eligibility: Intended for rising first-year college students. The official overview lists Redmond and Atlanta; confirm the individual posting's location rules.
+    status_note: This is a preparation route for incoming freshmen, not a sophomore program. Current application availability requires checking the employer.
+    preparation: [Confirm you are an incoming rather than continuing first-year, Review location and schedule requirements]
+  - id: program:jane-street-fttp
+    company: Jane Street
+    title: First-Year Trading and Technology Program
+    kind: Insight event
+    years: [1]
+    field: finance
+    countries: []
+    source_url: https://www.janestreet.com/join-jane-street/programs-and-events/fttp/
+    checked_on: '2026-11-05'
+    status: notify_only
+    cycle: Upcoming sessions not confirmed
+    summary: A short introduction to quantitative trading and technology through classes and group activities.
+    eligibility: For first-year undergraduates interested in STEM. Prior finance experience is unnecessary; apply to the nearest available location.
+    status_note: The official page currently offers session notifications. Notification signup is not an open application or an internship offer.
+    preparation: [Practice explaining how you solve a problem, Check the next session's location and dates]
+  - id: program:jane-street-focus
+    company: Jane Street
+    title: FOCUS
+    kind: Insight event
+    years: [1]
+    field: finance
+    countries: []
+    source_url: https://www.janestreet.com/join-jane-street/programs-and-events/focus/
+    checked_on: '2026-11-05'
+    status: notify_only
+    cycle: Upcoming sessions not confirmed
+    summary: A multi-day introduction to trading, engineering, and product work.
+    eligibility: First-year university students who have experienced barriers to advanced STEM opportunities. The employer defines the access criteria; workBee does not infer them from your profile.
+    status_note: The official page currently links to session notifications. Confirm session applications directly with Jane Street.
+    preparation: [Read the employer's access criteria, Prepare a concise statement of your interests]
+  - id: program:nreip
+    company: Office of Naval Research
+    title: Naval Research Enterprise Internship Program
+    kind: Research internship
+    years: [1, 2]
+    field: science
+    countries: [US]
+    source_url: https://www.navalsteminterns.us/internships/nreip/
+    eligibility_url: https://www.navalsteminterns.us/internships/nreip/faqs/
+    checked_on: '2026-11-05'
+    status: application_window
+    opens_on: '2026-09-15'
+    deadline: '2026-11-30'
+    deadline_at: '2026-12-01T05:59:00+00:00'
+    deadline_note: November 30, 2026 at 11:59 p.m. Central time
+    cycle: Summer 2027
+    summary: Ten weeks of mentored research in participating Navy laboratories.
+    eligibility: First-years must reach rising-sophomore standing by the internship. Full-time enrollment and relevant studies are required. Most labs require US citizenship; exceptions for permanent residents, dual citizens, and two-year colleges depend on the lab.
+    status_note: The official 2027 window is September 15–November 30, 2026. Review each lab's eligibility before applying.
+    preparation: [Identify laboratories aligned with your interests, Request recommendations early, Prepare your transcript and research statement]
+  - id: program:doe-suli
+    company: U.S. Department of Energy
+    title: Science Undergraduate Laboratory Internships
+    kind: Research internship
+    years: [1, 2]
+    field: science
+    countries: [US]
+    source_url: https://science.osti.gov/wdts/suli
+    eligibility_url: https://science.osti.gov/wdts/suli/Frequently-Asked-Questions
+    checked_on: '2026-11-05'
+    status: application_window
+    deadline: '2027-01-06'
+    deadline_at: '2027-01-06T22:00:00+00:00'
+    deadline_note: January 6, 2027 at 5:00 p.m. Eastern time
+    cycle: Summer 2027
+    summary: Paid research with mentors at participating Department of Energy laboratories.
+    eligibility: Freshmen need a completed college semester or quarter, 12 degree credits, and 6 STEM credits by the eligibility cutoff; pre-college credits do not satisfy these thresholds. A 3.0 GPA, age 18 by the start, and US citizenship or lawful permanent residence are required. Review the official timing and enrollment rules.
+    status_note: The official Summer 2027 page announces applications open through January 6, 2027. This program also accepts later-year students.
+    preparation: [Check semester and credit thresholds before applying, Review research areas and laboratory choices, Request recommendations and prepare transcripts]

@@ -14,7 +14,8 @@ from hives.careers.taxonomy import FIELDS, career_field, role_type, location_mat
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
 from hives.careers.simplify import deduplicate
 from hives.careers.geography import geography, region_matches, COUNTRIES, REGIONS
-from hives.careers.branding import company_brand
+from hives.careers.branding import company_brand, DOMAINS
+from hives.careers.programs import program_catalog, student_years, program_jobs
 from hives.careers.availability import availability, verify
 
 router = APIRouter()
@@ -33,8 +34,11 @@ class Search(BaseModel):
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
+    student_year: Literal["all", "incoming", "first", "second"] = "all"
+    include_programs: bool = False
+    program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
-    opportunity_type: Literal["all", "internship", "job", "research"] = "all"
+    opportunity_type: Literal["all", "internship", "job", "research", "program"] = "all"
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=30, ge=1, le=100)
 
@@ -48,9 +52,9 @@ async def careers():
 
 @router.get("/careers/assets/{asset}")
 async def careers_asset(asset: str):
-    if asset not in {"styles.css", "app.mjs", "logic.mjs"}:
+    if asset not in {"styles.css", "app.mjs", "logic.mjs", "workbee-logo.png"}:
         raise HTTPException(404, "Asset not found")
-    media = "text/css" if asset.endswith(".css") else "text/javascript"
+    media = "image/png" if asset.endswith(".png") else "text/css" if asset.endswith(".css") else "text/javascript"
     return FileResponse(Path(__file__).with_name("static") / asset, media_type=media, headers={"Cache-Control": "no-cache"})
 
 
@@ -94,24 +98,31 @@ async def search(request: Search, response: Response):
 
 def search_catalog(data, request):
     jobs, catalog = [], []
-    for job in deduplicate(data["jobs"]):
+    source_jobs = [*data["jobs"], *(program_jobs() if request.include_programs or request.opportunity_type == "program" else [])]
+    for job in deduplicate(source_jobs):
         if talent_pool(job["title"]):
             continue
         # Reclassify legacy snapshots without requiring a database migration.
-        job = {**job, "career_field": job.get("career_field", "other") if job.get("source") == "simplify" else career_field(job["title"], job.get("department", "")),
-               "role_type": "internship" if job["role_type"] == "internship" else role_type(job["title"]),
+        job = {**job, "career_field": job.get("career_field", "other") if job.get("source") in {"simplify", "program"} else career_field(job["title"], job.get("department", "")),
+               "role_type": job["role_type"] if job.get("is_program") else "internship" if job["role_type"] == "internship" else role_type(job["title"]),
                "locations": job.get("locations") or [job["location"]],
                "workplace": job.get("workplace", "unspecified").lower()}
+        job["student_audience"] = job["student_audience"] if job.get("is_program") else student_years(job)
         job["geography"] = geography(job)
         catalog.append(job)
     rank_by_fit = request.sort == "fit" and bool(request.profile.model_dump(exclude_defaults=True))
     types = Counter(j["role_type"] for j in catalog)
     fields, categories = Counter(), Counter()
     for job in catalog:
-        job["opportunity_types"] = opportunity_types(job["title"], job["role_type"])
-        if request.role_type == "early_career" and job["role_type"] == "other":
+        job["opportunity_types"] = job["opportunity_types"] if job.get("is_program") else opportunity_types(job["title"], job["role_type"])
+        if job.get("is_program") and request.program_status != "all":
+            if (job["status"] == "application_window") != (request.program_status == "application_window"):
+                continue
+        if request.role_type == "early_career" and job["role_type"] == "other" and not job.get("is_program"):
             continue
         if request.role_type not in {"all", "early_career"} and job["role_type"] != request.role_type:
+            continue
+        if request.student_year != "all" and {"incoming":0,"first":1,"second":2}[request.student_year] not in job["student_audience"]["years"]:
             continue
         if request.company and job["company"] != request.company:
             continue
@@ -121,7 +132,7 @@ def search_catalog(data, request):
             continue
         if not location_matches(request.location, [*job["locations"], *job.get("countries", [])]):
             continue
-        text = " ".join([job["title"], job["company"], *job["locations"], job["description"]]).casefold()
+        text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
         if not all(word in text for word in request.query.casefold().split()):
             continue
         result = match(job, request.profile) if request.comparable_only else None
@@ -154,10 +165,11 @@ def search_catalog(data, request):
     if not rank_by_fit and not request.comparable_only:
         page = [{**j, "match": match(j, request.profile)} for j in page]
     boards = {b["key"]: b for b in data["boards"]}
-    page = [{**job, **company_brand(job["company"]), "availability": availability(job, boards.get(f"{job.get('source')}:{job.get('board')}"))} for job in page]
+    page = [{**job, **company_brand(job["company"]), "availability": job["availability"] if job.get("is_program") else availability(job, boards.get(f"{job.get('source')}:{job.get('board')}"))} for job in page]
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
             "profile_skills": [s.skill for s in request.profile.skills],
-            "effective_sort": "fit" if rank_by_fit else "newest", "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": len(catalog) - types["other"]}
+            "listing_total": sum(not j.get("is_program",False) for j in jobs), "program_total": sum(bool(j.get("is_program")) for j in jobs),
+            "effective_sort": "fit" if rank_by_fit else "newest", "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": sum(j["role_type"] != "other" or bool(j.get("is_program")) for j in catalog)}
 
 
 class VerifyOpportunity(BaseModel):
@@ -180,3 +192,18 @@ async def verify_opportunity(request: VerifyOpportunity, response: Response):
         except Exception as exc:
             raise HTTPException(503, "Source checked, but the result could not be saved. Please try again.", headers=PRIVATE_HEADERS) from exc
     return result
+
+
+@router.get('/careers/logos/{asset}')
+async def employer_logo(asset: str):
+    if asset not in {domain+'.png' for domain in DOMAINS.values()}:
+        raise HTTPException(404, 'Logo unavailable')
+    path = Path(__file__).with_name('static') / 'logos' / asset
+    if not path.is_file(): raise HTTPException(404, 'Logo unavailable')
+    return FileResponse(path, media_type='image/png', headers={'Cache-Control':'public, max-age=86400'})
+
+
+@router.get('/api/careers/programs')
+async def early_college_programs(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return {'programs': program_catalog(), 'note': 'Program research is separate from live job counts. Confirm current eligibility and availability on the official page.'}

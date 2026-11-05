@@ -1,8 +1,20 @@
 """Known company domains only; unknown brands receive a monogram in the UI."""
 import re
+from pathlib import Path
 from urllib.parse import urlencode
 
 DOMAINS = {
+    "intercontinental exchange": "ice.com", "royal bank of canada": "rbc.com",
+    "highmark health": "highmarkhealth.org", "jm family": "jmfamily.com", "peraton": "peraton.com",
+    "hp": "hp.com", "graphcore": "graphcore.ai", "constellation energy": "constellationenergy.com",
+    "applied materials": "appliedmaterials.com", "zebra technologies": "zebra.com",
+    "great american insurance company": "gaig.com", "dow jones": "dowjones.com",
+    "ernst young": "ey.com", "paccar": "paccar.com", "northrop grumman": "northropgrumman.com",
+    "skydio": "skydio.com", "caci": "caci.com", "the federal reserve system": "federalreserve.gov",
+    "blackhawk network holdings": "blackhawknetwork.com", "imc trading": "imc.com",
+    "t mobile": "t-mobile.com", "costco": "costco.com", "barclays": "barclays.com",
+    "visa": "visa.com", "cvs health": "cvshealth.com",
+    "office of naval research": "onr.navy.mil", "u s department of energy": "energy.gov",
     "anthropic": "anthropic.com", "ai2 allen institute for ai": "allenai.org",
     "recursion": "recursion.com", "klaviyo": "klaviyo.com",
     "tiktok": "tiktok.com", "waymo": "waymo.com", "marvell": "marvell.com",
@@ -43,8 +55,10 @@ DOMAINS = {
 
 def company_brand(company):
     normalized = re.sub(r"[^a-z0-9]+", " ", company.casefold()).strip()
-    domain = DOMAINS.get(normalized)
+    domain = DOMAINS.get(normalized) or DOMAINS.get(re.sub(r" (?:inc|llc|ltd|corporation|corp|limited)$", "", normalized))
     words = company.split()
     initials = "".join(word[0] for word in words[:2]).upper() if words else "?"
+    local = Path(__file__).with_name('static') / 'logos' / f'{domain}.png' if domain else None
+    logo_url = f'/careers/logos/{domain}.png' if local and local.is_file() else "https://www.google.com/s2/favicons?" + urlencode({"domain": domain, "sz": 128}) if domain else None
     return {"company_domain": domain, "company_initials": initials,
-            "company_logo_url": "https://www.google.com/s2/favicons?" + urlencode({"domain": domain, "sz": 128}) if domain else None}
+            "company_logo_url": logo_url}

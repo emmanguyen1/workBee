@@ -36,3 +36,14 @@ test('source freshness is readable and handles absent times',()=>{
   assert.equal(relativeTime('2026-10-22T17:45:00Z',now),'Source checked 15m ago');
   assert.equal(relativeTime('',now),'Check time unavailable');
 });
+
+test('calendar exports use the published deadline timezone and escape text', async()=>{
+  const {deadlineCalendar}=await import('../hives/careers/static/logic.mjs');
+  const ics=deadlineCalendar({id:'program:suli',title:'Science, lab; research',deadline:'2027-01-06',deadline_at:'2027-01-06T22:00:00+00:00',source_url:'https://science.osti.gov/wdts/suli'},new Date('2026-11-05T12:00:00Z'));
+  assert.match(ics,/DTSTART:20270106T220000Z/);
+  assert.match(ics,/Science\\, lab\\; research/);
+  assert.match(ics,/END:VCALENDAR\r\n$/);
+  const day=deadlineCalendar({id:'program:example',title:'Example',deadline:'2027-01-06',source_url:'https://example.com'});
+  assert.match(day,/DTSTART;VALUE=DATE:20270106/);
+  assert.match(day,/DTEND;VALUE=DATE:20270107/);
+});

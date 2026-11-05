@@ -62,7 +62,7 @@ class MatchingRefreshTests(unittest.TestCase):
     def test_assets_and_company_logo_fallback(self):
         known = company_brand('Figma')
         self.assertEqual(known['company_domain'], 'figma.com')
-        self.assertTrue(known['company_logo_url'].startswith('https://www.google.com/s2/favicons?'))
+        self.assertTrue(known['company_logo_url'].startswith(('/careers/logos/figma.com.png','https://www.google.com/s2/favicons?')))
         unknown = company_brand('Unknown Example')
         self.assertIsNone(unknown['company_logo_url'])
         self.assertEqual(unknown['company_initials'], 'UE')

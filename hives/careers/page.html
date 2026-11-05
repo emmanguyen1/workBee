@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#DDDEE5"><title>workBee · Internships & careers</title>
+  <link rel="icon" type="image/png" href="/careers/assets/workbee-logo.png">
   <link rel="stylesheet" href="/careers/assets/styles.css">
 </head>
 <body><main>
-  <header><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">wB</span><span>workBee<small>Find your way forward</small></span></a><nav aria-label="App navigation"><span class="nav-label">Internships & early careers</span></nav></header>
+  <header><a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a><nav aria-label="App navigation"><a class="nav-link" href="#results">Explore opportunities ↗</a></nav></header>
   <div class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Your next chapter starts here</div>
   <h1>Your skills.<br><span>Your next opportunity.</span></h1>
   <p class="hero-copy">A clearer path from what you know to what comes next.<br>Explore opportunities, understand your fit, and apply with purpose.</p>
@@ -69,12 +70,14 @@
       <div class="results-heading"><div><p class="eyebrow">Explore possibilities</p><h2 id="results-title">Opportunities for your next step</h2></div><span class="results-count" id="results-count"></span></div>
       <div id="match-notice" class="match-notice" role="status" aria-live="polite">Add your skills to see how you fit each opportunity.</div>
       <form id="filters" class="toolbar filter-panel">
-        <div class="opportunity-kind"><label for="opportunity-type">Opportunity type</label><select id="opportunity-type"><option value="all">All opportunities</option><option value="internship">Internships & co-ops</option><option value="job">Jobs</option><option value="research">Research & fellowships</option></select><small>Research roles also appear under Internships or Jobs.</small></div>
+        <div class="opportunity-kind"><label for="opportunity-type">Opportunity type</label><select id="opportunity-type"><option value="all">All opportunities</option><option value="internship">Internships & co-ops</option><option value="job">Jobs</option><option value="research">Research & fellowships</option><option value="program">First & second year programs</option></select><small>Programs, internships, jobs, and research share these filters. Program guides show separate eligibility and application status.</small></div>
         <div class="search-query"><label for="query">Search jobs</label><input id="query" maxlength="200" placeholder="Title, skills, or keywords"></div>
         <div><label for="role">Career stage</label><select id="role"><option value="early_career">Early career only</option><option value="internship">Internships & co-ops</option><option value="new_grad">New graduate</option><option value="entry_level">Junior & entry level</option><option value="apprenticeship">Apprenticeships</option><option value="all" selected>All roles & levels</option><option value="other">Other / unspecified level</option></select></div>
+<div><label for="student-year">Class-year wording</label><select id="student-year"><option value="all">Any / not specified</option><option value="incoming">Incoming first-year programs</option><option value="first">Freshman / first-year</option><option value="second">Sophomore / second-year</option></select><small>Postings use explicit wording; program guides use researched eligibility.</small></div>
         <div><label for="field">Career field</label><select id="field"><option value="all">All fields</option></select></div>
         <div><label for="country">Country</label><select id="country"><option value="">Any country</option><option value="unknown">Country not specified</option></select></div><div><label for="region">State / province</label><select id="region"><option value="">Any state or province</option></select></div>
         <div><label for="workplace">Workplace</label><select id="workplace"><option value="all">Any workplace</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option><option value="unspecified">Not specified</option></select></div>
+<div><label for="program-status">Program guide status</label><select id="program-status"><option value="all">All, including cycles to watch</option><option value="application_window">Published application window open</option><option value="watch">Programs to watch / verify</option></select><small>Applies to program guides; job listings keep their source status.</small></div>
         <div><label for="company">Employer</label><select id="company"><option value="">All employers</option></select></div>
         <div><label for="sort">Sort by</label><select id="sort"><option value="fit">Skill evidence fit</option><option value="newest">Recently discovered</option></select></div>
         <div class="filter-options"><label class="check-label" for="comparable-only"><input type="checkbox" id="comparable-only">With comparable skill requirements</label><button id="reset-filters" type="button" class="text-button">Clear filters</button></div><button id="search" type="submit">Find opportunities</button>

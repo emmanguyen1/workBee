@@ -48,3 +48,14 @@ export function relativeTime(iso, now = Date.now()) {
 export function comparisonPreferences(current, hasSkills) {
   return {...current, sort: 'fit', comparable_only: Boolean(hasSkills)};
 }
+
+export function deadlineCalendar(program, now = new Date()) {
+  if (!program.deadline) throw new Error('This program has no confirmed deadline.');
+  const escape = text => String(text).replaceAll('\\','\\\\').replaceAll('\n','\\n').replaceAll(',','\\,').replaceAll(';','\\;');
+  const utc = date => new Date(date).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//workBee//Program deadlines//EN','BEGIN:VEVENT','UID:'+escape(program.id+'-'+program.deadline+'@workbee.local'),'DTSTAMP:'+utc(now)];
+  if(program.deadline_at)lines.push('DTSTART:'+utc(program.deadline_at));
+  else {const next=new Date(program.deadline+'T00:00:00Z');next.setUTCDate(next.getUTCDate()+1);lines.push('DTSTART;VALUE=DATE:'+program.deadline.replaceAll('-',''),'DTEND;VALUE=DATE:'+next.toISOString().slice(0,10).replaceAll('-',''));}
+  lines.push('SUMMARY:'+escape(program.title+' application deadline'),'DESCRIPTION:'+escape((program.deadline_note||'Deadline date; cutoff time not published.')+'\nConfirm current requirements on the official page.\n'+program.source_url),'END:VEVENT','END:VCALENDAR');
+  return lines.join('\r\n')+'\r\n';
+}
