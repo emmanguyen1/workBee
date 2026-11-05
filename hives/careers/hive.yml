@@ -1,0 +1,4 @@
+hive: careers
+bots:
+  JobCollector:
+    module: hives.careers.collector

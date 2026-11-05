@@ -33,6 +33,7 @@ async def topic(hive: str, topic: str, count: int = 50):
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/kalshi", response_class=HTMLResponse)
 async def home():
     return """<!doctype html>
 <html lang="en">
@@ -40,7 +41,7 @@ async def home():
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
-  <title>Hivework · Hive status</title>
+  <title>Hivework · Kalshi demo</title>
   <style>
     :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--line:#253047;--text:#edf2ff;--muted:#98a5bd;--green:#55d6a0;--amber:#ffc66d}
     *{box-sizing:border-box}
@@ -110,7 +111,7 @@ async def home():
   <main>
     <header>
       <div class="brand"><span class="mark" aria-hidden="true">H</span><span>Hivework</span></div>
-      <div class="live"><span class="live-dot" aria-hidden="true"></span>Live monitor</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end"><div class="live"><span class="live-dot" aria-hidden="true"></span>Live monitor</div></div>
     </header>
     <section class="portfolio" aria-labelledby="portfolio-title">
       <div class="section-head">

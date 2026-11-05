@@ -1,0 +1,71 @@
+# Public board identifiers, not API credentials. Add employers here.
+employers:
+  - name: SimplifyJobs / Pitt CSC
+    source: simplify
+    board: summer2027
+  - name: Figma
+    source: greenhouse
+    board: figma
+  - name: Palantir
+    source: lever
+    board: palantir
+  - name: Notion
+    source: ashby
+    board: notion
+  - name: SpaceX
+    source: greenhouse
+    board: spacex
+  - name: Stripe
+    source: greenhouse
+    board: stripe
+  - name: Databricks
+    source: greenhouse
+    board: databricks
+  - name: Duolingo
+    source: greenhouse
+    board: duolingo
+  - name: Robinhood
+    source: greenhouse
+    board: robinhood
+  - name: SoFi
+    source: greenhouse
+    board: sofi
+  - name: Cloudflare
+    source: greenhouse
+    board: cloudflare
+  - name: MongoDB
+    source: greenhouse
+    board: mongodb
+  - name: Toast
+    source: greenhouse
+    board: toast
+  - name: Reddit
+    source: greenhouse
+    board: reddit
+  - name: Discord
+    source: greenhouse
+    board: discord
+  - name: GiveWell
+    source: greenhouse
+    board: givewell
+  - name: Flatiron Health
+    source: greenhouse
+    board: flatironhealth
+  - name: Zoox
+    source: lever
+    board: zoox
+  - name: Ramp
+    source: ashby
+    board: ramp
+  - name: Anthropic
+    source: greenhouse
+    board: anthropic
+  - name: Ai2 (Allen Institute for AI)
+    source: greenhouse
+    board: thealleninstitute
+  - name: Recursion
+    source: greenhouse
+    board: recursionpharmaceuticals
+  - name: Klaviyo
+    source: greenhouse
+    board: klaviyo
