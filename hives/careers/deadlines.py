@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 
 MARKER=re.compile(r'\b(?:application(?:s)?\s+(?:deadline|close(?:s)?|due)|apply\s+by|closing\s+date|deadline\s+to\s+apply)\b',re.I)
+PRIORITY=re.compile(r'priority|first round|initial (?:round|review)|early (?:review|consideration)|rolling|remain open|open until filled',re.I)
 DATE=re.compile(r'\b20\d{2}-\d{2}-\d{2}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+20\d{2}\b',re.I)
 
 
@@ -28,6 +29,7 @@ def extract_deadline(description, explicit=''):
     if not candidates:
         for marker in MARKER.finditer(description):
             segment=description[marker.start():marker.end()+110].split('\n')[0]
+            if PRIORITY.search(segment):continue
             for found in DATE.finditer(segment):
                 day,at=parse_date(found.group())
                 if day:candidates[day]={'date':day,'at':at,'quote':segment[:500],'source':'posting_text'}
@@ -38,6 +40,8 @@ def extract_deadline(description, explicit=''):
 def deadline_info(job,now=None):
     now=now or datetime.now(timezone.utc)
     stored=job.get('deadline_info') or extract_deadline(job.get('description',''),str(job.get('application_deadline') or ''))
+    if stored.get('source')=='posting_text' and PRIORITY.search(stored.get('quote','')):
+        stored=extract_deadline(job.get('description',''))
     result=dict(stored);day=result.get('date');at=result.get('at')
     result['expired']=(now>datetime.fromisoformat(at)) if at else bool(day and now.date().isoformat()>day)
     result['timezone_note']='Employer cutoff time provided' if at else 'Date only; cutoff time/timezone not specified' if day else 'Deadline not provided'

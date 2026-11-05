@@ -11,6 +11,8 @@ class DeadlineTests(unittest.TestCase):
         self.assertEqual(extract_deadline('Apply by January 10, 2027')['date'],'2027-01-10')
         self.assertIsNone(extract_deadline('Apply by January 10, 2027\nApplication deadline February 10, 2027')['date'])
         self.assertIsNone(extract_deadline('Apply by January 10')['date'])
+        self.assertIsNone(extract_deadline('Apply by January 10, 2027 for first round reviews')['date'])
+        self.assertFalse(deadline_info({'description':'Apply by January 10, 2027 for first round reviews','deadline_info':{'date':'2027-01-10','source':'posting_text','quote':'Apply by January 10, 2027 for first round reviews'}},datetime(2027,1,11,tzinfo=timezone.utc))['expired'])
         self.assertTrue(deadline_info({'description':'Apply by January 10, 2027'},datetime(2027,1,11,tzinfo=timezone.utc))['expired'])
     def test_deadline_order_missing_last_and_sectors_alphabetical(self):
         jobs=[{'id':str(i),'title':'Software intern','company':'Example','location':'','description':text,'role_type':'internship'} for i,text in enumerate(['','Apply by January 20, 2030','Apply by January 10, 2030'])]
