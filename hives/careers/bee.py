@@ -23,8 +23,8 @@ HELP={
  'resume':'Open My account → Import a resume. Upload PDF, DOCX or text, review the extracted skills and examples, apply the draft, then save your profile. The raw file is not saved. A skill score describes coverage, not hiring odds.',
  'account':'I do not automatically read your private profile or application notes. Open My account to sign in or create a profile. You can save your skills and search preferences, track applications, and add private notes and next steps. Profile saves are explicit; application stages save automatically.',
  'compare':'Use Compare on up to three opportunity cards to build a side-by-side shortlist. It is temporary in this tab. Save an application status to keep an opportunity in your account.',
- 'deadline':'Choose Closing soon or an application-deadline window. Only explicit, unambiguous employer deadlines are used; unknown dates stay unknown. Personal follow-up dates on your account are separate and do not send notifications.',
- 'pay':'Use Pay information to choose explicitly paid, explicitly unpaid, or amount disclosed. Missing compensation is unknown. Benefits and research budgets do not count as pay. Always confirm details on the employer page.',
+ 'deadline':'Each opportunity card shows its published deadline or Not published. Choose Closing soon in Sort by to order known deadlines. Only explicit, unambiguous employer deadlines are used; unknown dates stay unknown. Personal follow-up dates on your account are separate and do not send notifications.',
+ 'pay':'Pay information appears on individual opportunity cards when supplied by the employer. You can ask Bee about paid opportunities. Missing compensation is unknown. Benefits and research budgets do not count as pay. Always confirm details on the employer page.',
  'source':'Employer-feed listings and Simplify community discoveries are different evidence. Turn on Include Simplify discoveries to see recent community entries; those are not employer-verified. Use Refresh opportunities for an on-demand check without starting a collector. Checks older than thirty minutes need rechecking; last-known-open listings stay visible for up to seven days.',
 }
 

@@ -1,4 +1,4 @@
-"""Local account authentication and private state. No third-party identity keys."""
+"""Local sessions and private state; provider identities are handled in oauth.py."""
 import base64
 import hashlib
 import json
@@ -132,7 +132,7 @@ async def create_session(conn, request, response, user_id):
     await conn.execute("DELETE FROM career_sessions WHERE expires_at < now()")
     await conn.execute("DELETE FROM career_auth_attempts WHERE started_at < now()-interval '1 day'")
     await conn.execute("INSERT INTO career_sessions(token_hash,user_id) VALUES ($1,$2)", token_hash(token), user_id)
-    secure = request.url.scheme == "https" or os.getenv("CAREERS_COOKIE_SECURE", "false").lower() == "true"
+    secure = request.url.scheme == "https" or os.getenv("CAREERS_COOKIE_SECURE", "false").lower() == "true" or os.getenv("WORKBEE_PUBLIC_URL", "").startswith("https://")
     response.set_cookie(COOKIE, token, max_age=30 * 86400, httponly=True, secure=secure, samesite="lax", path="/")
     response.headers.update(PRIVATE)
 
@@ -203,8 +203,8 @@ async def login(data: Credentials, request: Request, response: Response):
     async with connection() as conn:
         key = await throttle(conn, request, "login", data.username.lower())
         row = await conn.fetchrow("SELECT * FROM career_accounts WHERE username=$1", data.username.lower())
-        valid = await run_in_threadpool(verify_password, password, row["password_hash"] if row else DUMMY_HASH)
-        if not row or not valid:
+        valid = await run_in_threadpool(verify_password, password, row["password_hash"] if row and row["password_hash"] else DUMMY_HASH)
+        if not row or not row["password_hash"] or not valid:
             raise HTTPException(401, "Incorrect username or password.", headers=PRIVATE)
         await conn.execute("DELETE FROM career_auth_attempts WHERE key=$1", key)
         await create_session(conn, request, response, row["id"])

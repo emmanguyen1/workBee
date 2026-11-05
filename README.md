@@ -16,8 +16,8 @@ See [research and feature details](docs/workbee-expansion.md).
   finance, research, labs, engineering and technology.
 - Select multiple **career fields** and **employer industries** independently.
   Industry and career-field menus are alphabetical; counts follow the other filters.
-- Filter by explicit pay information, time-commitment wording, posting recency,
-  upcoming deadlines, geography, employer and career stage.
+- Filter by time commitment, geography, employer, opportunity type and career stage.
+  Sort from the results header; deadlines and supplied pay facts appear on cards.
 - Refresh sources on demand, inspect timestamps and progress, or cancel an import.
   Saved listings remain visible with recheck labels when automatic collection is off.
 - Ask **Bee** in the bottom-right corner for source-linked discovery and product help.
@@ -61,6 +61,13 @@ in a left filter sidebar, with keyword search above the results. A narrow catego
 are distinct, and all professions are included by default on this branch.
 Historical program research remains in the source tree/API for compatibility,
 but closed cycles, general overviews, and signup pages are not web search results.
+
+## Account sign-in
+
+Use a workBee username or enable Google/LinkedIn sign-in with your own provider
+app credentials. Existing users can connect providers from Sign-in methods to
+keep the same saved profile. Missing credentials are clearly shown as unavailable.
+See [social sign-in setup and account behavior](docs/workbee-social-signin.md).
 
 ## Resume matching and your profile
 

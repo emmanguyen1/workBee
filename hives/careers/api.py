@@ -63,7 +63,7 @@ async def careers():
 
 @router.get("/careers/assets/{asset}")
 async def careers_asset(asset: str):
-    if asset not in {"styles.css", "app.mjs", "logic.mjs", "workbee-logo.png", "workbee-assistant.png", "bee.mjs"}:
+    if asset not in {"styles.css", "app.mjs", "logic.mjs", "workbee-logo.png", "workbee-assistant.png", "bee.mjs", "auth.mjs"}:
         raise HTTPException(404, "Asset not found")
     media = "image/png" if asset.endswith(".png") else "text/css" if asset.endswith(".css") else "text/javascript"
     return FileResponse(Path(__file__).with_name("static") / asset, media_type=media, headers={"Cache-Control": "no-cache"})

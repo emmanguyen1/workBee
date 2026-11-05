@@ -5,6 +5,7 @@ from hives.careers.refresh import router as refresh_router,shutdown as stop_refr
 from hives.careers.bee import router as bee_router
 from hives.careers.api import router
 from hives.careers.accounts import router as accounts_router
+from hives.careers.oauth import router as oauth_router
 
 @asynccontextmanager
 async def lifespan(app):
@@ -14,6 +15,7 @@ async def lifespan(app):
 app = FastAPI(title='workBee', version='0.2.0',lifespan=lifespan)
 app.include_router(router)
 app.include_router(accounts_router)
+app.include_router(oauth_router)
 app.include_router(bee_router)
 app.include_router(refresh_router)
 
