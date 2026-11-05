@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#DDDEE5"><title>My account · workBee</title>
+  <link rel="icon" type="image/png" href="/careers/assets/workbee-logo.png">
+  <link rel="stylesheet" href="/careers/assets/styles.css">
+</head>
+<body data-page="account"><main>
+  <header><a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a><nav aria-label="App navigation"><a class="nav-link" href="/">Explore opportunities ↗</a><a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a></nav></header>
+<section class="account-intro"><p class="eyebrow">Your workBee workspace</p><h1>Make your next move.</h1><p>Keep your profile, reviewed resume skills, search preferences, and applications together.</p><a href="/" class="nav-link">← Back to opportunities</a></section>  <details class="workspace panel" id="workspace" open><summary><span>✦ Your account</span><span class="muted" id="workspace-summary">Sign in to save your profile & preferences</span></summary><div class="workspace-body">
+    <h2 id="account-title">Save your progress</h2><p id="account-state" class="notice muted">Guest mode. Create an account to keep your reviewed profile, search preferences, and application statuses across devices.</p>
+    <details id="auth-details" open><summary>Sign in or create an account</summary>
+      <form id="auth-form" class="toolbar">
+        <div><label for="auth-mode">Action</label><select id="auth-mode"><option value="login">Sign in</option><option value="register">Create account</option></select></div>
+        <div><label for="account-username">Username</label><input id="account-username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Letters, numbers, dots, dashes, underscores"></div>
+        <div><label for="account-password">Password</label><input id="account-password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></div>
+        <button id="auth-submit" type="submit">Continue</button>
+      </form><p class="notice muted">Use 12–128 characters for your password. Accounts use usernames; email verification and password recovery are not available yet. Signing in loads your saved account profile and filters.</p>
+    </details>
+    <section id="identity-panel" class="hidden"><div class="user-profile-card"><span class="avatar large" id="profile-avatar" aria-hidden="true">wB</span><div><h3 id="profile-display-name"></h3><p id="profile-handle" class="muted"></p><p id="profile-headline" class="notice"></p></div></div><div class="identity-fields"><div><label for="display-name">Display name</label><input id="display-name" maxlength="80" autocomplete="name" placeholder="How you want to be addressed"></div><div><label for="profile-school">School / university (optional)</label><input id="profile-school" maxlength="120" autocomplete="organization" placeholder="Your college or university"></div><div><label for="profile-tagline">Career headline (optional)</label><input id="profile-tagline" maxlength="160" placeholder="Finance student exploring summer internships"></div></div></section>
+    <div id="account-actions" class="actions hidden"><button id="save-account" type="button">Save profile & filters to account</button><button id="reload-account" type="button" class="secondary">Reload saved account data</button><button id="logout-account" type="button" class="secondary">Sign out</button></div>
+    <p id="account-message" class="notice" role="status" aria-live="polite"></p>
+  </div></details>
+<div id="account-private" class="hidden"><div class="account-grid">    <section class="panel profile-panel account-profile-editor"><details id="profile-drawer" open><summary class="profile-toggle">Match your profile <span>＋</span></summary><div class="profile-content">
+      <h2>Your profile</h2><p class="notice muted">Save your reviewed profile to personalize opportunities. Raw resume files are never saved.</p>
+      <details id="resume" class="import-box" aria-labelledby="import-title"><summary>Import a resume <span>↗</span></summary>
+        <h3 id="import-title">Start with your resume</h3><p class="notice muted">Choose a PDF, DOCX, or UTF-8 text file (up to 4 MB), or paste text. Processing happens on this server without saving the file or sending it to an AI service. Review the draft before applying it.</p>
+        <label for="resume-file">Resume file</label><input class="file-input" id="resume-file" type="file" accept=".pdf,.docx,.txt">
+        <label for="resume-text">Or paste resume text</label><textarea id="resume-text" maxlength="60000" placeholder="Paste your education, skills, and project or work experience…"></textarea>
+        <div class="actions"><button id="extract-resume" type="button" class="secondary">Extract review draft</button><button id="discard-resume" type="button" class="secondary">Clear import</button></div>
+        <p id="resume-message" class="notice" role="status" aria-live="polite"></p>
+        <section id="resume-review" class="import-review hidden" aria-labelledby="review-title">
+          <h3 id="review-title" tabindex="-1">Review your draft</h3><p class="notice">Correct any mistakes. Choose whether to merge with your existing skills or replace them. Filled education fields update your profile after review. Save your profile after applying the reviewed draft.</p>
+          <ul id="resume-warnings" class="notice muted"></ul>
+          <label for="draft-skills">Suggested skills and source evidence</label><textarea id="draft-skills"></textarea>
+          <label for="draft-degree">Degree / program</label><select id="draft-degree"><option value="">Not identified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select>
+          <label for="draft-degree-status">Program completion</label><select id="draft-degree-status"><option value="">Not identified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select>
+          <label for="draft-major">Major / field of study</label><input id="draft-major" maxlength="100">
+          <label for="draft-graduation">Graduation year</label><input id="draft-graduation" type="number" min="2020" max="2040">
+          <label for="draft-gpa">GPA (4.0 scale only)</label><input id="draft-gpa" type="number" min="0" max="4" step="0.01">
+          <details><summary>Education source excerpts</summary><div id="resume-sources" class="notice muted"></div></details>
+          <label for="resume-apply-mode">Apply skills</label><select id="resume-apply-mode"><option value="merge">Merge with my existing skills</option><option value="replace">Replace my existing skills</option></select><p id="resume-quality" class="notice"></p>
+          <label class="confirm"><input id="review-confirm" type="checkbox">I reviewed the draft and corrected any unsupported claims.</label>
+          <button id="apply-resume" type="button" disabled>Apply reviewed draft</button>
+        </section>
+      </details>
+      <form id="profile" novalidate>
+      <label for="skills">Skills and evidence</label><textarea id="skills" placeholder="Python, SQL | Built a class project&#10;React | Student club website"></textarea><small>Use commas or new lines. Add a project or example after |.</small>
+      <label for="graduation">Expected graduation year</label><input id="graduation" type="number" min="2020" max="2040" placeholder="2028">
+      <label for="gpa">GPA on a 4.0 scale (optional)</label><input id="gpa" type="number" min="0" max="4" step="0.01" placeholder="3.50"><small>Leave blank if your school uses another scale.</small>
+      <label for="enrolled">Currently enrolled?</label><select id="enrolled"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select>
+      <label for="sponsorship">Need employer sponsorship?</label><select id="sponsorship"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select>
+      <label for="location">Preferred state or country</label><input id="location" maxlength="100" list="preferred-regions" placeholder="California or United States"><datalist id="preferred-regions"></datalist><small>Use a state, province, or country.</small>
+      <details class="profile-more"><summary>Education, experience & availability</summary>
+        <label for="degree">Degree / program level</label><select id="degree"><option value="">Not specified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select>
+        <label for="degree-status">Program completion</label><select id="degree-status"><option value="">Not specified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select>
+        <label for="major">Major / field of study</label><input id="major" maxlength="100" placeholder="Computer Science">
+        <label for="experience">Relevant experience (years)</label><input id="experience" type="number" min="0" max="60" step="0.1"><small>Self-reported duration; the checklist still asks you to confirm the kind of experience required.</small>
+        <label for="available-from">Earliest available start date</label><input id="available-from" type="date">
+        <label for="available-until">Last available work date</label><input id="available-until" type="date">
+      </details>
+      <div class="actions"><button type="submit" id="match-profile">Save profile & find matches <span aria-hidden="true">→</span></button><button type="button" id="save" class="secondary">Save on device</button><button type="button" id="clear" class="secondary">Clear device data</button></div>
+      <p id="profile-message" class="notice" aria-live="polite"></p>
+    </form></div></details></section>
+<aside class="account-preferences panel" id="preferences"><h2>Search preferences</h2><p class="notice muted">Select several options and save them to your account.</p><form id="keyword-search" class="keyword-search"><div><label for="query">Search technical opportunities</label><input id="query" maxlength="200" placeholder="Job title, skills, or employer"></div><button id="keyword-submit" type="submit">Search opportunities</button></form>      <form id="filters" class="toolbar filter-panel">
+        <div><label id="opportunity-type-label">Opportunity type</label><details id="opportunity-type" class="multi-filter" aria-labelledby="opportunity-type-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="role-label">Career stage</label><details id="role" class="multi-filter" aria-labelledby="role-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="field-label">Tech field / industry</label><details id="field" class="multi-filter" aria-labelledby="field-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="company-label">Employer</label><details id="company" class="multi-filter" aria-labelledby="company-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="country-label">Country</label><details id="country" class="multi-filter" aria-labelledby="country-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="region-label">State / province</label><details id="region" class="multi-filter" aria-labelledby="region-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label id="workplace-label">Workplace</label><details id="workplace" class="multi-filter" aria-labelledby="workplace-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
+        <div><label for="sort">Sort by</label><select id="sort"><option value="relevance">Most relevant</option><option value="newest">Most recent</option><option value="deadline">Closing soon</option><option value="company">Company A–Z</option></select></div>
+        <div class="filter-footer"><label class="check-label" for="comparable-only"><input type="checkbox" id="comparable-only">With comparable skill requirements</label><div class="actions"><button id="reset-filters" type="button" class="text-button">Clear filters</button><button id="search" type="submit">Find opportunities</button></div></div>
+        <p class="selection-note">Choose multiple options in each menu. An opportunity can match any selected option within each group.</p>
+        <p class="current-posting-note">Showing technical professions across industries, present in an employer feed within the last 30 minutes. Closed, stale, community-only listings and researched guides are excluded. Confirm application availability on the employer site.</p>
+      </form>
+<p id="account-preferences-status" class="notice"></p></aside></div><section class="saved-section panel"><div class="results-heading"><h2>Your saved applications</h2><span id="saved-application-count" class="results-count"></span></div><label for="saved-stage">Show application stage</label><select id="saved-stage"><option value="all">All stages</option><option value="saved">Saved</option><option value="preparing">Preparing</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="offer">Offer</option><option value="rejected">Rejected</option><option value="dismissed">Dismissed</option></select><div id="saved-applications" class="saved-applications"></div><p id="saved-message" role="status" class="notice"></p></section></div><div hidden id="search-storage"><div id="coverage"></div><div class="layout">    <section id="results" class="results" aria-labelledby="results-title">
+      <div class="results-heading"><div><p class="eyebrow">Explore possibilities</p><h2 id="results-title">Opportunities for your next step</h2></div><span class="results-count" id="results-count"></span></div>
+      <div id="match-notice" class="match-notice" role="status" aria-live="polite">Add your skills to see how you fit each opportunity.</div>
+      <div id="status" role="status" aria-live="polite">Loading employer snapshots…</div>
+      <div id="sources" class="sources"></div>
+      <small id="sort-note">Skill evidence sorting puts detected eligibility conflicts last. Unknown requirements remain visible.</small>
+      <div id="jobs" class="jobs-grid" aria-busy="false"></div>
+      <div class="paging"><button id="previous" class="secondary" disabled>Previous</button><span id="page"></span><button id="next" class="secondary" disabled>Next</button></div>
+    </section>
+  </div>
+</div>  <dialog id="opportunity-dialog" aria-labelledby="opportunity-title"><div id="dialog-content"></div></dialog>
+  <footer>Employer and community feeds are checked every 15 minutes while the careers hive is running. Community discovery includes the <a href="https://github.com/SimplifyJobs/Summer2027-Internships" target="_blank" rel="noopener noreferrer">Summer 2027 list maintained by Pitt CSC & Simplify</a>. Community-listed does not mean verified open at the employer. This is a curated catalog, not every available job. Career fields and stages are inferred from titles, departments, and source categories; review the full description. Remote jobs may have country or region restrictions. Confirm all requirements on the employer site. Matching is not a hiring prediction.</footer>
+</main>
+<script type="module" src="/careers/assets/app.mjs"></script>
+</body></html>

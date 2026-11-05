@@ -85,6 +85,8 @@ def opportunity_types(title, stage):
     kinds = ["internship"] if stage == "internship" else ["job"]
     if re.search(r"\bresearch(?:er)?\b|\bpost[ -]?doc\w*\b|\bfellow(?:ship|s)?\b|\bREU\b|\b(?:young investigator|predoctoral|postbaccalaureate)\b", title, re.I):
         kinds.append("research")
+    if re.search(r"\blab(?:oratory)?\b|scientific computing|instrumentation|bioinformatics",title,re.I):
+        kinds.append("lab")
     return kinds
 
 

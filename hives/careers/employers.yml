@@ -96,3 +96,9 @@ employers:
   - name: Astranis
     source: greenhouse
     board: astranis
+  - name: Chan Zuckerberg Initiative
+    source: greenhouse
+    board: chanzuckerberginitiative
+  - name: Lila Sciences
+    source: greenhouse
+    board: lilasciences

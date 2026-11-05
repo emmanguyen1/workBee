@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 DOMAINS = {
+    "chan zuckerberg initiative":"chanzuckerberg.com", "lila sciences":"lila.ai",
     "rocket lab":"rocketlabcorp.com",
     "oscar health":"oscarhealth.com", "commure":"commure.com", "included health":"includedhealth.com",
     "carta":"carta.com", "gusto":"gusto.com", "brex":"brex.com", "flexport":"flexport.com",

@@ -26,6 +26,9 @@ and branch `feat/hivepath-careers`. Check out that branch for the current app.
   replace skills before matching. Learning goals are not treated as experience.
 - Create a private user profile with display name, school, and career headline;
   save matching skills, search preferences, and application statuses.
+- Sort by **Most relevant**, **Most recent**, **Closing soon**, or **Company A–Z**.
+  Industry choices are alphabetical. Closing dates come only from explicit employer
+  fields/posting text; missing dates sort last and past explicit deadlines are excluded.
 - Check source-feed availability; recognize employers through cached logos.
 
 ## Current postings only
@@ -39,7 +42,7 @@ The **First & second year postings** opportunity type filters current internship
 with explicit class-year wording in the posting itself. There are no separate
 class-year-wording or program-guide-status controls. Tech sectors, country,
 state/province, employer, workplace, keywords, and career stage remain available
-in an aligned search grid. A narrow category may have no current listings.
+in a left filter sidebar, with keyword search above the results. A narrow category may have no current listings.
 Historical program research remains in the source tree/API for compatibility,
 but closed cycles, general overviews, and signup pages are not web search results.
 
@@ -51,8 +54,8 @@ obvious negative-experience or future-learning statements. Review and correct th
 draft, then merge it with your existing skills (default) or replace them. Equal
 skill-coverage results favor supporting examples; examples remain self-reported.
 
-Use **Sign in / Create profile** in the header to register or load an existing
-account. Add a display name, optional school, and career headline. Save profile
+Open **[My account](http://localhost:8001/account)** through the header to register
+or sign in, import a resume, edit your profile, and manage saved applications. Add a display name, optional school, and career headline. Save profile
 and filters explicitly to restore them across sessions/devices. Unsaved changes
 are indicated; existing accounts and application tracking are preserved.
 
@@ -78,12 +81,13 @@ already exists, keep it and add only needed settings instead of replacing it.
 Public Greenhouse, Lever, and Ashby boards plus the
 [Simplify/Pitt CSC Summer 2027 list](https://github.com/SimplifyJobs/Summer2027-Internships)
 feed the catalog. Configured boards are checked every 15 minutes while the
-collector runs. Add employers in `hives/careers/employers.yml` (31 direct employers plus the
+collector runs. Add employers in `hives/careers/employers.yml` (33 direct employers plus the
 community archive source).
 Manually reviewed program archives live in `hives/careers/programs.yml`.
 Additional healthcare/business feeds include Oscar Health, Commure, Included
 Health, Carta, Gusto, Brex, and Flexport. Aerospace coverage also includes
-Rocket Lab and Astranis alongside SpaceX.
+Rocket Lab and Astranis alongside SpaceX. Research and lab technology feeds include
+Ai2, Recursion, Chan Zuckerberg Initiative, and Lila Sciences.
 
 This is a curated catalog, not every available position. Feed-listed does not
 prove an application form accepts submissions. Failed checks mean unknown, not
@@ -96,7 +100,7 @@ covers the US and Canada; country filters use explicit feed evidence.
 Matching is rule-based coverage, not a hiring probability or complete eligibility
 decision. Unknowns stay explicit; class-year filters show wording from the posting.
 Raw resume files are not persisted or sent to an AI provider. Review extraction
-drafts before use. Guest data can stay in browser storage; account profiles,
+drafts before use. Guest application tracking can stay in browser storage; account profiles,
 preferences, and application statuses use Postgres. Email verification and
 account recovery are not implemented. Keep production credentials private;
 never commit `.env` or keys.

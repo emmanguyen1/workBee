@@ -142,7 +142,7 @@ class Credentials(BaseModel):
 
 class Preferences(MultiPreferences):
     program_status: Literal["all", "application_window", "watch"] = "all"
-    opportunity_type: Literal["all", "internship", "job", "research", "program"] = "all"
+    opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
     query: str = Field(default="", max_length=200)
     role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
     career_field: str = Field(default="all", pattern="^(all|" + "|".join(FIELDS) + ")$")
@@ -151,7 +151,7 @@ class Preferences(MultiPreferences):
     region: str = Field(default="", max_length=10)
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
-    sort: str = Field(default="fit", pattern="^(fit|newest)$")
+    sort: str = Field(default="fit", pattern="^(fit|relevance|newest|deadline|company)$")
     student_year: Literal["all", "incoming", "first", "second"] = "all"
     comparable_only: bool = False
 
@@ -254,3 +254,17 @@ async def save_application(job_id: str, data: Application, request: Request, res
         else:
             await conn.execute("UPDATE career_accounts SET applications=applications-$2::text WHERE id=$1", account["id"], job_id)
         return {"job_id": job_id, "status": data.status}
+
+
+@router.get('/applications')
+async def saved_applications(request: Request,response: Response):
+    response.headers.update(PRIVATE)
+    async with connection() as conn:
+        account=await user(conn,request)
+        applications=json_value(account['applications'])
+        rows=await conn.fetch('SELECT id,data,open,last_seen FROM career_jobs WHERE id=ANY($1::text[])',list(applications))
+        found={}
+        for row in rows:
+            job=json_value(row['data'])
+            found[row['id']]={'id':row['id'],'title':job.get('title','Saved opportunity'),'company':job.get('company','Employer'),'apply_url':job.get('apply_url'),'open':row['open'],'last_seen':row['last_seen'].isoformat()}
+        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status} for id,status in applications.items()]}

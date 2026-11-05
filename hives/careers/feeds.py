@@ -9,6 +9,7 @@ import httpx
 import yaml
 
 from hives.careers.qualifications import qualification_snapshot, QUALIFICATION_VERSION
+from hives.careers.deadlines import extract_deadline
 from hives.careers.taxonomy import career_field, role_type
 from hives.careers.matching import requirements, REQUIREMENTS_VERSION
 
@@ -111,6 +112,7 @@ def normalize(employer, raw):
         "qualification_version": QUALIFICATION_VERSION,
         "apply_url": safe_url(url), "published_at": published,
         "source_updated_at": raw.get("updated_at"),
+        "deadline_info":extract_deadline(description[:100000],str(raw.get("applicationDeadline") or raw.get("validThrough") or "")),
     }
 
 

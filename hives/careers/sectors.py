@@ -14,6 +14,7 @@ SECTORS={
  'other_tech':'Other technical fields',
 }
 COMPANY_SECTORS={
+ 'chan zuckerberg initiative':'biotech','lila sciences':'biotech',
  'oscar health':'health_it','commure':'health_it','included health':'health_it','flatiron health':'health_it',
  'spacex':'aerospace','rocket lab':'aerospace','astranis':'aerospace',
  'stripe':'fintech','robinhood':'fintech','sofi':'fintech','ramp':'fintech','brex':'fintech','carta':'fintech',
@@ -23,7 +24,7 @@ COMPANY_SECTORS={
  'ai2 allen institute for ai':'ai_robotics','recursion':'biotech','reddit':'consumer','discord':'consumer',
 }
 NON_TECH=re.compile(r'\b(?:recruiter|recruiting|account executive|sales representative|business development|registered nurse|nurse practitioner|physician assistant|therapist|pharmacist|medical assistant|care coordinator|care manager|care navigator|payroll specialist|accountant|legal counsel|lawyer|social worker|teacher|hotel|restaurant|data entry)\b',re.I)
-TECH_TITLE=re.compile(r'\b(?:engineer(?:ing)?|software|developer|programmer|devops|sre|informatics|bioinformatics|computational|robotics|avionics|firmware|cybersecurity|appsec|scientist)\b|\b(?:data|systems?|network|security|database|cloud|infrastructure|solutions?|integration|enterprise|technical|IT) (?:architect|analyst|administrator|specialist|consultant|technician|support|developer|engineer|manager)\b|\b(?:UX|UI|product designer|technical product manager|technical program manager|technical project manager|business systems|business intelligence|information technology|information systems|IT support|HRIS|EHR|EMR)\b',re.I)
+TECH_TITLE=re.compile(r'\b(?:lab|laboratory|instrumentation) (?:technician|engineer|automation|scientist)\b|\b(?:engineer(?:ing)?|software|developer|programmer|devops|sre|informatics|bioinformatics|computational|robotics|avionics|firmware|cybersecurity|appsec|scientist)\b|\b(?:data|systems?|network|security|database|cloud|infrastructure|solutions?|integration|enterprise|technical|IT) (?:architect|analyst|administrator|specialist|consultant|technician|support|developer|engineer|manager)\b|\b(?:UX|UI|product designer|technical product manager|technical program manager|technical project manager|business systems|business intelligence|information technology|information systems|IT support|HRIS|EHR|EMR)\b',re.I)
 TECH_SKILLS={'Python','Java','JavaScript','TypeScript','SQL','PostgreSQL','React','Node.js','C++','C#','Go','Rust','Docker','Kubernetes','AWS','Linux','TensorFlow','PyTorch','Swift','Tableau','Power BI','Pandas','NumPy','Scikit-learn','FastAPI','Django','Flask','HTML','CSS','GitHub','R','SPSS','Stata','SAS','Snowflake','Databricks','dbt','MongoDB','Redis','Azure','Google Cloud','AutoCAD','SolidWorks','MATLAB','LabVIEW','Circuit design'}
 
 

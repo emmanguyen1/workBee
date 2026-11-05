@@ -38,9 +38,7 @@ secondary offices supplied by the employer; country information is used when
 explicitly supplied. Common location aliases (NYC, UK, USA) are recognized, but
 the app does not infer countries for city-only listings or treat remote roles as
 worldwide. An unspecified workplace is kept separate from on-site roles.
-"Recently discovered" sorts by first observation in this database, not the
-employer publication date. Hero coverage counters describe the stored catalog, including potentially stale
-snapshots. Career-field counts respect the current query, career stage,
+"Most recent" uses the employer publication date where available, falling back to first observation in this database. Hero coverage counters describe the catalog after current-only and technical-only filtering. Career-field counts respect the current query, career stage,
 opportunity type, location, employer, workplace, and comparable-requirements
 filter; each field count excludes only the field selection itself. Search and
 filter changes refresh the results automatically. Obvious talent-network and
@@ -148,7 +146,7 @@ Run verification with `python -m unittest discover -s tests -v`.
 
 ### Accounts and saved preferences
 
-Create an account or sign in above the profile form. Usernames are case-insensitive,
+Create an account or sign in on `/account`. Usernames are case-insensitive,
 3–40 characters (letters, numbers, dots, dashes, underscores); passwords must be
 12–128 characters. The first version does not collect email addresses or provide
 email verification/password recovery. Keep access to your chosen password.
@@ -280,3 +278,28 @@ Tech, Hardware, Enterprise SaaS, Consumer Tech, and Other Technical. A role may
 have multiple sectors; sector counts exclude their own selections and are not
 necessarily additive. Functional role fields remain available to legacy API
 clients. Private profile saves retain multiple sector selections.
+
+
+## Dedicated account workspace and search layout
+
+Keyword search sits above the search layout. A left sidebar holds multi-select
+filters; profile and resume controls are shown only on the signed-in `/account`
+page. The account page includes identity, resume draft review, saved multi-select
+preferences, and application stages with metadata fetched only for the current
+user's saved IDs. Private responses are no-store; changing an application stage
+persists immediately. Profile saves remain explicit and revision checked.
+Search uses the signed-in saved profile; focus/BroadcastChannel refreshes other
+open tabs after a save without broadcasting personal content.
+
+Industry options are alphabetical. Sort choices are relevance (saved profile),
+most recent (employer publication with first-seen fallback), closing soon, and
+company A–Z. With no saved profile, relevance falls back to recent and says so.
+Deadline extraction accepts explicit employer fields or unambiguous application
+closing wording containing a year. Missing/ambiguous dates remain unknown and
+sort last; explicit expired deadlines are removed from current-only search.
+Date-only deadlines do not invent a cutoff time or timezone.
+
+Lila Sciences and Chan Zuckerberg Initiative are additional public Greenhouse
+sources. Lab/scientific computing is an overlapping opportunity category;
+research, labs, and internships remain within the technical profession scope.
+Coverage and counts vary with each successful employer snapshot.

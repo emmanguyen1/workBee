@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
+from hives.careers.deadlines import deadline_info, recency
 from hives.careers import store
 from hives.careers.preferences import MultiPreferences
 from hives.careers.sectors import technical_role, sector_tags, SECTORS
@@ -35,14 +36,14 @@ class Search(MultiPreferences):
     region: str = Field(default="", max_length=10)
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
-    sort: str = Field(default="fit", pattern="^(fit|newest)$")
+    sort: str = Field(default="fit", pattern="^(fit|relevance|newest|deadline|company)$")
     student_year: Literal["all", "incoming", "first", "second"] = "all"
     technical_only: bool = False
     current_only: bool = False
     include_programs: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
-    opportunity_type: Literal["all", "internship", "job", "research", "program"] = "all"
+    opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=30, ge=1, le=100)
 
@@ -105,6 +106,8 @@ def search_catalog(data, request):
     board_status = {b["key"]:b for b in data["boards"]}
     source_jobs = [*data["jobs"], *(program_jobs() if not request.current_only and (request.include_programs or request.opportunity_type == "program") else [])]
     for job in deduplicate(source_jobs):
+        job={**job,"deadline_info":deadline_info(job)}
+        if request.current_only and job["deadline_info"]["expired"]:continue
         if request.current_only:
             status = availability(job, board_status.get(f"{job.get('source')}:{job.get('board')}"), supported_boards=board_status)
             if job.get("source") not in {"greenhouse", "lever", "ashby"} or status["state"] != "listed":
@@ -131,7 +134,7 @@ def search_catalog(data, request):
     selected_countries=request.countries or ([request.country] if request.country else [])
     selected_regions=request.regions or ([request.region] if request.region else [])
     selected_workplaces=request.workplaces or ([] if request.workplace=='all' else [request.workplace])
-    rank_by_fit = request.sort == "fit" and bool(request.profile.model_dump(exclude_defaults=True))
+    rank_by_fit = request.sort in {"fit","relevance"} and bool(request.profile.model_dump(exclude_defaults=True))
     types = Counter(j["role_type"] for j in catalog)
     fields, categories, sectors = Counter(), Counter(), Counter()
     for job in catalog:
@@ -175,14 +178,17 @@ def search_catalog(data, request):
         jobs.append({**job, "match": result} if result else job)
     facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in FIELDS.items()],
               "field_total": sum(fields.values()),
-              "sectors": [{"value":key,"label":label,"count":sectors[key]} for key,label in SECTORS.items()],
+              "sectors": [{"value":key,"label":label,"count":sectors[key]} for key,label in sorted(SECTORS.items(),key=lambda item:item[1].casefold())],
               "opportunity_types": dict(categories),
               "companies": sorted({j["company"] for j in catalog}),
               "countries": [{"value":code,"label":COUNTRIES.get(code, code)} for code in sorted({c for j in catalog for c in j["geography"]["countries"]}, key=lambda c:COUNTRIES.get(c, c))],
               "regions": [{"value":code,"label":REGIONS[code],"country":code.split("-")[0]} for code in sorted({r for j in catalog for r in j["geography"]["regions"]}, key=lambda r:REGIONS[r])],
               "role_types": dict(types)}
-    if not rank_by_fit:
-        jobs.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
+    effective_sort='relevance' if rank_by_fit else request.sort if request.sort in {'deadline','company'} else 'newest'
+    if effective_sort=='deadline':jobs.sort(key=lambda j:(not bool(j['deadline_info']['date']),j['deadline_info']['date'] or '9999',-recency(j)))
+    elif effective_sort=='company':jobs.sort(key=lambda j:(j['company'].casefold(),j['title'].casefold()))
+    elif not rank_by_fit:
+        jobs.sort(key=recency, reverse=True)
     else:
         jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"], -job["match"]["breakdown"]["with_examples"]))
     page = jobs[request.offset:request.offset + request.limit]
@@ -193,7 +199,7 @@ def search_catalog(data, request):
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
             "profile_skills": [s.skill for s in request.profile.skills],
             "listing_total": sum(not j.get("is_program",False) for j in jobs), "program_total": sum(bool(j.get("is_program")) for j in jobs),
-            "effective_sort": "fit" if rank_by_fit else "newest", "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": sum(j["role_type"] != "other" or bool(j.get("is_program")) for j in catalog)}
+            "effective_sort": effective_sort, "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": sum(j["role_type"] != "other" or bool(j.get("is_program")) for j in catalog)}
 
 
 class VerifyOpportunity(BaseModel):
@@ -231,3 +237,9 @@ async def employer_logo(asset: str):
 async def early_college_programs(response: Response):
     response.headers.update(PRIVATE_HEADERS)
     return {'programs': program_catalog(), 'note': 'Program research is separate from live job counts. Confirm current eligibility and availability on the official page.'}
+
+
+@router.get('/account',response_class=HTMLResponse)
+async def account_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('account.html').read_text()
