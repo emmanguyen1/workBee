@@ -2,6 +2,8 @@ from pathlib import Path
 from collections import Counter
 import asyncio
 from typing import Literal
+from time import perf_counter
+from hives.careers.catalog import cache as catalog_cache,prepare as prepare_catalog
 
 from fastapi import APIRouter, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, FileResponse
@@ -14,7 +16,7 @@ from hives.careers.deadlines import deadline_info, recency
 from hives.careers import store
 from hives.careers.preferences import MultiPreferences
 from hives.careers.sectors import technical_role, sector_tags, SECTORS
-from hives.careers.matching import Profile, match
+from hives.careers.matching import Profile, match,profile_evidence
 from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches, opportunity_types, talent_pool
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
 from hives.careers.simplify import deduplicate
@@ -44,6 +46,7 @@ class Search(MultiPreferences):
     current_only: bool = False
     include_programs: bool = False
     include_community: bool = False
+    include_stale: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
     opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
@@ -98,42 +101,51 @@ async def manual_match(request: ManualMatch, response: Response):
 async def search(request: Search, response: Response):
     response.headers["Cache-Control"] = "no-store"
     try:
-        data = await store.catalog(current_only=request.current_only,include_community=request.include_community)
+        started=perf_counter()
+        data,hit = await catalog_cache.get(current_only=request.current_only,include_community=request.include_community,include_stale=request.include_stale)
+        loaded=perf_counter()
     except Exception as exc:
-        raise HTTPException(503, "Careers database unavailable. Start Postgres and the careers collector.") from exc
-    return await run_in_threadpool(search_catalog, data, request)
+        raise HTTPException(503, "Careers database unavailable. Start Postgres and retry; a background collector is not required.") from exc
+    result=await run_in_threadpool(search_catalog,data,request)
+    response.headers['Server-Timing']=f'catalog;dur={(loaded-started)*1000:.1f};desc="{"cache" if hit else "load"}", search;dur={(perf_counter()-loaded)*1000:.1f}'
+    return result
 
 
 def search_catalog(data, request):
     jobs, catalog = [], []
+    evidence=profile_evidence(request.profile)
     now=datetime.now(timezone.utc)
     board_status = {b["key"]:b for b in data["boards"]}
-    source_jobs = [*data["jobs"], *(program_jobs() if not request.current_only and (request.include_programs or request.opportunity_type == "program") else [])]
-    for job in deduplicate(source_jobs):
-        job={**job,"deadline_info":deadline_info(job,now)}
-        if request.current_only and job["deadline_info"]["expired"]:continue
+    public=data if data.get('prepared') else prepare_catalog(data)
+    source_jobs=[*public['jobs']]
+    if not request.current_only and (request.include_programs or request.opportunity_type=='program'):
+        source_jobs.extend(prepare_catalog({'jobs':program_jobs()})['jobs'])
+    for raw in source_jobs:
+        job={**raw,'deadline_info':deadline_info(raw,now)}
+        if request.current_only and job['deadline_info']['expired']:continue
+        if request.current_only and job.get('verification',{}):
+            v=job['verification']
+            if v.get('state')=='removed':
+                try:
+                    if datetime.fromisoformat(v['checked_at'].replace('Z','+00:00'))>=datetime.fromisoformat(job['last_seen'].replace('Z','+00:00')):continue
+                except (KeyError,ValueError,TypeError):pass
         if request.current_only:
-            status = availability(job, board_status.get(f"{job.get('source')}:{job.get('board')}"), supported_boards=board_status)
+            status=availability(job,board_status.get(f"{job.get('source')}:{job.get('board')}"),now=now,supported_boards=board_status)
             community=request.include_community and job.get('source')=='simplify' and status['state']=='community'
             if community:
                 try:community=0 <= (now-datetime.fromisoformat(job['last_seen'].replace('Z','+00:00'))).total_seconds() <= 1800 and not (board_status.get('simplify:summer2027') or {}).get('error')
                 except (KeyError,ValueError,TypeError):community=False
-            if not community and (job.get("source") not in {"greenhouse", "lever", "ashby"} or status["state"] != "listed"):
-                continue
-        if talent_pool(job["title"]):
-            continue
+            cached=False
+            if request.include_stale and status['state'] in {'stale','unavailable','community'}:
+                allowed=job.get('source') in {'greenhouse','lever','ashby'} or request.include_community and job.get('source')=='simplify'
+                try:cached=allowed and 0 <= (now-datetime.fromisoformat(job['last_seen'].replace('Z','+00:00'))).total_seconds() <= 7*86400
+                except (KeyError,ValueError,TypeError):cached=False
+            if not cached and not community and (job.get('source') not in {'greenhouse','lever','ashby'} or status['state']!='listed'):continue
+            job['needs_recheck']=cached or job.get('source')=='simplify'
         if request.technical_only:
             technical,reason=technical_role(job)
             if not technical:continue
-            job={**job,"technical_evidence":reason}
-        job={**job,"sectors":sector_tags(job)}
-        # Reclassify legacy snapshots without requiring a database migration.
-        job = {**job, "career_field": job.get("career_field", "other") if job.get("source") in {"simplify", "program"} else career_field(job["title"], job.get("department", "")),
-               "role_type": job["role_type"] if job.get("is_program") else "internship" if job["role_type"] == "internship" else role_type(job["title"]),
-               "locations": job.get("locations") or [job["location"]],
-               "workplace": job.get("workplace", "unspecified").lower()}
-        job["student_audience"] = job["student_audience"] if job.get("is_program") else student_years(job)
-        job["geography"] = geography(job)
+            job={**job,'technical_evidence':reason}
         catalog.append(job)
     selected_fields=request.career_fields or ([] if request.career_field=='all' else [request.career_field])
     selected_types=request.opportunity_types or ([] if request.opportunity_type=='all' else [request.opportunity_type])
@@ -162,10 +174,10 @@ def search_catalog(data, request):
         if selected_regions and not any(region_matches(job,region=r) for r in selected_regions): continue
         if not location_matches(request.location, [*job["locations"], *job.get("countries", [])]):
             continue
-        text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
-        if not all(word in text for word in request.query.casefold().split()):
-            continue
-        result = match(job, request.profile) if request.comparable_only else None
+        if request.query.strip():
+            text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
+            if not all(word in text for word in request.query.casefold().split()):continue
+        result = match(job, request.profile,evidence=evidence) if request.comparable_only else None
         if request.comparable_only and not result["comparable"]:
             continue
         facts=job.get('facts') or opportunity_facts(job) if request.pay!='all' or request.commitments else None
@@ -190,7 +202,7 @@ def search_catalog(data, request):
         if selected_fields and job["career_field"] not in selected_fields:
             continue
         if rank_by_fit and result is None:
-            result = match(job, request.profile)
+            result = match(job, request.profile,evidence=evidence)
         jobs.append({**job, "match": result} if result else job)
     facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in sorted(FIELDS.items(),key=lambda item:item[1].casefold())],
               "field_total": sum(fields.values()),
@@ -209,11 +221,12 @@ def search_catalog(data, request):
         jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"], -job["match"]["breakdown"]["with_examples"]))
     page = [{**j,"facts":j.get("facts") or opportunity_facts(j)} for j in jobs[request.offset:request.offset + request.limit]]
     if not rank_by_fit and not request.comparable_only:
-        page = [{**j, "match": match(j, request.profile)} for j in page]
+        page = [{**j, "match": match(j, request.profile,evidence=evidence)} for j in page]
     boards = {b["key"]: b for b in data["boards"]}
     page = [{**job, **company_brand(job["company"]), "availability": job["availability"] if job.get("is_program") else availability(job, boards.get(f"{job.get('source')}:{job.get('board')}"))} for job in page]
     return {"jobs": page, "total": len(jobs), "boards": data["boards"], "facets": facets,
             "profile_skills": [s.skill for s in request.profile.skills],
+            "needs_recheck_total":sum(j.get('needs_recheck',False) for j in jobs),
             "listing_total": sum(not j.get("is_program",False) for j in jobs), "program_total": sum(bool(j.get("is_program")) for j in jobs),
             "effective_sort": effective_sort, "catalog_total": len(catalog), "catalog_field_total": len({j["career_field"] for j in catalog}), "early_career_total": sum(j["role_type"] != "other" or bool(j.get("is_program")) for j in catalog)}
 

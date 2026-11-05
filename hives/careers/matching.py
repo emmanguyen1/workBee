@@ -178,8 +178,12 @@ def has_example(text):
     return bool(re.search(r"\b(?:built|developed|designed|created|analy[sz]ed|implemented|managed|automated|optimized|tested|researched|delivered|led|organized|conducted|taught|wrote|coordinated|interviewed|collected|coursework|capstone|thesis|project|laboratory)\b", text or "", re.I))
 
 
-def match(job, profile: Profile):
-    evidence = {canonical(s.skill): s.evidence for s in profile.skills}
+def profile_evidence(profile):
+    return {canonical(s.skill):s.evidence for s in profile.skills}
+
+
+def match(job, profile: Profile, evidence=None):
+    if evidence is None:evidence=profile_evidence(profile)
     checks = []
     extracted = job.get("requirements") if job.get("requirements_version") == REQUIREMENTS_VERSION else None
     for requirement in extracted if extracted is not None else requirements(job["description"]):

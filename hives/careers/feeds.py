@@ -1,5 +1,6 @@
 """Bounded public employer feeds. No user-provided URLs or credentials."""
 import re
+import asyncio
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -118,7 +119,7 @@ def normalize(employer, raw):
     }
 
 
-async def fetch_board(client: httpx.AsyncClient, employer):
+async def fetch_board(client: httpx.AsyncClient, employer, cancel_event=None):
     source, board = employer["source"], employer["board"]
     if not re.fullmatch(r"[A-Za-z0-9_-]+", board):
         raise ValueError("Invalid employer board identifier")
@@ -154,4 +155,10 @@ async def fetch_board(client: httpx.AsyncClient, employer):
     if not isinstance(rows, list):
         raise ValueError("Unexpected employer response")
     # Reject the entire snapshot on malformed data; never close jobs on a partial feed.
-    return [normalize(employer, row) for row in rows]
+    def normalized():
+        result=[]
+        for row in rows:
+            if cancel_event is not None and cancel_event.is_set():raise asyncio.CancelledError()
+            result.append(normalize(employer,row))
+        return result
+    return await asyncio.to_thread(normalized)

@@ -1,3 +1,7 @@
+> Updated freshness and refresh behavior: the website now keeps last-known-open
+> listings for seven days with recheck labels and offers explicit manual refresh.
+> See [performance and refresh details](workbee-performance-refresh.md).
+
 # workBee: explore broadly, act deliberately
 
 This expansion lives on `feat/workbee-beyond-tech`, based on the existing workBee

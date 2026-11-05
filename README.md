@@ -18,6 +18,8 @@ See [research and feature details](docs/workbee-expansion.md).
   Industry and career-field menus are alphabetical; counts follow the other filters.
 - Filter by explicit pay information, time-commitment wording, posting recency,
   upcoming deadlines, geography, employer and career stage.
+- Refresh sources on demand, inspect timestamps and progress, or cancel an import.
+  Saved listings remain visible with recheck labels when automatic collection is off.
 - Ask **Bee** in the bottom-right corner for source-linked discovery and product help.
   A local search guide works without a key; optional AI answers use a server-side key.
   See [Bee setup, privacy and source research](docs/workbee-bee-assistant.md).
@@ -37,13 +39,19 @@ See [research and feature details](docs/workbee-expansion.md).
   fields/posting text; missing dates sort last and past explicit deadlines are excluded.
 - Check source-feed availability; recognize employers through cached logos.
 
-## Current postings only
+## Saved listings and source freshness
 
-The web search includes roles listed in configured employer feeds within the
-last 30 minutes, excluding removed, stale listings and researched
-program guides. Community-only rows are excluded by default; the explicit
-Simplify discovery option includes recent rows with employer-unverified labels. Feed presence is not a guarantee that the application portal
-accepts submissions; confirm on the employer website.
+The website keeps last-known-open listings observed within **seven days** visible
+when background collection is paused. Checks older than thirty minutes are marked
+**needs recheck**. Confirmed removals and explicit past deadlines are excluded.
+Optional Simplify discoveries keep their employer-unverified labels.
+
+Use **Refresh opportunities** to check all sources, selected employers, or one
+source. Watch progress, inspect timestamps, or cancel. Checks run only when asked;
+no background collector is needed. Recent checks are skipped to avoid repeat work.
+
+Search reuses prepared public catalogs; personal matches remain per request.
+See [performance measurements and refresh behavior](docs/workbee-performance-refresh.md).
 
 The **First & second year postings** opportunity type filters current internships
 with explicit class-year wording in the posting itself. There are no separate
@@ -150,6 +158,8 @@ docker compose stop careers-queen redis-bridge redis
 docker compose up -d --no-deps workbee
 ```
 
-This pauses live feed collection; current-only results age out after 30 minutes.
+This pauses automatic collection. Cached last-known-open listings stay visible
+for seven days, with checks older than thirty minutes marked for rechecking.
+Use the website’s Refresh opportunities button for an on-demand check.
 Profiles, notes and saved applications remain available. Resume collection when
 needed with `docker compose up -d careers-queen`. The web app does not need Redis.

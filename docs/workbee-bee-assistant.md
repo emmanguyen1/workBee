@@ -1,3 +1,7 @@
+> Updated freshness and refresh behavior: the website now keeps last-known-open
+> listings for seven days with recheck labels and offers explicit manual refresh.
+> See [performance and refresh details](workbee-performance-refresh.md).
+
 # Bee assistant and broader Simplify discovery
 
 The former hero bee callout has been removed. The bottom-right **Ask Bee** launcher
