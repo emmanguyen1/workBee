@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import httpx
 import yaml
 
+from hives.careers.qualifications import qualification_snapshot, QUALIFICATION_VERSION
 from hives.careers.taxonomy import career_field, role_type
 from hives.careers.matching import requirements, REQUIREMENTS_VERSION
 
@@ -106,6 +107,8 @@ def normalize(employer, raw):
         "role_type": role_type(title, employment), "description": description[:100000],
         "requirements": requirements(description[:100000]),
         "requirements_version": REQUIREMENTS_VERSION,
+        "qualification_snapshot": qualification_snapshot(description[:100000]),
+        "qualification_version": QUALIFICATION_VERSION,
         "apply_url": safe_url(url), "published_at": published,
         "source_updated_at": raw.get("updated_at"),
     }

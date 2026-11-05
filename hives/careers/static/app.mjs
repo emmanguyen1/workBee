@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences, deadlineCalendar} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences, mergeProfileSkills, preferenceChoices} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -6,16 +6,33 @@ let accountUser=null,accountRevision=0,authGeneration=0;
 const PAGE=30,PROFILE_KEY='hivework.careers.profile',SAVED_KEY='hivework.careers.applications';
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
 let saved=read(SAVED_KEY,{});if(!saved||typeof saved!=='object'||Array.isArray(saved))saved={};
+const choices={field:[],company:[],country:[],region:[],workplace:[],role:[],'opportunity-type':[]};
+const labels={field:'Any tech fields / industries',company:'Any employers',country:'Any countries',region:'Any states / provinces',workplace:'Any workplaces',role:'Any career stages','opportunity-type':'All current postings'};
+function setChoices(id,values){choices[id]=[...new Set(values||[])];updateChoiceSummary(id);const box=$(id);if(box)for(const input of box.querySelectorAll('input[type=checkbox]'))input.checked=choices[id].includes(input.value)}
+function updateChoiceSummary(id){const node=$(id);if(!node)return;const selected=choices[id],items=node._items||[];const names=selected.map(v=>items.find(item=>item.value===v)?.label||v);node.querySelector('summary span').textContent=names.length?names.length===1?names[0]:names.length+' selected':labels[id];node.querySelector('summary').title=names.join(', ')||labels[id]}
+function multiOptions(id,items){
+  const node=$(id);node._items=items;let menu=node.querySelector('.multi-menu');
+  if(!menu){menu=make('div',undefined,'multi-menu');const search=make('input');search.type='search';search.placeholder='Find an option…';search.setAttribute('aria-label','Find '+labels[id].toLowerCase());search.oninput=()=>{for(const row of menu.querySelectorAll('.multi-option'))row.hidden=!row.textContent.toLowerCase().includes(search.value.toLowerCase())};const list=make('div',undefined,'multi-options'),clear=make('button','Clear selection','text-button');clear.type='button';clear.onclick=()=>{setChoices(id,[]);refreshFilters()};menu.append(search,list,clear);node.append(menu);node.addEventListener('toggle',()=>{if(node.open)for(const other of document.querySelectorAll('.multi-filter[open]'))if(other!==node)other.open=false});node.addEventListener('keydown',event=>{if(event.key==='Escape'){node.open=false;node.querySelector('summary').focus();event.stopPropagation()}})}
+  const active=document.activeElement?.closest('.multi-options')===menu.querySelector('.multi-options')?document.activeElement.value:null;
+  const all=[...items,...choices[id].filter(value=>!items.some(i=>i.value===value)).map(value=>({value,label:value+' (no current matches)'}))];
+  menu.querySelector('.multi-options').replaceChildren(...all.map(item=>{const row=make('label',undefined,'multi-option'),input=make('input');input.type='checkbox';input.value=item.value;input.dataset.facet=id;input.checked=choices[id].includes(item.value);input.onchange=()=>{const values=new Set(choices[id]);if(input.checked)values.add(item.value);else values.delete(item.value);setChoices(id,[...values])};row.append(input,make('span',item.label));return row}));
+  menu.querySelector('input[type=search]').dispatchEvent(new Event('input'));updateChoiceSummary(id);
+  if(active)for(const input of menu.querySelectorAll('input[type=checkbox]'))if(input.value===active)input.focus();
+}
+document.addEventListener('click',event=>{for(const node of document.querySelectorAll('.multi-filter[open]'))if(!node.contains(event.target))node.open=false});
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {include_programs:true,program_status:$('program-status').value,student_year:$('student-year').value,opportunity_type:$('opportunity-type').value,query:$('query').value,role_type:$('role').value,career_field:$('field').value,country:$('country').value,region:$('region').value,workplace:$('workplace').value,company:$('company').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);for(const [key,id,fallback] of [['program_status','program-status','all'],['student_year','student-year','all'],['opportunity_type','opportunity-type','all'],['query','query',''],['role_type','role','all'],['career_field','field','all'],['country','country',''],['region','region',''],['workplace','workplace','all'],['company','company',''],['sort','sort','fit']]){const node=$(id),value=p[key]??fallback;if(node.tagName==='SELECT'&&![...node.options].some(o=>o.value===value)){const option=make('option',value);option.value=value;node.append(option)}node.value=value}}
+function preferences(){return {technical_only:true,current_only:true,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:[],companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function fillPreferences(p){$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort||'fit';for(const [key,id,legacy] of [['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
+function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
+function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
-function accountView(data,restore=true){accountUser=data.user;accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore&&Object.keys(data.profile||{}).length){fill(data.profile);fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.'}}
+function accountView(data,restore=true){accountUser=data.user;accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;$('identity-panel').classList.toggle('hidden',!accountUser);identityView(accountUser);for(const [key,id] of [['display_name','display-name'],['school','profile-school'],['headline','profile-tagline']])$(id).value=accountUser?.[key]||'';if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore&&Object.keys(data.profile||{}).length){fill(data.profile);fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.'}}
+$('account-toggle').onclick=()=>{$('workspace').open=true;$('workspace').scrollIntoView({behavior:'smooth',block:'start'});if(!accountUser){$('auth-details').open=true;$('account-username').focus()}else $('display-name').focus()};
 $('auth-mode').onchange=()=>{$('account-password').autocomplete=$('auth-mode').value==='register'?'new-password':'current-password'};
 $('auth-form').onsubmit=async event=>{event.preventDefault();++authGeneration;$('auth-submit').disabled=true;$('account-message').textContent='Connecting…';try{const data=await accountFetch($('auth-mode').value,'POST',{username:$('account-username').value,password:$('account-password').value});accountView(data);$('auth-details').open=false;$('account-message').textContent=data.revision===0?'Account ready. Save your profile and filters to sync your current work.':'Saved account data loaded.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}finally{$('account-password').value='';$('auth-submit').disabled=false}};
-$('save-account').onclick=async()=>{$('save-account').disabled=true;try{const data=await accountFetch('state','PUT',{profile:profile(),preferences:preferences(),revision:accountRevision});accountRevision=data.revision;$('account-message').textContent='Profile and search preferences saved to your account.'}catch(error){$('account-message').textContent=error.message}finally{$('save-account').disabled=false}};
+$('save-account').onclick=async()=>{const generation=authGeneration,owner=accountUser?.username;$('save-account').disabled=true;try{const data=await accountFetch('state','PUT',{identity:identity(),profile:checkedProfile(),preferences:preferences(),revision:accountRevision});if(generation!==authGeneration||accountUser?.username!==owner)return;accountRevision=data.revision;accountUser=data.user;identityView(accountUser);$('account-message').textContent='Profile and search preferences saved to your account.'}catch(error){$('account-message').textContent=error.message}finally{$('save-account').disabled=false}};
 $('reload-account').onclick=async()=>{try{const data=await accountFetch('session');accountView(data);if(!data.user){fill({});fillPreferences({});saved={}}$('account-message').textContent=data.user?'Saved account profile, filters, and application statuses loaded.':'Session expired. Sign in again.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}};
 $('logout-account').onclick=async()=>{try{await accountFetch('logout','POST');++authGeneration;accountView({user:null});fill({});fillPreferences({});clearImport();saved=read(SAVED_KEY,{});$('account-message').textContent='Signed out. Account data remains saved on the server.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}};
 try{const p=read(PROFILE_KEY,null);if(p&&Array.isArray(p.skills))fill(p)}catch{}
@@ -27,12 +44,12 @@ $('discard-resume').onclick=clearImport;
 $('review-confirm').onchange=()=>{$('apply-resume').disabled=!$('review-confirm').checked};
 $('extract-resume').onclick=async()=>{
  const version=++importVersion,file=$('resume-file').files[0],text=$('resume-text').value.trim();$('resume-review').classList.add('hidden');$('review-confirm').checked=false;$('apply-resume').disabled=true;$('extract-resume').disabled=true;$('resume-message').className='notice';$('resume-message').textContent='Extracting a review draft…';
- try{if(file&&text)throw new Error('Choose a file or paste text, then clear the other input.');if(!file&&!text)throw new Error('Choose a resume file or paste your resume text first.');const format=file?file.name.split('.').pop().toLowerCase():'txt';if(!['pdf','docx','txt'].includes(format))throw new Error('Use a PDF, DOCX, or UTF-8 text file.');if(file&&file.size>4*1024*1024)throw new Error('Resume must be 4 MB or smaller.');const res=await fetch('/api/careers/resume?format='+format,{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file||new Blob([text],{type:'text/plain'})});const data=await res.json();if(!res.ok)throw new Error(apiError(data,'Could not extract this resume. Try pasting the text instead.'));if(version!==importVersion)return;const draft=data.draft;$('draft-skills').value=draft.skills.map(s=>s.skill+' | '+s.evidence.replaceAll('\n',' ')).join('\n');$('draft-degree').value=draft.degree_level||'';$('draft-degree-status').value=draft.degree_status||'';$('draft-major').value=draft.major||'';$('draft-graduation').value=draft.graduation_year||'';$('draft-gpa').value=draft.gpa??'';$('resume-warnings').replaceChildren(...data.warnings.map(w=>make('li',w)));$('resume-sources').replaceChildren(...data.fields.map(f=>make('p',f.field+': '+f.quote)));$('resume-review').classList.remove('hidden');$('resume-message').textContent='Draft ready: '+draft.skills.length+' suggested skills. Your matching profile has not changed.';$('review-title').focus();
+ try{if(file&&text)throw new Error('Choose a file or paste text, then clear the other input.');if(!file&&!text)throw new Error('Choose a resume file or paste your resume text first.');const format=file?file.name.split('.').pop().toLowerCase():'txt';if(!['pdf','docx','txt'].includes(format))throw new Error('Use a PDF, DOCX, or UTF-8 text file.');if(file&&file.size>4*1024*1024)throw new Error('Resume must be 4 MB or smaller.');const res=await fetch('/api/careers/resume?format='+format,{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file||new Blob([text],{type:'text/plain'})});const data=await res.json();if(!res.ok)throw new Error(apiError(data,'Could not extract this resume. Try pasting the text instead.'));if(version!==importVersion)return;const draft=data.draft;$('resume-quality').textContent=data.summary?data.summary.with_examples+' skills with project/work/course examples · '+data.summary.listed_only+' listed-only skills. Review the evidence before matching.':'';$('draft-skills').value=draft.skills.map(s=>s.skill+' | '+s.evidence.replaceAll('\n',' ')).join('\n');$('draft-degree').value=draft.degree_level||'';$('draft-degree-status').value=draft.degree_status||'';$('draft-major').value=draft.major||'';$('draft-graduation').value=draft.graduation_year||'';$('draft-gpa').value=draft.gpa??'';$('resume-warnings').replaceChildren(...data.warnings.map(w=>make('li',w)));$('resume-sources').replaceChildren(...data.fields.map(f=>make('p',f.field+': '+f.quote)));$('resume-review').classList.remove('hidden');$('resume-message').textContent='Draft ready: '+draft.skills.length+' suggested skills. Your matching profile has not changed.';$('review-title').focus();
  }catch(error){if(version===importVersion){$('resume-message').textContent=error.message;$('resume-message').className='notice error'}}finally{if(version===importVersion)$('extract-resume').disabled=false}
 };
-$('apply-resume').onclick=()=>{if(!$('review-confirm').checked)return;for(const id of ['draft-skills','draft-major','draft-graduation','draft-gpa'])if(!$(id).reportValidity())return;$('skills').value=$('draft-skills').value;for(const [from,to] of [['draft-degree','degree'],['draft-degree-status','degree-status'],['draft-major','major'],['draft-graduation','graduation'],['draft-gpa','gpa']])if($(from).value!=='')$(to).value=$(from).value;clearImport();$('profile-message').textContent='Reviewed draft applied for matching. Save on device only if you want to keep it.';applyProfile()};
+$('apply-resume').onclick=()=>{if(!$('review-confirm').checked)return;for(const id of ['draft-skills','draft-major','draft-graduation','draft-gpa'])if(!$(id).reportValidity())return;try{const merged=mergeProfileSkills(parseSkills($('skills').value),parseSkills($('draft-skills').value),$('resume-apply-mode').value==='replace');$('skills').value=merged.map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n')}catch(error){$('resume-message').textContent=error.message;return};for(const [from,to] of [['draft-degree','degree'],['draft-degree-status','degree-status'],['draft-major','major'],['draft-graduation','graduation'],['draft-gpa','gpa']])if($(from).value!=='')$(to).value=$(from).value;clearImport();$('profile-message').textContent=accountUser?'Reviewed draft applied. Save profile & filters to your account to keep it.':'Reviewed draft applied. Save on device if you want to keep it.';applyProfile()};
 function section(title){const d=make('details');d.append(make('summary',title));return d}
-let fieldLabels={};
+let fieldLabels={},sectorLabels={};
 let visibleJobs = [];
 let searchController = null;
 const dialog = $('opportunity-dialog');
@@ -64,29 +81,26 @@ function logo(job) {
   return box;
 }
 
-function options(id, items, first) {
-  const node=$(id), selected=node.value;
-  node.replaceChildren(); const initial=make('option',first); initial.value=id==='field'?'all':''; node.append(initial);
-  for(const item of items){const option=make('option',item.label);option.value=item.value;node.append(option)}
-  if (selected && ![...node.options].some(o=>o.value===selected)) {const option=make('option',selected+' (no current listings)');option.value=selected;node.append(option)}
-  node.value=selected; if(node.selectedIndex<0)node.selectedIndex=0;
-}
-
 function facets(data) {
+  sectorLabels=Object.fromEntries(data.facets.sectors.map(s=>[s.value,s.label]));
   fieldLabels=Object.fromEntries(data.facets.fields.map(f=>[f.value,f.label]));
-  options('field', data.facets.fields.map(f=>({value:f.value,label:f.label+' ('+f.count+')'})), 'All fields ('+data.facets.field_total+')');
-  for(const option of $('opportunity-type').options){const names={all:'All opportunities',internship:'Internships & co-ops',job:'Jobs',research:'Research & fellowships',program:'First & second year programs'};option.textContent=names[option.value]+' ('+(data.facets.opportunity_types[option.value]||0)+')';}
-  options('company',data.facets.companies.map(c=>({value:c,label:c})),'All employers');
-  options('country', [...data.facets.countries,{value:'unknown',label:'Country not specified'}], 'Any country');
-  options('region', data.facets.regions.filter(r=>!$('country').value||r.country===$('country').value).map(r=>({value:r.value,label:r.label+' · '+r.country})), 'Any state or province');
+  multiOptions('field',data.facets.sectors.map(f=>({value:f.value,label:f.label+' ('+f.count+')'})));
+  const names={internship:'Internships & co-ops',job:'Jobs',research:'Research & fellowships',program:'First & second year postings'};
+  multiOptions('opportunity-type',Object.entries(names).map(([value,label])=>({value,label:label+' ('+(data.facets.opportunity_types[value]||0)+')'})));
+  multiOptions('role',[['early_career','Early career'],['internship','Internships & co-ops'],['new_grad','New graduate'],['entry_level','Junior & entry level'],['apprenticeship','Apprenticeships'],['other','Other / unspecified']].map(([value,label])=>({value,label})));
+  multiOptions('workplace',[['remote','Remote'],['hybrid','Hybrid'],['onsite','On-site'],['unspecified','Not specified']].map(([value,label])=>({value,label})));
+  multiOptions('company',data.facets.companies.map(c=>({value:c,label:c})));
+  multiOptions('country',[...data.facets.countries,{value:'unknown',label:'Country not specified'}]);
+  multiOptions('region',data.facets.regions.filter(r=>!choices.country.length||choices.country.includes(r.country)).map(r=>({value:r.value,label:r.label+' · '+r.country})));
   $('preferred-regions').replaceChildren(...[...data.facets.countries,...data.facets.regions].map(place=>{const node=make('option');node.value=place.label;return node}));
-  $('coverage').replaceChildren(...[[data.catalog_total,'Opportunities in catalog'],[data.early_career_total,'Early-career opportunities'],[data.facets.companies.length,'Employers to explore'],[data.catalog_field_total,'Career fields in catalog']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
+  $('coverage').replaceChildren(...[[data.catalog_total,'Current employer postings'],[data.early_career_total,'Early-career opportunities'],[data.facets.companies.length,'Employers to explore'],[data.facets.sectors.filter(s=>s.count>0).length,'Tech sectors available']].map(([number,label])=>{const node=make('span');node.append(make('strong',number.toLocaleString()),document.createTextNode(label));return node}));
 }
 
 function tags(job) {
   const node=make('div',undefined,'tags');
   const stage={internship:'Internship / co-op',new_grad:'New graduate',entry_level:'Entry level',apprenticeship:'Apprenticeship',other:'Other career levels'}[job.role_type];
-  node.append(make('span',stage||job.role_type,'tag stage'),make('span',fieldLabels[job.career_field]||job.career_field,'tag field'));
+  node.append(make('span',stage||job.role_type,'tag stage'));
+  for(const sector of job.sectors||[])node.append(make('span',sectorLabels[sector]||sector,'tag field'));
   if(job.workplace!=='unspecified')node.append(make('span',job.workplace==='onsite'?'On-site':job.workplace[0].toUpperCase()+job.workplace.slice(1),'tag remote'));
   if(job.opportunity_types?.includes('research'))node.append(make('span','Research / fellowship','tag research'));
   for(const year of job.student_audience?.years||[])node.append(make('span',year===1?'Mentions first-year':'Mentions second-year','tag'));
@@ -134,7 +148,7 @@ function tracking(job) {
 }
 
 function card(job) {
-  if(job.is_program)return programCard(job);
+
   const article=make('article',undefined,'job'),company=make('div',undefined,'company-row'),identity=make('div',undefined,'company-identity');
   identity.append(make('div',job.company,'company-name'));
   const source=make('div',undefined,'source-tag'+(job.listing_status==='community_listed'?' community':''));source.append(make('span'),document.createTextNode(job.listing_status==='community_listed'?'Community discovery':'Employer feed'));identity.append(source);company.append(logo(job),identity);article.append(company);
@@ -175,7 +189,7 @@ function renderMatchDetails(node,result) {
     for(const [key,label] of [['required','Required skill groups'],['preferred','Preferred skill groups']]){const value=breakdown[key];explanation.append(make('p',label+': '+value.matched+' / '+value.total+' supported'));}
     explanation.append(make('p','Required groups count twice; preferred groups count once. Contextual mentions do not affect the score.','notice'));
     if(result.score!=null)explanation.append(make('p',breakdown.earned_weight+' of '+breakdown.total_weight+' weighted points = '+result.score+'% skill coverage.','score-formula'));
-    if(breakdown.self_reported)explanation.append(make('p',breakdown.self_reported+' supported group(s) rely on skills listed without a project or work example. These are self-reported, not verified.','notice unknown'));
+    if(breakdown.self_reported)explanation.append(make('p',breakdown.self_reported+' supported group(s) rely on skills listed without a project, coursework, or work example. These are self-reported, not verified.','notice unknown'));
     if(breakdown.missing_required.length)explanation.append(make('p','Required skills to review: '+breakdown.missing_required.join(' · '),'notice'));
     explanation.append(make('p','Eligibility checks are separate from the skill score. Missing profile information remains unknown; the parser may miss requirements.','notice'));
     node.append(explanation);
@@ -193,7 +207,7 @@ function renderMatchDetails(node,result) {
 }
 
 function showDetails(job) {
-  if(job.is_program)return showProgramDetails(job);
+
   const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
   const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close opportunity details');close.onclick=()=>dialog.close();header.append(logo(job),heading,close);
@@ -238,7 +252,7 @@ async function applyProfile() {
 
 function renderJobs(data) {
   visibleJobs=data.jobs;$('jobs').replaceChildren(...visibleJobs.map(card));
-  if(!visibleJobs.length){const empty=make('div',undefined,'empty');empty.append(make('h3','No opportunities match this view'),make('p',$('comparable-only').checked?'Try another field or location, or turn off “With comparable skill requirements” to include community discoveries.':'Try a broader search or clear your filters.'));const reset=make('button','Clear filters','secondary');reset.type='button';reset.onclick=resetFilters;empty.append(reset);$('jobs').append(empty)}
+  if(!visibleJobs.length){const empty=make('div',undefined,'empty');empty.append(make('h3','No opportunities match this view'),make('p',$('comparable-only').checked?'Try another field or location, or turn off “With comparable skill requirements” to include other current employer postings.':'Try a broader search or clear your filters.'));const reset=make('button','Clear filters','secondary');reset.type='button';reset.onclick=resetFilters;empty.append(reset);$('jobs').append(empty)}
 }
 
 async function load() {
@@ -251,12 +265,12 @@ async function load() {
     const response=await fetch('/api/careers/search',{method:'POST',headers:{'Content-Type':'application/json'},signal:searchController.signal,body:JSON.stringify({profile:current,...preferences(),offset,limit:PAGE})});
     const data=await response.json();if(!response.ok)throw new Error(apiError(data));if(id!==requestId)return false;
     total=data.total;facets(data);renderJobs(data);
-    $('results-count').textContent=total.toLocaleString()+' roles';
+    $('results-count').textContent=total.toLocaleString()+' current postings';
     const normalized=data.profile_skills||[];
     $('match-notice').classList.toggle('active',normalized.length>0);
-    $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing roles with comparable requirements. Program guides without full postings are hidden; turn off that filter to include them.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
-    $('sort-note').textContent=data.effective_sort==='newest'?'Sorted by first discovery in this catalog, not employer publication date.':'Sorted by skill coverage, with possible eligibility conflicts last. Scores are not hiring predictions.';
-    $('status').textContent=total.toLocaleString()+' opportunities · '+data.listing_total+' job listings · '+data.program_total+' program guides (availability varies)';
+    $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing current postings with comparable requirements.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
+    $('sort-note').textContent=data.effective_sort==='newest'?'Sorted by first discovery in this catalog, not employer publication date.':'Sorted by skill coverage, qualification checks, and supporting examples; possible conflicts last. Scores are not hiring predictions.';
+    $('status').textContent=total.toLocaleString()+' current employer postings in this view';
     $('sources').replaceChildren();const sources=section('Source checks · '+data.boards.length+' feeds'),grid=make('div',undefined,'source-grid');for(const board of data.boards){const stale=!board.checked_at||Date.now()-Date.parse(board.checked_at)>30*60000;grid.append(make('div',board.company+': '+(board.error||(!board.checked_at?'Waiting for first check':relativeTime(board.checked_at))),'source'+(board.error||stale?' unknown':'')))}sources.append(grid);$('sources').append(sources);
     $('previous').disabled=offset===0;$('next').disabled=offset+PAGE>=total;$('page').textContent=total?`${offset+1}–${Math.min(offset+PAGE,total)} of ${total.toLocaleString()}`:'0 roles';
     return true;
@@ -266,49 +280,15 @@ async function load() {
 
 function resetFilters(){fillPreferences({});offset=0;load()}
 $('profile').onsubmit=event=>{event.preventDefault();applyProfile()};
+$('identity-panel').addEventListener('input',()=>{$('account-message').textContent='Unsaved profile changes. Choose Save profile & filters to account.'});
+$('filters').addEventListener('change',()=>{if(accountUser)$('account-message').textContent='Preferences changed. Save profile & filters to keep them across devices.'});
 $('profile').addEventListener('input',()=>{$('profile-message').className='notice';$('profile-message').textContent='Profile changed. Apply it to update your matches.'});
 $('filters').onsubmit=event=>{event.preventDefault();refreshFilters()};
 let filterTimer;
 function refreshFilters(){clearTimeout(filterTimer);offset=0;load()}
-$('filters').addEventListener('change',event=>{if(event.target.id==='country')$('region').value='';if(event.target.tagName==='SELECT'||event.target.type==='checkbox')refreshFilters()});
+$('filters').addEventListener('change',event=>{if(event.target.dataset.facet==='country'&&choices.country.length)setChoices('region',choices.region.filter(r=>choices.country.includes(r.split('-')[0])));if(event.target.tagName==='SELECT'||event.target.type==='checkbox')refreshFilters()});
 for(const id of ['query'])$(id).addEventListener('input',()=>{clearTimeout(filterTimer);filterTimer=setTimeout(refreshFilters,400)});
 $('reset-filters').onclick=resetFilters;
 $('previous').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};
 $('next').onclick=()=>{offset+=PAGE;load()};
-function officialLink(url,label){
-  const link=make('a',label,'button-link secondary');
-  try{const parsed=new URL(url);if(parsed.protocol!=='https:')return make('span','Official link unavailable');link.href=parsed.href;link.target='_blank';link.rel='noopener noreferrer';return link}catch{return make('span','Official link unavailable')}
-}
-function programTags(program){
-  const tags=make('div',undefined,'tags');tags.append(make('span',program.kind,'tag field'));
-  for(const year of program.years)tags.append(make('span',{0:'Incoming first-year',1:'Freshman / first-year',2:'Sophomore / second-year'}[year],'tag stage'));
-  return tags;
-}
-function programCalendarButton(program){
-  const button=make('button','Add deadline to calendar','secondary');button.type='button';
-  button.onclick=()=>{const blob=new Blob([deadlineCalendar(program)],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob),link=make('a');link.href=url;link.download=program.id.replaceAll(':','-')+'.ics';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-  return button;
-}
-function programCard(program){
-  const card=make('article',undefined,'job program-card'),company=make('div',undefined,'company-row'),identity=make('div',undefined,'company-identity');
-  identity.append(make('div',program.company,'company-name'),make('div','Program guide · manually researched','source-tag'));company.append(logo(program),identity);card.append(company);
-  const heading=make('h3'),title=make('button',program.title,'job-title');title.type='button';title.onclick=()=>showProgramDetails(program);heading.append(title);card.append(heading,make('p',program.summary,'program-summary'),programTags(program));
-  card.append(make('p',program.status_label,'program-state '+program.status));
-  if(program.deadline)card.append(make('p','Deadline: '+(program.deadline_note||program.deadline+' · cutoff time not published'),'program-deadline'));
-  const actions=make('div',undefined,'card-actions'),details=make('button','Eligibility & preparation','secondary');details.type='button';details.onclick=()=>showProgramDetails(program);actions.append(details,officialLink(program.source_url,'Official page ↗'));card.append(actions,tracking(program));
-  card.append(make('p','Source reviewed '+program.checked_on+' · '+program.cycle,'job-freshness'));
-  return card;
-}
-function showProgramDetails(program){
-  const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');heading.append(make('div',program.company,'company-name'));const title=make('h2',program.title);title.id='opportunity-title';heading.append(title);
-  const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close program details');close.onclick=()=>dialog.close();header.append(logo(program),heading,close);
-  const body=make('div',undefined,'dialog-body');body.append(programTags(program),make('p',program.summary),make('p',program.status_label,'program-state '+program.status),make('p',program.status_note,'notice'));
-  if(program.deadline)body.append(make('p','Published deadline: '+(program.deadline_note||program.deadline+' · cutoff time not published'),'program-deadline'));
-  body.append(make('h3','Who can apply?'),make('p',program.eligibility),make('p','Class-year eligibility is only one requirement. Confirm the full rules on the official page; workBee does not make a complete eligibility decision.','notice muted'));
-  const list=make('ul',undefined,'next-steps');for(const item of program.preparation)list.append(make('li',item));body.append(make('h3','Prepare your application'),list);
-  const actions=make('div',undefined,'actions');actions.append(officialLink(program.source_url,program.status==='application_window'?'View application details ↗':'View official program page ↗'));
-  if(program.eligibility_url)actions.append(officialLink(program.eligibility_url,'Full eligibility ↗'));
-  if(program.deadline&&program.status!=='closed')actions.append(programCalendarButton(program));body.append(actions,make('p','Official sources reviewed '+program.checked_on+'. Program guides are manually maintained, separately from feed-listed jobs.','notice muted'));
-  container.replaceChildren(header,body);dialog.showModal();
-}
 async function start(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation===authGeneration)accountView(data)}catch(error){if(generation===authGeneration)$('account-message').textContent='Account storage is unavailable. You can continue in guest mode.'}if(generation===authGeneration)await load()}start();

@@ -6,12 +6,22 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator, field_validator
 from hives.careers.geography import preferred_matches
-from hives.careers.qualifications import qualification_checks, requirement_lines
+from hives.careers.qualifications import qualification_checks, requirement_lines, QUALIFICATION_VERSION
 
-REQUIREMENTS_VERSION = 3
+REQUIREMENTS_VERSION = 4
 
 
 SKILLS = {
+    "Canva": ["canva"], "A/B testing": ["a/b testing", "ab testing", "a/b tests"],
+    "SPSS": ["spss"], "Stata": ["stata"], "SAS": ["sas programming", "sas software"],
+    "R": ["r programming", "r language", "rstudio"], "Looker": ["looker"],
+    "Snowflake": ["snowflake"], "Databricks": ["databricks"], "dbt": ["dbt"],
+    "Next.js": ["next.js", "nextjs"], "Express.js": ["express.js", "expressjs"],
+    "MongoDB": ["mongodb"], "Redis": ["redis"], "Azure": ["azure"],
+    "Google Cloud": ["google cloud", "gcp"], "Agile": ["agile", "scrum"],
+    "Bloomberg Terminal": ["bloomberg terminal"], "Valuation": ["valuation", "dcf"],
+    "Cell culture": ["cell culture"], "Microscopy": ["microscopy"],
+    "ELISA": ["elisa"], "HPLC": ["hplc"],
     "Python": ["python"], "Java": ["java"], "JavaScript": ["javascript", "js"],
     "TypeScript": ["typescript"], "SQL": ["sql"], "PostgreSQL": ["postgresql", "postgres"],
     "React": ["react", "react.js", "reactjs"], "Node.js": ["node.js", "nodejs"],
@@ -154,6 +164,10 @@ def requirements(description):
     return list(unique.values())
 
 
+def has_example(text):
+    return bool(re.search(r"\b(?:built|developed|designed|created|analy[sz]ed|implemented|managed|automated|optimized|tested|researched|delivered|led|organized|coursework|capstone|thesis|project|laboratory)\b", text or "", re.I))
+
+
 def match(job, profile: Profile):
     evidence = {canonical(s.skill): s.evidence for s in profile.skills}
     checks = []
@@ -173,7 +187,7 @@ def match(job, profile: Profile):
         assessment = "needs_profile"
     else:
         assessment = "assessed"
-    eligibility = qualification_checks(job["description"], profile, skill_quotes=[c["quote"] for c in checks])
+    eligibility = qualification_checks(job["description"], profile, skill_quotes=[c["quote"] for c in checks], snapshot=job.get("qualification_snapshot") if job.get("qualification_version")==QUALIFICATION_VERSION else None)
     location = "unknown"
     if profile.location and job.get("location"):
         location = "matches" if preferred_matches(profile.location, job) else "review"
@@ -188,7 +202,8 @@ def match(job, profile: Profile):
         "preferred": {"matched": sum(c["status"] == "supported" for c in checks if c["kind"] == "preferred"), "total": sum(c["kind"] == "preferred" for c in checks)},
         "earned_weight": sum(w for c, w in weighted if c["status"] == "supported"),
         "total_weight": total,
-        "self_reported": sum(c["status"] == "supported" and not any(evidence.get(s) for s in c["skills"]) for c in checks if c["kind"] != "mentioned"),
+        "with_examples": sum(c["status"] == "supported" and any(has_example(evidence.get(s)) for s in c["skills"]) for c in checks if c["kind"] != "mentioned"),
+        "self_reported": sum(c["status"] == "supported" and not any(has_example(evidence.get(s)) for s in c["skills"]) for c in checks if c["kind"] != "mentioned"),
         "missing_required": gaps,
     }
     return {"breakdown": breakdown, "score": score, "assessment": assessment, "comparable": bool(total), "checks": checks, "eligibility": eligibility, "location_fit": location,

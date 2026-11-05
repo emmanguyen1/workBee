@@ -6,7 +6,7 @@ import subprocess
 import sys
 import zipfile
 
-from hives.careers.matching import Profile, SkillEvidence, mentions, SKILLS, skills_in
+from hives.careers.matching import Profile, SkillEvidence, mentions, SKILLS, skills_in, has_example
 from hives.careers.qualifications import degrees_in, majors_in
 
 MAX_UPLOAD = 4 * 1024 * 1024
@@ -94,12 +94,18 @@ def build_draft(text):
     recognized = skills_in(text)
     if len(recognized) > 60:
         warnings.append("More than 60 known skills found; review the first 60 suggestions and choose the most relevant ones.")
+    skill_sources, excluded = [], []
     for skill in recognized[:60]:
         contexts = [line for line in lines if any(mentions(line, a) for a in SKILLS[skill])]
-        context = next((line for line in contexts if re.search(r"built|developed|designed|created|analy[sz]ed|implemented|managed", line, re.I)), contexts[0])
+        contexts = [line for line in contexts if not re.search(r"no (?:\w+ )?(?:experience|knowledge)|not (?:familiar|experienced)|(?:want|plan|hope) to learn|interested in learning|currently learning",line,re.I)]
+        if not contexts:
+            excluded.append(skill)
+            continue
+        context = max(contexts, key=lambda line:(has_example(line), bool(re.search(r"\d+(?:%| users| records| students| projects)",line,re.I)), -len(line)))
         # Contact details are not useful skill evidence.
         context = re.sub(r"\S+@\S+|https?://\S+", "", context)
         skills.append(SkillEvidence(skill=skill, evidence=context[:1000].strip()))
+        skill_sources.append({"skill":skill,"kind":"example" if has_example(context) else "listed", "quote":context[:1000].strip()})
     values, fields = {"skills": skills}, []
     education, in_education = [], False
     for line in lines:
@@ -145,9 +151,23 @@ def build_draft(text):
         fields.append({"field": "GPA", "quote": next(iter(gpas.values()))[:1000]})
     elif any(re.search(r"\bGPA\b", line, re.I) for line in lines):
         warnings.append("GPA was ambiguous or its 4.0 scale was not explicit; enter it manually if applicable.")
+    if excluded:
+        warnings.append(f"Skipped {len(excluded)} skill(s) mentioned only as learning goals or negative experience statements. Add them manually only if supported.")
     if not skills:
         warnings.append("No known skill names recognized. You can enter additional skills and evidence manually.")
-    return {"draft": Profile(**values).model_dump(mode="json"), "fields": fields, "warnings": warnings}
+    for line in education:
+        found = re.search(r"(?:class of\s+)(20\d{2})\b|\b(20\d{2})\s*\(?expected\)?",line,re.I)
+        if found:
+            year=int(found[1] or found[2])
+            if 2020<=year<=2040: years[year]=line
+    if len(years)==1:
+        values["graduation_year"]=next(iter(years))
+        if not any(f["field"]=="Graduation year" for f in fields): fields.append({"field":"Graduation year","quote":next(iter(years.values()))[:1000]})
+    elif len(years)>1:
+        values.pop("graduation_year",None)
+    if values.get("degree_status")=="in_progress" or any(re.search(r"expected|anticipated|class of",line,re.I) for line in education):
+        if values.get("degree_status")!="completed": values.update({"degree_status":"in_progress"})
+    return {"skill_sources":skill_sources, "summary":{"skills":len(skills),"with_examples":sum(s["kind"]=="example" for s in skill_sources),"listed_only":sum(s["kind"]=="listed" for s in skill_sources)}, "draft": Profile(**values).model_dump(mode="json"), "fields": fields, "warnings": warnings}
 
 
 def import_resume(data, file_format):

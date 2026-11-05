@@ -95,7 +95,7 @@ class FeedTests(unittest.IsolatedAsyncioTestCase):
     def test_early_career_and_field_classification(self):
         for title, expected in [("Junior Accountant", "entry_level"), ("Graduate Analyst", "new_grad"), ("Marketing Apprentice", "apprenticeship"), ("Senior Software Engineer", "other"), ("Internal Audit Manager", "other")]:
             self.assertEqual(role_type(title), expected)
-        for title, expected in [("Marketing Intern", "marketing"), ("Mechanical Design Engineer Intern", "engineering"), ("Recruiting Coordinator", "people"), ("Financial Analyst", "finance"), ("Software Engineer", "software"), ("Clinical Research Intern", "science"), ("Data Scientist Intern", "data")]:
+        for title, expected in [("Marketing Intern", "marketing"), ("Mechanical Design Engineer Intern", "engineering"), ("Recruiting Coordinator", "people"), ("Financial Analyst", "finance"), ("Software Engineer", "software"), ("Clinical Research Intern", "healthcare"), ("Data Scientist Intern", "data")]:
             self.assertEqual(career_field(title), expected)
 
     def test_secondary_locations_and_workplace_are_preserved(self):

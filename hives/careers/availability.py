@@ -11,7 +11,7 @@ _CACHE = {}
 _LOCK = asyncio.Lock()
 
 
-def availability(job, board=None, now=None):
+def availability(job, board=None, now=None, supported_boards=None):
     now = now or datetime.now(timezone.utc)
     checked = job.get('last_seen')
     try:
@@ -40,7 +40,7 @@ def availability(job, board=None, now=None):
     else:
         state, label = 'stale', 'Employer status needs refresh'
     return {'state': state, 'label': label, 'checked_at': checked,
-            'verification_supported': any(e['source'] == job.get('source') and e['board'] == job.get('board') for e in employers()),
+            'verification_supported': (f"{job.get('source')}:{job.get('board')}" in supported_boards) if supported_boards is not None else any(e['source'] == job.get('source') and e['board'] == job.get('board') for e in employers()),
             'note': 'Source presence is not a guarantee that the application form accepts submissions. Community presence does not verify employer availability.'}
 
 

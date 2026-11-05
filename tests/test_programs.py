@@ -79,7 +79,9 @@ class ProgramTests(unittest.TestCase):
     def test_main_page_integrates_programs_without_separate_launchpad(self):
         with TestClient(app) as client:
             page=client.get('/').text
-            self.assertIn('value="program"',page)
-            self.assertIn('id="student-year"',page)
+            self.assertIn('id="opportunity-type"',page)
+            self.assertNotIn('id="student-year"',page)
+            self.assertNotIn('id="program-status"',page)
+            self.assertIn('current-posting-note',page)
             self.assertNotIn('id="launchpad"',page)
             self.assertIn('workbee-logo.png',page)

@@ -22,7 +22,7 @@ Actual transparent background.
 
 ## Employer branding
 
-`hives/careers/static/logos/` contains 50 cached PNG favicon images retrieved
+`hives/careers/static/logos/` contains 59 cached PNG favicon images retrieved
 through Google's favicon service using known official employer domains.
 Only configured domain filenames are served. Unmapped employers use initials;
 missing cached images can fall back to the known-domain favicon service.

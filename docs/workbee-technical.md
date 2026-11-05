@@ -232,3 +232,51 @@ percentage still measures weighted skill coverage only, not total eligibility or
 hiring probability. Summaries list possible conflicts, unclear qualifications,
 and required skill groups lacking profile evidence, with suggested next steps.
 
+
+## Current web search and user profiles
+
+The web client now sends `current_only: true` and `include_programs: false`.
+Only recently observed employer-feed rows are included; stale/removed/community
+rows and manual program guides are excluded. Legacy API clients may explicitly
+access the historical program behavior, but it is not part of the web results.
+The UI no longer exposes class-year-wording or program-guide-status selectors.
+The first-/second-year opportunity category uses explicit wording in current
+postings. Shared cached classification lists are copied before adding categories.
+
+Account identity (display name, school, headline) is private JSON in Postgres.
+An additive migration preserves accounts; state updates use the existing revision
+check, and legacy saves without identity preserve it. The UI exposes header sign-in,
+profile editing, saved preferences, and unsaved-change messages.
+Resume import ranks source snippets by examples and metrics, skips obvious learning
+or negative-experience contexts, and offers merge/replace after review. Match score
+still measures coverage, with supporting examples only used as an additional tie-break.
+
+## Multiple selections and public analysis
+
+The API accepts `career_fields`, `companies`, `countries`, `regions`, `workplaces`,
+`role_types`, and `opportunity_types` arrays. Values within one array use OR;
+filter groups combine with AND. Single-value legacy parameters remain compatible.
+Career-field counts exclude their own selections while respecting other filters.
+Profile preference saves persist arrays and restore old single-value preferences.
+
+Public qualification extraction is versioned and saved with employer snapshots,
+so matching does not repeatedly parse the same posting for each candidate.
+`python -m hives.careers.reindex` upgrades existing public analysis without
+changing last-seen timestamps, opening/closing jobs, or storing profile data.
+Updates check that the posting description has not changed during the upgrade.
+
+## Technical professions across industries
+
+The web client also sends `technical_only: true`. An explicit technical title
+or technical tools in required/preferred qualifications must support inclusion;
+a healthcare or tech employer alone is insufficient. General clinical, recruiting,
+sales, and administrative roles are excluded. This is a conservative heuristic,
+not an employer-supplied classification or a complete description assessment.
+
+The main field menu uses multi-select `sectors`: Health IT, Aerospace, FinTech,
+Business Systems, Cybersecurity, Cloud/Data Infrastructure, AI/Robotics, Mobility,
+Bioinformatics, EdTech, Energy, Commerce/Logistics Tech, Defense/Public-Sector
+Tech, Hardware, Enterprise SaaS, Consumer Tech, and Other Technical. A role may
+have multiple sectors; sector counts exclude their own selections and are not
+necessarily additive. Functional role fields remain available to legacy API
+clients. Private profile saves retain multiple sector selections.

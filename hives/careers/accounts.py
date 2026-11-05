@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 
 from core import db
 from hives.careers.matching import Profile
+from hives.careers.preferences import MultiPreferences
 from hives.careers.taxonomy import FIELDS
 
 router = APIRouter(prefix="/api/account")
@@ -30,6 +31,7 @@ async def initialize(conn):
             applications JSONB NOT NULL DEFAULT '{}'::jsonb, revision INTEGER NOT NULL DEFAULT 0,
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
+        ALTER TABLE career_accounts ADD COLUMN IF NOT EXISTS identity JSONB NOT NULL DEFAULT '{}'::jsonb;
         CREATE TABLE IF NOT EXISTS career_sessions (
             token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES career_accounts(id) ON DELETE CASCADE,
             expires_at TIMESTAMPTZ NOT NULL DEFAULT now() + interval '30 days'
@@ -91,7 +93,7 @@ def json_value(value):
 
 
 def state(row):
-    return {"user": {"username": row["username"]}, "profile": json_value(row["profile"]),
+    return {"user": {"username": row["username"], **json_value(row["identity"])}, "profile": json_value(row["profile"]),
             "preferences": json_value(row["preferences"]), "applications": json_value(row["applications"]), "revision": row["revision"]}
 
 
@@ -138,7 +140,7 @@ class Credentials(BaseModel):
     password: SecretStr
 
 
-class Preferences(BaseModel):
+class Preferences(MultiPreferences):
     program_status: Literal["all", "application_window", "watch"] = "all"
     opportunity_type: Literal["all", "internship", "job", "research", "program"] = "all"
     query: str = Field(default="", max_length=200)
@@ -154,7 +156,14 @@ class Preferences(BaseModel):
     comparable_only: bool = False
 
 
+class Identity(BaseModel):
+    display_name: str = Field(default="", max_length=80)
+    school: str = Field(default="", max_length=120)
+    headline: str = Field(default="", max_length=160)
+
+
 class SavedState(BaseModel):
+    identity: Identity | None = None
     profile: Profile
     preferences: Preferences
     revision: int = Field(ge=0)
@@ -222,8 +231,8 @@ async def save_state(data: SavedState, request: Request, response: Response):
     response.headers.update(PRIVATE)
     async with connection() as conn:
         account = await user(conn, request)
-        row = await conn.fetchrow("""UPDATE career_accounts SET profile=$2::jsonb, preferences=$3::jsonb, revision=revision+1
-            WHERE id=$1 AND revision=$4 RETURNING *""", account["id"], data.profile.model_dump_json(), data.preferences.model_dump_json(), data.revision)
+        row = await conn.fetchrow("""UPDATE career_accounts SET profile=$2::jsonb, preferences=$3::jsonb, identity=COALESCE($5::jsonb,identity), revision=revision+1
+            WHERE id=$1 AND revision=$4 RETURNING *""", account["id"], data.profile.model_dump_json(), data.preferences.model_dump_json(), data.revision, data.identity.model_dump_json() if data.identity else None)
         if row is None:
             raise HTTPException(409, "Your account changed in another tab or device. Reload account data before saving.", headers=PRIVATE)
         return state(row)

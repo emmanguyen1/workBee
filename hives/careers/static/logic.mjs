@@ -59,3 +59,21 @@ export function deadlineCalendar(program, now = new Date()) {
   lines.push('SUMMARY:'+escape(program.title+' application deadline'),'DESCRIPTION:'+escape((program.deadline_note||'Deadline date; cutoff time not published.')+'\nConfirm current requirements on the official page.\n'+program.source_url),'END:VEVENT','END:VCALENDAR');
   return lines.join('\r\n')+'\r\n';
 }
+
+export function mergeProfileSkills(existing, imported, replace=false) {
+  const merged=new Map();
+  const example=text=>/\b(built|developed|designed|created|analy[sz]ed|implemented|managed|automated|project|coursework|capstone|thesis|laboratory)\b/i.test(text||'');
+  for(const skill of [...(replace?[]:existing),...imported]){
+    const key=skill.skill.toLowerCase();
+    const previous=merged.get(key);
+    if(!previous||(!previous.evidence&&skill.evidence)||(!example(previous.evidence)&&example(skill.evidence)))merged.set(key,skill);
+  }
+  const values=[...merged.values()];
+  if(values.length>60)throw new Error('The merged profile exceeds 60 skills. Remove a few skills or choose Replace before applying.');
+  return values;
+}
+
+export function preferenceChoices(preferences,key,legacy){
+  if(Array.isArray(preferences[key])&&preferences[key].length)return [...new Set(preferences[key])];
+  return preferences[legacy]&&preferences[legacy]!=='all'?[preferences[legacy]]:[];
+}

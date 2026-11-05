@@ -47,3 +47,19 @@ test('calendar exports use the published deadline timezone and escape text', asy
   assert.match(day,/DTSTART;VALUE=DATE:20270106/);
   assert.match(day,/DTEND;VALUE=DATE:20270107/);
 });
+
+test('resume merging retains user skills and upgrades weak evidence',async()=>{
+  const {mergeProfileSkills}=await import('../hives/careers/static/logic.mjs');
+  const old=[{skill:'Python',evidence:'Listed skill'},{skill:'Excel',evidence:'Managed a budget project'}],incoming=[{skill:'Python',evidence:'Built a data pipeline'},{skill:'SQL',evidence:'Built a reporting project'}];
+  const merged=mergeProfileSkills(old,incoming);
+  assert.equal(merged.length,3);assert.equal(merged[0].evidence,'Built a data pipeline');assert.equal(merged[1].skill,'Excel');
+  assert.equal(mergeProfileSkills(old,incoming,true).length,2);
+  assert.throws(()=>mergeProfileSkills(Array.from({length:60},(_,i)=>({skill:'Skill'+i,evidence:''})),incoming),/exceeds 60/);
+});
+
+test('multi-choice preferences restore arrays and legacy saved filters',async()=>{
+  const {preferenceChoices}=await import('../hives/careers/static/logic.mjs');
+  assert.deepEqual(preferenceChoices({career_fields:['healthcare','business','healthcare']},'career_fields','career_field'),['healthcare','business']);
+  assert.deepEqual(preferenceChoices({career_fields:[],career_field:'finance'},'career_fields','career_field'),['finance']);
+  assert.deepEqual(preferenceChoices({career_fields:[],career_field:'all'},'career_fields','career_field'),[]);
+});

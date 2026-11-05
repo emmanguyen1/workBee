@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from hives.careers import store
+from hives.careers.preferences import MultiPreferences
+from hives.careers.sectors import technical_role, sector_tags, SECTORS
 from hives.careers.matching import Profile, match
 from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches, opportunity_types, talent_pool
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
@@ -23,7 +25,7 @@ resume_slots = asyncio.Semaphore(2)
 PRIVATE_HEADERS = {"Cache-Control": "no-store"}
 
 
-class Search(BaseModel):
+class Search(MultiPreferences):
     profile: Profile = Field(default_factory=Profile)
     query: str = Field(default="", max_length=200)
     role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
@@ -35,6 +37,8 @@ class Search(BaseModel):
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
     student_year: Literal["all", "incoming", "first", "second"] = "all"
+    technical_only: bool = False
+    current_only: bool = False
     include_programs: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
@@ -98,10 +102,20 @@ async def search(request: Search, response: Response):
 
 def search_catalog(data, request):
     jobs, catalog = [], []
-    source_jobs = [*data["jobs"], *(program_jobs() if request.include_programs or request.opportunity_type == "program" else [])]
+    board_status = {b["key"]:b for b in data["boards"]}
+    source_jobs = [*data["jobs"], *(program_jobs() if not request.current_only and (request.include_programs or request.opportunity_type == "program") else [])]
     for job in deduplicate(source_jobs):
+        if request.current_only:
+            status = availability(job, board_status.get(f"{job.get('source')}:{job.get('board')}"), supported_boards=board_status)
+            if job.get("source") not in {"greenhouse", "lever", "ashby"} or status["state"] != "listed":
+                continue
         if talent_pool(job["title"]):
             continue
+        if request.technical_only:
+            technical,reason=technical_role(job)
+            if not technical:continue
+            job={**job,"technical_evidence":reason}
+        job={**job,"sectors":sector_tags(job)}
         # Reclassify legacy snapshots without requiring a database migration.
         job = {**job, "career_field": job.get("career_field", "other") if job.get("source") in {"simplify", "program"} else career_field(job["title"], job.get("department", "")),
                "role_type": job["role_type"] if job.get("is_program") else "internship" if job["role_type"] == "internship" else role_type(job["title"]),
@@ -110,26 +124,31 @@ def search_catalog(data, request):
         job["student_audience"] = job["student_audience"] if job.get("is_program") else student_years(job)
         job["geography"] = geography(job)
         catalog.append(job)
+    selected_fields=request.career_fields or ([] if request.career_field=='all' else [request.career_field])
+    selected_types=request.opportunity_types or ([] if request.opportunity_type=='all' else [request.opportunity_type])
+    selected_roles=request.role_types or ([] if request.role_type=='all' else [request.role_type])
+    selected_companies=request.companies or ([request.company] if request.company else [])
+    selected_countries=request.countries or ([request.country] if request.country else [])
+    selected_regions=request.regions or ([request.region] if request.region else [])
+    selected_workplaces=request.workplaces or ([] if request.workplace=='all' else [request.workplace])
     rank_by_fit = request.sort == "fit" and bool(request.profile.model_dump(exclude_defaults=True))
     types = Counter(j["role_type"] for j in catalog)
-    fields, categories = Counter(), Counter()
+    fields, categories, sectors = Counter(), Counter(), Counter()
     for job in catalog:
-        job["opportunity_types"] = job["opportunity_types"] if job.get("is_program") else opportunity_types(job["title"], job["role_type"])
+        job["opportunity_types"] = job["opportunity_types"] if job.get("is_program") else list(opportunity_types(job["title"], job["role_type"]))
+        if request.current_only and not job.get("is_program") and job["student_audience"]["years"] and "program" not in job["opportunity_types"]:
+            job["opportunity_types"].append("program")
         if job.get("is_program") and request.program_status != "all":
             if (job["status"] == "application_window") != (request.program_status == "application_window"):
                 continue
-        if request.role_type == "early_career" and job["role_type"] == "other" and not job.get("is_program"):
-            continue
-        if request.role_type not in {"all", "early_career"} and job["role_type"] != request.role_type:
+        if selected_roles and not any(job['role_type']==role or (role=='early_career' and (job['role_type']!='other' or job.get('is_program'))) for role in selected_roles):
             continue
         if request.student_year != "all" and {"incoming":0,"first":1,"second":2}[request.student_year] not in job["student_audience"]["years"]:
             continue
-        if request.company and job["company"] != request.company:
-            continue
-        if request.workplace != "all" and job["workplace"] != request.workplace:
-            continue
-        if not region_matches(job, request.country, request.region):
-            continue
+        if selected_companies and job['company'] not in selected_companies: continue
+        if selected_workplaces and job['workplace'] not in selected_workplaces: continue
+        if selected_countries and not any(region_matches(job,country=c) for c in selected_countries): continue
+        if selected_regions and not any(region_matches(job,region=r) for r in selected_regions): continue
         if not location_matches(request.location, [*job["locations"], *job.get("countries", [])]):
             continue
         text = " ".join([job["title"], job["company"], *job["locations"], job["description"], job.get("search_text", "")]).casefold()
@@ -138,20 +157,25 @@ def search_catalog(data, request):
         result = match(job, request.profile) if request.comparable_only else None
         if request.comparable_only and not result["comparable"]:
             continue
+        # Sector counts exclude only the sector selections.
+        if (not selected_fields or job["career_field"] in selected_fields) and (not selected_types or set(selected_types).intersection(job["opportunity_types"])):
+            sectors.update(job["sectors"])
+        if request.sectors and not set(request.sectors).intersection(job["sectors"]):continue
         # Each facet respects every active filter except its own selection.
-        if request.career_field == "all" or job["career_field"] == request.career_field:
+        if not selected_fields or job["career_field"] in selected_fields:
             categories.update(job["opportunity_types"])
             categories["all"] += 1
-        if request.opportunity_type != "all" and request.opportunity_type not in job["opportunity_types"]:
+        if selected_types and not set(selected_types).intersection(job["opportunity_types"]):
             continue
         fields[job["career_field"]] += 1
-        if request.career_field != "all" and job["career_field"] != request.career_field:
+        if selected_fields and job["career_field"] not in selected_fields:
             continue
         if rank_by_fit and result is None:
             result = match(job, request.profile)
         jobs.append({**job, "match": result} if result else job)
     facets = {"fields": [{"value": k, "label": v, "count": fields[k]} for k, v in FIELDS.items()],
               "field_total": sum(fields.values()),
+              "sectors": [{"value":key,"label":label,"count":sectors[key]} for key,label in SECTORS.items()],
               "opportunity_types": dict(categories),
               "companies": sorted({j["company"] for j in catalog}),
               "countries": [{"value":code,"label":COUNTRIES.get(code, code)} for code in sorted({c for j in catalog for c in j["geography"]["countries"]}, key=lambda c:COUNTRIES.get(c, c))],
@@ -160,7 +184,7 @@ def search_catalog(data, request):
     if not rank_by_fit:
         jobs.sort(key=lambda j: j.get("first_seen", ""), reverse=True)
     else:
-        jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"]))
+        jobs.sort(key=lambda job: (job["match"]["has_conflict"], job["match"]["score"] is None, -(job["match"]["score"] or 0), -job["match"]["qualification_summary"]["matched"], -job["match"]["breakdown"]["with_examples"]))
     page = jobs[request.offset:request.offset + request.limit]
     if not rank_by_fit and not request.comparable_only:
         page = [{**j, "match": match(j, request.profile)} for j in page]

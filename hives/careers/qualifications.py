@@ -115,9 +115,21 @@ def qualification_rules(description):
     return rules
 
 
-def qualification_checks(description, profile, skill_quotes=()):
+QUALIFICATION_VERSION = 1
+
+
+@lru_cache(maxsize=512)
+def qualification_snapshot(description):
+    other = [{"quote":line,"kind":kind} for line,kind in requirement_lines(description)
+             if kind in {"required","preferred"} and 25 <= len(line) <= 1200
+             and re.search(r"ability|experience|knowledge|familiarity|proficien|communication|comfortable|willing|eligible|authorization|citizenship|clearance",line,re.I)]
+    return {"rules":qualification_rules(description),"other":other}
+
+
+def qualification_checks(description, profile, skill_quotes=(), snapshot=None):
     checks = []
-    for rule in qualification_rules(description):
+    snapshot = snapshot if snapshot is not None else qualification_snapshot(description)
+    for rule in snapshot["rules"]:
         criterion, status, evidence, explanation = rule["criterion"], "unknown", "Not supplied in your profile.", "Confirm this requirement with the employer."
         if criterion == "Minimum GPA (4.0 scale)" and profile.gpa is not None:
             evidence = f"Your GPA: {profile.gpa:g}/4.0"
@@ -169,14 +181,13 @@ def qualification_checks(description, profile, skill_quotes=()):
             explanation += " This was not identified as a required qualification."
         checks.append({"criterion": criterion, "status": status, "quote": rule["quote"], "kind": rule["kind"], "evidence": evidence, "explanation": explanation})
     covered = {c["quote"] for c in checks} | set(skill_quotes)
-    for line, kind in requirement_lines(description):
-        if kind not in {"required", "preferred"} or line[:1200] in covered or not 25 <= len(line) <= 1200:
-            continue
-        if re.search(r"ability|experience|knowledge|familiarity|proficien|communication|comfortable|willing|eligible|authorization|citizenship|clearance", line, re.I):
-            checks.append({"criterion": "Other stated qualification", "status": "unknown", "kind": kind,
-                           "quote": line, "evidence": "Not automatically assessed.",
-                           "explanation": "Review this requirement against your actual experience and confirm any eligibility details with the employer."})
-            covered.add(line)
+    for item in snapshot["other"]:
+        line,kind=item["quote"],item["kind"]
+        if line[:1200] in covered: continue
+        checks.append({"criterion":"Other stated qualification","status":"unknown","kind":kind,
+                       "quote":line,"evidence":"Not automatically assessed.",
+                       "explanation":"Review this requirement against your actual experience and confirm any eligibility details with the employer."})
+        covered.add(line)
     for criterion in ("Enrollment", "Sponsorship", "Graduation window"):
         if not any(c["criterion"] == criterion for c in checks):
             checks.append({"criterion": criterion, "status": "unknown", "kind": "unspecified", "quote": "No explicit rule recognized. Check the employer description.", "evidence": "", "explanation": "Missing information does not establish eligibility or ineligibility."})
