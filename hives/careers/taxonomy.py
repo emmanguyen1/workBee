@@ -4,14 +4,24 @@ from functools import lru_cache
 
 ROLE_TYPES = {"early_career", "internship", "new_grad", "entry_level", "apprenticeship", "other", "all"}
 FIELDS = {
+    "healthcare":"Healthcare & clinical care", "business":"Business & consulting",
+    "education":"Education & training", "environment":"Environment & sustainability",
+    "real_estate":"Real estate & construction", "hospitality":"Hospitality & tourism",
+    "public_service":"Public service & community",
     "software": "Software & IT", "data": "Data & analytics", "design": "Design & creative",
     "product": "Product & programs", "marketing": "Marketing & communications",
     "sales": "Sales & business development", "finance": "Finance & accounting",
     "people": "HR & recruiting", "legal": "Legal & policy", "operations": "Operations & supply chain",
-    "engineering": "Hardware & engineering", "science": "Science & healthcare",
+    "engineering": "Hardware & engineering", "science": "Life & physical sciences",
     "support": "Customer support & success", "other": "Other / unclassified",
 }
 FIELD_RULES = [
+    ("healthcare",r"\bnurs\w*|\bclinical\b|\bpatient\b|physician|pharmacist|medical assistant|healthcare|health care|therapist|mental health|care coordinat|care manager|care navigation"),
+    ("education",r"\bteacher\b|\bteaching\b|curriculum|instructional|academic advisor|education specialist|learning and development|training specialist"),
+    ("environment",r"sustainab|environmental|ecolog|conservation|renewable|climate (?:policy|scientist|analyst)"),
+    ("real_estate",r"real estate|construction|property manag|architectural|urban planning|building inspector"),
+    ("hospitality",r"hospitality|hotel|restaurant|culinary|tourism|guest services|event coordinator"),
+    ("public_service",r"social worker|community (?:outreach|organizer|engagement)|public service|nonprofit|fundraising|grant writer"),
     ("people", r"recruit|human resources|\bhr\b|people (?:operations|partner|team)"),
     ("legal", r"legal|counsel|compliance|public policy|government affairs"),
     ("marketing", r"marketing|communications|public relations|copywrit|social media|content (?:creat|strateg|design)|brand"),
@@ -20,7 +30,8 @@ FIELD_RULES = [
     ("support", r"customer (?:support|success|service)|technical support|client service"),
     ("engineering", r"mechanical|electrical|hardware|manufactur|aerospace|avionics|civil engineer|robotics|firmware|test engineer"),
     ("design", r"\bdesign(?:er)?\b|\bux\b|\bui\b|creative|animation|illustrat"),
-    ("data", r"\bdata\b|analytics|business analyst|business intelligence|machine learning|\bai\b|quantitative"),
+    ("business",r"business (?:analyst|operations|strategy|management)|\bconsultant\b|corporate strategy|chief of staff|management trainee|strategy (?:analyst|associate)|strategic operations"),
+    ("data", r"\bdata\b|analytics|business intelligence|machine learning|\bai\b|quantitative"),
     ("software", r"software|developer|backend|frontend|full.?stack|devops|security engineer|\bsre\b|\bit\b|cybersecurity|infrastructure"),
     ("science", r"scientist|research|clinical|biology|biolog|chemist|laboratory|healthcare|medical"),
     ("operations", r"operations|supply chain|logistics|procurement|purchasing|warehouse|facilities|quality assurance"),
