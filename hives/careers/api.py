@@ -43,6 +43,7 @@ class Search(MultiPreferences):
     technical_only: bool = False
     current_only: bool = False
     include_programs: bool = False
+    include_community: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     comparable_only: bool = False
     opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
@@ -59,7 +60,7 @@ async def careers():
 
 @router.get("/careers/assets/{asset}")
 async def careers_asset(asset: str):
-    if asset not in {"styles.css", "app.mjs", "logic.mjs", "workbee-logo.png"}:
+    if asset not in {"styles.css", "app.mjs", "logic.mjs", "workbee-logo.png", "workbee-assistant.png", "bee.mjs"}:
         raise HTTPException(404, "Asset not found")
     media = "image/png" if asset.endswith(".png") else "text/css" if asset.endswith(".css") else "text/javascript"
     return FileResponse(Path(__file__).with_name("static") / asset, media_type=media, headers={"Cache-Control": "no-cache"})
@@ -97,7 +98,7 @@ async def manual_match(request: ManualMatch, response: Response):
 async def search(request: Search, response: Response):
     response.headers["Cache-Control"] = "no-store"
     try:
-        data = await store.catalog(current_only=request.current_only)
+        data = await store.catalog(current_only=request.current_only,include_community=request.include_community)
     except Exception as exc:
         raise HTTPException(503, "Careers database unavailable. Start Postgres and the careers collector.") from exc
     return await run_in_threadpool(search_catalog, data, request)
@@ -113,7 +114,11 @@ def search_catalog(data, request):
         if request.current_only and job["deadline_info"]["expired"]:continue
         if request.current_only:
             status = availability(job, board_status.get(f"{job.get('source')}:{job.get('board')}"), supported_boards=board_status)
-            if job.get("source") not in {"greenhouse", "lever", "ashby"} or status["state"] != "listed":
+            community=request.include_community and job.get('source')=='simplify' and status['state']=='community'
+            if community:
+                try:community=0 <= (now-datetime.fromisoformat(job['last_seen'].replace('Z','+00:00'))).total_seconds() <= 1800 and not (board_status.get('simplify:summer2027') or {}).get('error')
+                except (KeyError,ValueError,TypeError):community=False
+            if not community and (job.get("source") not in {"greenhouse", "lever", "ashby"} or status["state"] != "listed"):
                 continue
         if talent_pool(job["title"]):
             continue

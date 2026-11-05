@@ -68,13 +68,13 @@ async def record_error(employer, message):
         await conn.close()
 
 
-async def catalog(current_only=False):
+async def catalog(current_only=False,include_community=False):
     conn = await db.connect()
     try:
         keys = [f"{e['source']}:{e['board']}" for e in employers()]
         if current_only:
             # Avoid loading large community/archival descriptions that current search excludes.
-            keys=[key for key in keys if key.split(':',1)[0] in {'greenhouse','lever','ashby'}]
+            keys=[key for key in keys if key.split(':',1)[0] in ({'greenhouse','lever','ashby','simplify'} if include_community else {'greenhouse','lever','ashby'})]
             rows=await conn.fetch("SELECT * FROM career_jobs WHERE open AND board_key=ANY($1::text[]) AND last_seen >= now()-interval '30 minutes' ORDER BY first_seen DESC",keys)
         else:
             rows = await conn.fetch("SELECT * FROM career_jobs WHERE open AND board_key=ANY($1::text[]) ORDER BY first_seen DESC", keys)

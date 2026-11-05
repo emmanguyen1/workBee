@@ -18,6 +18,11 @@ See [research and feature details](docs/workbee-expansion.md).
   Industry and career-field menus are alphabetical; counts follow the other filters.
 - Filter by explicit pay information, time-commitment wording, posting recency,
   upcoming deadlines, geography, employer and career stage.
+- Ask **Bee** in the bottom-right corner for source-linked discovery and product help.
+  A local search guide works without a key; optional AI answers use a server-side key.
+  See [Bee setup, privacy and source research](docs/workbee-bee-assistant.md).
+- Optionally include recent **Simplify community discoveries**, clearly marked as
+  employer-unverified, alongside independently collected employer feeds.
 - Compare up to three opportunities in a temporary side-by-side shortlist.
 - Add private notes, a next action and a follow-up date to saved applications;
   see your next steps and export your saved tracker as CSV.
@@ -35,8 +40,9 @@ See [research and feature details](docs/workbee-expansion.md).
 ## Current postings only
 
 The web search includes roles listed in configured employer feeds within the
-last 30 minutes, excluding removed, stale, community-only listings and researched
-program guides. Feed presence is not a guarantee that the application portal
+last 30 minutes, excluding removed, stale listings and researched
+program guides. Community-only rows are excluded by default; the explicit
+Simplify discovery option includes recent rows with employer-unverified labels. Feed presence is not a guarantee that the application portal
 accepts submissions; confirm on the employer website.
 
 The **First & second year postings** opportunity type filters current internships
@@ -82,7 +88,8 @@ already exists, keep it and add only needed settings instead of replacing it.
 
 Public Greenhouse, Lever, and Ashby boards plus the
 [Simplify/Pitt CSC Summer 2027 list](https://github.com/SimplifyJobs/Summer2027-Internships)
-feed the catalog. Configured boards are checked every 15 minutes while the
+feed the catalog. Additional employer feeds discovered through Simplify include
+Skydio, Toyota Research Institute, Verkada, Muon Space, Graphcore and more. Configured boards are checked every 15 minutes while the
 collector runs. Add employers in `hives/careers/employers.yml` (including public-health, policy, education and business boards).
 Manually reviewed program archives live in `hives/careers/programs.yml`.
 Additional healthcare/business feeds include Oscar Health, Commure, Included

@@ -4,6 +4,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 DOMAINS = {
+    "virtu financial":"virtu.com", "verkada":"verkada.com", "toyota research institute":"tri.global",
+    "akuna capital":"akunacapital.com", "cesiumastro":"cesiumastro.com", "muon space":"muonspace.com", "sigma computing":"sigmacomputing.com",
     "american public health association":"apha.org", "aclu":"aclu.org", "human rights watch":"hrw.org",
     "vera institute of justice":"vera.org", "achievement first":"achievementfirst.org", "alphasights":"alphasights.com",
     "chan zuckerberg initiative":"chanzuckerberg.com", "lila sciences":"lila.ai",

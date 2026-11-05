@@ -17,6 +17,9 @@ SECTORS={
  'other_tech':'Other technical fields',
 }
 COMPANY_SECTORS={
+ 'bedrock robotics':'ai_robotics','skydio':'ai_robotics','dv trading':'fintech','virtu financial':'fintech',
+ 'graphcore':'hardware','verkada':'cybersecurity','toyota research institute':'mobility','akuna capital':'fintech',
+ 'cesiumastro':'aerospace','muon space':'aerospace','sigma computing':'cloud_data',
  'american public health association':'health_it','aclu':'nonprofit','human rights watch':'nonprofit',
  'vera institute of justice':'nonprofit','achievement first':'edtech','alphasights':'consulting','givewell':'nonprofit',
  'chan zuckerberg initiative':'biotech','lila sciences':'biotech',

@@ -143,6 +143,7 @@ class Credentials(BaseModel):
 
 
 class Preferences(MultiPreferences):
+    include_community: bool = False
     program_status: Literal["all", "application_window", "watch"] = "all"
     opportunity_type: Literal["all", "internship", "job", "research", "lab", "program"] = "all"
     query: str = Field(default="", max_length=200)
