@@ -1,15 +1,15 @@
-# RoleAtlas
+# workBee
 
-## RoleAtlas — internships, jobs & research
+## workBee — internships, jobs & research
 
-RoleAtlas is an independent careers website, with its own FastAPI application
+workBee is an independent careers website, with its own FastAPI application
 (`hives.careers.app:app`) and Docker service. Open <http://localhost:8001/>.
 The Kalshi dashboard remains a separate website at <http://localhost:8000/>.
 Neither website serves the other's pages or APIs, and neither links to the other.
 They share the underlying framework and Postgres infrastructure in this repository;
 existing careers accounts, profiles, and application statuses are preserved.
 
-RoleAtlas collects
+workBee collects
 public Greenhouse, Lever, and Ashby employer feeds every 15 minutes. No job API
 keys are required. Configure employers in `hives/careers/employers.yml`; these are
 individual employer boards, not a global search of all jobs. The initial directory

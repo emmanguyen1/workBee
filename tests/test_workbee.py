@@ -7,17 +7,17 @@ from hives.careers.api import Search, search_catalog
 from hives.careers.accounts import Preferences
 
 
-class RoleAtlasTests(unittest.TestCase):
+class WorkBeeTests(unittest.TestCase):
     def test_separate_websites_and_routes(self):
         with TestClient(careers) as client:
-            self.assertIn('RoleAtlas', client.get('/').text)
+            self.assertIn('workBee', client.get('/').text)
             self.assertNotIn('Kalshi', client.get('/').text)
             self.assertEqual(client.get('/kalshi').status_code,404)
             self.assertEqual(client.get('/api/kalshi/portfolio').status_code,404)
             self.assertNotIn('City, state, or country',client.get('/').text)
         with TestClient(kalshi) as client:
             self.assertIn('Kalshi',client.get('/').text)
-            self.assertNotIn('RoleAtlas',client.get('/').text)
+            self.assertNotIn('workBee',client.get('/').text)
             self.assertEqual(client.get('/careers').status_code,404)
             self.assertEqual(client.post('/api/careers/search',json={}).status_code,404)
 
