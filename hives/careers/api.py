@@ -13,6 +13,7 @@ from hives.careers.matching import Profile, match
 from hives.careers.taxonomy import FIELDS, career_field, role_type, location_matches, opportunity_types, talent_pool
 from hives.careers.resume import import_resume, MAX_UPLOAD, ResumeError
 from hives.careers.simplify import deduplicate
+from hives.careers.geography import geography, region_matches, COUNTRIES, REGIONS
 from hives.careers.branding import company_brand
 from hives.careers.availability import availability, verify
 
@@ -26,7 +27,9 @@ class Search(BaseModel):
     query: str = Field(default="", max_length=200)
     role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
     career_field: str = Field(default="all", pattern="^(all|" + "|".join(FIELDS) + ")$")
-    location: str = Field(default="", max_length=150)
+    location: str = Field(default="", max_length=150)  # Legacy API clients only
+    country: str = Field(default="", max_length=10)
+    region: str = Field(default="", max_length=10)
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")
@@ -36,6 +39,7 @@ class Search(BaseModel):
     limit: int = Field(default=30, ge=1, le=100)
 
 
+@router.get("/", response_class=HTMLResponse)
 @router.get("/hivepath", response_class=HTMLResponse)
 @router.get("/careers", response_class=HTMLResponse)
 async def careers():
@@ -98,6 +102,7 @@ def search_catalog(data, request):
                "role_type": "internship" if job["role_type"] == "internship" else role_type(job["title"]),
                "locations": job.get("locations") or [job["location"]],
                "workplace": job.get("workplace", "unspecified").lower()}
+        job["geography"] = geography(job)
         catalog.append(job)
     rank_by_fit = request.sort == "fit" and bool(request.profile.model_dump(exclude_defaults=True))
     types = Counter(j["role_type"] for j in catalog)
@@ -111,6 +116,8 @@ def search_catalog(data, request):
         if request.company and job["company"] != request.company:
             continue
         if request.workplace != "all" and job["workplace"] != request.workplace:
+            continue
+        if not region_matches(job, request.country, request.region):
             continue
         if not location_matches(request.location, [*job["locations"], *job.get("countries", [])]):
             continue
@@ -136,7 +143,8 @@ def search_catalog(data, request):
               "field_total": sum(fields.values()),
               "opportunity_types": dict(categories),
               "companies": sorted({j["company"] for j in catalog}),
-              "locations": sorted({v for j in catalog for v in j["locations"] if v}),
+              "countries": [{"value":code,"label":COUNTRIES.get(code, code)} for code in sorted({c for j in catalog for c in j["geography"]["countries"]}, key=lambda c:COUNTRIES.get(c, c))],
+              "regions": [{"value":code,"label":REGIONS[code],"country":code.split("-")[0]} for code in sorted({r for j in catalog for r in j["geography"]["regions"]}, key=lambda r:REGIONS[r])],
               "role_types": dict(types)}
     if not rank_by_fit:
         jobs.sort(key=lambda j: j.get("first_seen", ""), reverse=True)

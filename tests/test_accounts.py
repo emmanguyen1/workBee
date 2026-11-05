@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from dashboard.app import app
+from hives.careers.app import app
 from core import db
 from hives.careers.accounts import hash_password, verify_password, same_origin, throttle, token_hash
 

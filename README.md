@@ -1,14 +1,15 @@
-# Hivework
+# RoleAtlas
 
-## HivePath — internships & early careers
+## RoleAtlas — internships, jobs & research
 
-HivePath is a separate careers page inside the same Hivework FastAPI application,
-not an embedded Kalshi widget or a separate public deployment. Open `/careers`
-(also `/hivepath`) for HivePath. The original Kalshi demo stays at `/` and `/kalshi`.
-Each page links to the other. The existing `queen` service keeps its original hive
-configuration; a separate `careers-queen` runs the careers hive alongside it.
+RoleAtlas is an independent careers website, with its own FastAPI application
+(`hives.careers.app:app`) and Docker service. Open <http://localhost:8001/>.
+The Kalshi dashboard remains a separate website at <http://localhost:8000/>.
+Neither website serves the other's pages or APIs, and neither links to the other.
+They share the underlying framework and Postgres infrastructure in this repository;
+existing careers accounts, profiles, and application statuses are preserved.
 
-HivePath collects
+RoleAtlas collects
 public Greenhouse, Lever, and Ashby employer feeds every 15 minutes. No job API
 keys are required. Configure employers in `hives/careers/employers.yml`; these are
 individual employer boards, not a global search of all jobs. The initial directory
@@ -25,7 +26,14 @@ early-career default for existing clients. Career stages rely on explicit title 
 does not prove a role is entry level. Fields are title/department heuristics and
 can be imperfect.
 
-Combine field, employer, location, and workplace filters. Locations include
+Combine field, employer, country, state/province, and workplace filters.
+Country and region dropdowns use explicit feed country codes, country names,
+US states and Canadian provinces. Cities remain displayed on cards but are not
+search-filter choices. Ambiguous city-only locations remain unspecified; remote
+listings are not assumed to be worldwide. Choose "Country not specified" to find
+listings lacking reliable country metadata. Changing country clears the state
+selection. Previous saved city searches are no longer applied by the web form.
+ Locations include
 secondary offices supplied by the employer; country information is used when
 explicitly supplied. Common location aliases (NYC, UK, USA) are recognized, but
 the app does not infer countries for city-only listings or treat remote roles as
@@ -39,7 +47,7 @@ filter changes refresh the results automatically. Obvious talent-network and
 general-interest posts are excluded from discovery counts.
 
 Start with the existing local `.env` and `docker compose up --build`, then open
-<http://localhost:8000/careers>. Kalshi remains at <http://localhost:8000/kalshi>.
+<http://localhost:8001/>. Kalshi remains at <http://localhost:8000/kalshi>.
 The first collection may take
 a minute. Redis and Postgres are private Docker services. The queen creates the
 careers tables automatically. For a single collection inside the running stack:

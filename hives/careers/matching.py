@@ -5,7 +5,7 @@ from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator, field_validator
-from hives.careers.taxonomy import location_matches
+from hives.careers.geography import preferred_matches
 from hives.careers.qualifications import qualification_checks, requirement_lines
 
 REQUIREMENTS_VERSION = 3
@@ -176,7 +176,7 @@ def match(job, profile: Profile):
     eligibility = qualification_checks(job["description"], profile, skill_quotes=[c["quote"] for c in checks])
     location = "unknown"
     if profile.location and job.get("location"):
-        location = "matches" if location_matches(profile.location, [*(job.get("locations") or [job["location"]]), *job.get("countries", [])]) else "review"
+        location = "matches" if preferred_matches(profile.location, job) else "review"
     gaps = [" or ".join(c["skills"]) for c in checks if c["kind"] == "required" and c["status"] == "no_evidence"]
     next_steps = [f"Add a real project, coursework, or work example for {gap}, if you have one." for gap in gaps[:3]]
     next_steps.extend(f"Confirm {c['criterion'].lower()}: {c['explanation']}" for c in eligibility if c["status"] != "matches")

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from dashboard.app import app
+from hives.careers.app import app
 from hives.careers.api import Search, search_catalog
 from hives.careers.branding import company_brand
 from hives.careers.matching import Profile, match

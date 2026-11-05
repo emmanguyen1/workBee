@@ -3,12 +3,8 @@ from fastapi.responses import HTMLResponse
 
 from core import bus
 from hives.kalshi.client import DemoUnavailable, portfolio
-from hives.careers.api import router as careers_router
-from hives.careers.accounts import router as accounts_router
 
 app = FastAPI(title="Hivework", version="0.1.0")
-app.include_router(careers_router)
-app.include_router(accounts_router)
 
 
 @app.get("/api/kalshi/portfolio")
@@ -115,7 +111,7 @@ async def home():
   <main>
     <header>
       <div class="brand"><span class="mark" aria-hidden="true">H</span><span>Hivework</span></div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end"><a href="/careers" style="color:#b8f3cf">HivePath careers ↗</a><div class="live"><span class="live-dot" aria-hidden="true"></span>Live monitor</div></div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end"><div class="live"><span class="live-dot" aria-hidden="true"></span>Live monitor</div></div>
     </header>
     <section class="portfolio" aria-labelledby="portfolio-title">
       <div class="section-head">

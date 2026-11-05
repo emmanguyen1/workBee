@@ -144,6 +144,8 @@ class Preferences(BaseModel):
     role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
     career_field: str = Field(default="all", pattern="^(all|" + "|".join(FIELDS) + ")$")
     location: str = Field(default="", max_length=150)
+    country: str = Field(default="", max_length=10)
+    region: str = Field(default="", max_length=10)
     workplace: str = Field(default="all", pattern="^(all|remote|hybrid|onsite|unspecified)$")
     company: str = Field(default="", max_length=100)
     sort: str = Field(default="fit", pattern="^(fit|newest)$")

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 from fastapi.testclient import TestClient
 
-from dashboard.app import app
+from hives.careers.app import app
 from hives.careers.collector import JobCollector
 from hives.careers.feeds import fetch_board, normalize, plain, role_type
 from hives.careers.matching import Profile, SkillEvidence, match, requirements
@@ -141,9 +141,9 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(data["jobs"][0]["match"]["score"], 100)
             self.assertEqual(client.post("/api/careers/search", json={"limit": 1000}).status_code, 422)
             self.assertIn("Your next opportunity", client.get("/careers").text)
-            self.assertIn("HivePath", client.get("/hivepath").text)
-            self.assertIn("Kalshi demo account", client.get("/").text)
-            self.assertIn("Kalshi demo account", client.get("/kalshi").text)
+            self.assertIn("RoleAtlas", client.get("/hivepath").text)
+            self.assertNotIn("Kalshi", client.get("/").text)
+            self.assertEqual(client.get("/kalshi").status_code,404)
 
     def test_database_unavailable_is_actionable(self):
         with patch("hives.careers.api.store.catalog", new=AsyncMock(side_effect=OSError("private connection string"))), TestClient(app) as client:

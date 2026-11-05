@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pypdf import PdfWriter
 from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
 
-from dashboard.app import app
+from hives.careers.app import app
 from hives.careers.matching import Profile, SkillEvidence, match, requirements
 from hives.careers.resume import build_draft, extract_text, import_resume, MAX_UPLOAD, ResumeError
 

@@ -53,6 +53,15 @@ services:
       postgres: { condition: service_healthy }
     ports: ["8000:8000"]
     restart: unless-stopped
+  roleatlas:
+    build: .
+    command: ["uvicorn", "hives.careers.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      DATABASE_URL: postgresql://hivework:hivework@postgres:5432/hivework
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["127.0.0.1:8001:8001"]
+    restart: unless-stopped
   redis-bridge:
     build: .
     command: ["uvicorn", "dashboard.bridge:app", "--host", "0.0.0.0", "--port", "8765"]

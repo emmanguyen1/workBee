@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 from fastapi.testclient import TestClient
 
-from dashboard.app import app
+from hives.careers.app import app
 from hives.careers import availability as module
 from hives.careers.matching import Profile, match
 

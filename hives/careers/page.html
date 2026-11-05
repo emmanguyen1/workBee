@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#DDDEE5"><title>HivePath · Internships & careers</title>
+  <meta name="theme-color" content="#DDDEE5"><title>RoleAtlas · Internships & careers</title>
   <link rel="stylesheet" href="/careers/assets/styles.css">
 </head>
 <body><main>
-  <header><a class="brand" href="/careers"><span class="brand-mark" aria-hidden="true">H</span><span>HivePath<small>Find your way forward</small></span></a><nav aria-label="App navigation"><span class="nav-label">Internships & early careers</span><a class="nav-link" href="/kalshi">Kalshi demo ↗</a></nav></header>
+  <header><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">R</span><span>RoleAtlas<small>Find your way forward</small></span></a><nav aria-label="App navigation"><span class="nav-label">Internships & early careers</span></nav></header>
   <div class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Your next chapter starts here</div>
   <h1>Your skills.<br><span>Your next opportunity.</span></h1>
   <p class="hero-copy">A clearer path from what you know to what comes next.<br>Explore opportunities, understand your fit, and apply with purpose.</p>
@@ -53,7 +53,7 @@
       <label for="gpa">GPA on a 4.0 scale (optional)</label><input id="gpa" type="number" min="0" max="4" step="0.01" placeholder="3.50"><small>Leave blank if your school uses another scale.</small>
       <label for="enrolled">Currently enrolled?</label><select id="enrolled"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select>
       <label for="sponsorship">Need employer sponsorship?</label><select id="sponsorship"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select>
-      <label for="location">Preferred city or region</label><input id="location" maxlength="100" placeholder="Boston">
+      <label for="location">Preferred state or country</label><input id="location" maxlength="100" list="preferred-regions" placeholder="California or United States"><datalist id="preferred-regions"></datalist><small>Use a state, province, or country.</small>
       <details class="profile-more"><summary>Education, experience & availability</summary>
         <label for="degree">Degree / program level</label><select id="degree"><option value="">Not specified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select>
         <label for="degree-status">Program completion</label><select id="degree-status"><option value="">Not specified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select>
@@ -73,7 +73,7 @@
         <div class="search-query"><label for="query">Search jobs</label><input id="query" maxlength="200" placeholder="Title, skills, or keywords"></div>
         <div><label for="role">Career stage</label><select id="role"><option value="early_career">Early career only</option><option value="internship">Internships & co-ops</option><option value="new_grad">New graduate</option><option value="entry_level">Junior & entry level</option><option value="apprenticeship">Apprenticeships</option><option value="all" selected>All roles & levels</option><option value="other">Other / unspecified level</option></select></div>
         <div><label for="field">Career field</label><select id="field"><option value="all">All fields</option></select></div>
-        <div><label for="area">Location</label><input id="area" list="areas" maxlength="150" placeholder="City, state, or country"><datalist id="areas"></datalist></div>
+        <div><label for="country">Country</label><select id="country"><option value="">Any country</option><option value="unknown">Country not specified</option></select></div><div><label for="region">State / province</label><select id="region"><option value="">Any state or province</option></select></div>
         <div><label for="workplace">Workplace</label><select id="workplace"><option value="all">Any workplace</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option><option value="unspecified">Not specified</option></select></div>
         <div><label for="company">Employer</label><select id="company"><option value="">All employers</option></select></div>
         <div><label for="sort">Sort by</label><select id="sort"><option value="fit">Skill evidence fit</option><option value="newest">Recently discovered</option></select></div>
