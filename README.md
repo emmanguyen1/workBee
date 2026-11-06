@@ -20,8 +20,9 @@ See [research and feature details](docs/workbee-expansion.md).
   Sort from the results header; deadlines and supplied pay facts appear on cards.
 - Refresh sources on demand, inspect timestamps and progress, or cancel an import.
   Saved listings remain visible with recheck labels when automatic collection is off.
-- Ask **Bee** in the bottom-right corner for source-linked discovery and product help.
+- Ask **Bee** in the bottom-right corner for questions, career coaching and source-linked discovery.
   A local search guide works without a key; optional AI answers use a server-side key.
+  Optional AI mode adds broader answers and web research with clickable citations.
   See [Bee setup, privacy and source research](docs/workbee-bee-assistant.md).
 - Optionally include recent **Simplify community discoveries**, clearly marked as
   employer-unverified, alongside independently collected employer feeds.

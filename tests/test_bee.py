@@ -51,10 +51,13 @@ class ProviderTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(payload['store'])
             self.assertNotIn('test-placeholder',json.dumps(payload))
             self.assertEqual(json.loads(payload['input'])['workbee_context'],{'opportunities':[]})
+            self.assertNotIn('tools',payload)
             return httpx.Response(200,json={'output':[{'type':'message','content':[{'type':'output_text','text':'Ask about your preferred field.'}]}]})
         client=httpx.AsyncClient(transport=httpx.MockTransport(handle))
         with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee.httpx,'AsyncClient',return_value=client):
-            self.assertEqual(await bee.generate(bee.Ask(question='Find internships'),{'opportunities':[]}),'Ask about your preferred field.')
+            result=await bee.generate(bee.Ask(question='Find internships',web_search=False),{'opportunities':[]})
+            self.assertEqual(result['answer'],'Ask about your preferred field.')
+            self.assertFalse(result['web_searched'])
 
 class CommunityTests(unittest.TestCase):
     def test_recent_opt_in_does_not_promote_community_to_employer_verified(self):
@@ -65,3 +68,51 @@ class CommunityTests(unittest.TestCase):
         result=search_catalog(data,Search(current_only=True,include_community=True))
         self.assertEqual([j['id'] for j in result['jobs']],['fresh'])
         self.assertEqual(result['jobs'][0]['availability']['state'],'community')
+
+class ResourceAssistantTests(unittest.TestCase):
+    def setUp(self):bee._LIMITS.clear()
+    def test_general_questions_do_not_become_job_searches(self):
+        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
+            r=c.post('/api/bee/ask',json={'question':'What is photosynthesis?'})
+            self.assertEqual(r.status_code,200);self.assertEqual(r.json()['intent'],'general')
+            self.assertIsNone(r.json()['search']);self.assertFalse(r.json()['web_searched'])
+            self.assertIn('local-guide mode',r.json()['answer']);retrieve.assert_not_awaited()
+            self.assertEqual(c.get('/careers/assets/bee-logic.mjs').status_code,200)
+    def test_resume_advice_is_distinct_from_product_help(self):
+        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
+            data=c.post('/api/bee/ask',json={'question':'How do I write a resume for my first internship?'}).json()
+            self.assertIsNone(data['topic']);self.assertEqual(data['intent'],'advice')
+            self.assertTrue(data['resources']);self.assertIn('Never invent',data['answer']);retrieve.assert_not_awaited()
+            self.assertEqual(c.post('/api/bee/ask',json={'question':'How do I import my resume?'}).json()['topic'],'resume')
+    def test_research_resources_are_not_open_postings(self):
+        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),TestClient(app) as c:
+            data=c.post('/api/bee/ask',json={'question':'How do I contact a research lab?'}).json()
+            self.assertEqual(data['sources'],[]);self.assertIn('not verified open positions',data['answer'])
+            self.assertTrue(any('nsf.gov' in r['url'] for r in data['resources']))
+    def test_followup_uses_recent_search_without_polluting_advice(self):
+        history=[bee.Turn(role='user',text='Find public health internships')]
+        intent,query=bee.question_intent('What about remote?',history)
+        self.assertEqual(intent,'catalog');self.assertEqual(bee.search_plan(query)['workplaces'],['remote'])
+        self.assertEqual(bee.question_intent('How do I prepare for an interview?',history)[0],'advice')
+    def test_ai_general_answer_does_not_read_catalog(self):
+        result={'answer':'Photosynthesis converts light energy.','citations':[],'web_searched':False}
+        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,patch.object(bee,'generate',new=AsyncMock(return_value=result)) as generate,TestClient(app) as c:
+            data=c.post('/api/bee/ask',json={'question':'What is photosynthesis?','web_search':False}).json()
+            self.assertEqual(data['answer'],result['answer']);self.assertEqual(data['mode'],'ai');retrieve.assert_not_awaited()
+            self.assertFalse(generate.await_args.args[0].web_search)
+    def test_citation_offsets_and_unsafe_links(self):
+        data=bee.provider_answer({'output':[{'type':'message','content':[{'type':'output_text','text':'First.'},{'type':'output_text','text':'Next [1].','annotations':[{'type':'url_citation','start_index':5,'end_index':8,'url':'https://example.org','title':'Source'},{'type':'url_citation','start_index':5,'end_index':8,'url':'https://user:secret@example.org','title':'bad'},{'type':'url_citation','start_index':-1,'end_index':2,'url':'javascript:alert(1)','title':'bad'}]}]}]})
+        self.assertEqual(data['answer'],'First.\nNext [1].');self.assertEqual(len(data['citations']),1)
+        c=data['citations'][0];self.assertEqual(data['answer'][c['start']:c['end']],'[1]')
+
+class WebProviderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_web_tool_and_provenance(self):
+        def handle(request):
+            payload=json.loads(request.content)
+            self.assertEqual(payload['tools'],[{'type':'web_search','search_context_size':'low'}])
+            self.assertEqual(payload['max_tool_calls'],2);self.assertFalse(payload['store'])
+            return httpx.Response(200,json={'output':[{'type':'web_search_call'},{'type':'message','content':[{'type':'output_text','text':'Read this [source].','annotations':[{'type':'url_citation','start_index':10,'end_index':18,'url':'https://www.nsf.gov/','title':'NSF'}]}]}]})
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handle))
+        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee.httpx,'AsyncClient',return_value=client):
+            result=await bee.generate(bee.Ask(question='Research current programs'),{'intent':'advice'})
+            self.assertTrue(result['web_searched']);self.assertEqual(result['citations'][0]['url'],'https://www.nsf.gov/')
