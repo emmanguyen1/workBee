@@ -46,7 +46,43 @@ cancellation during manual refreshes.
 
 The `Server-Timing` response header reports catalog and search durations; private
 responses remain `Cache-Control: no-store`. Large first loads remain slower than
-cached requests. Lazy description loading would be the next useful improvement.
+cached requests. The website now loads compact search records and fetches the full
+description only when an opportunity is opened.
+
+## Compact search and full details
+
+The website opts into `compact:true`. Public summaries retain classifications,
+requirements, eligibility rules, deadlines and matching inputs. Repeated source
+quotes are represented internally by per-posting identifiers; cards never expose
+these identifiers as employer evidence. Opening a card requests
+`POST /api/careers/opportunities/{id}/details`, which loads the original stored
+description and recomputes the match with the current profile. Both responses are
+`no-store`; personal profiles and scores never enter the shared public cache.
+Closing the dialog or changing accounts cancels pending detail requests.
+
+Keyword searches still cover complete posting text using a separate public search
+document. Matching, field counts and availability rules remain the same. Equal
+discovery timestamps use listing IDs as a stable pagination tie breaker.
+
+For an existing database, run this finite upgrade once, then restart only workBee:
+
+```sh
+docker compose exec -T workbee python -m hives.careers.index_search
+docker compose restart workbee
+```
+
+New snapshots update the index atomically. Missing or outdated summaries fall back
+to full records. Backfilling checks the original data and timestamp before writing;
+it never changes source freshness, closure status, private accounts or full text.
+Legacy clients can omit `compact` to receive complete descriptions as before.
+
+On the local 14,017-row snapshot, public summary JSON was 28.8 MB versus 122.2 MB
+of complete JSON (76% less). The seven-day website search returned 11,539 listings:
+cold search took 3.00 seconds, repeated search 0.74 seconds, profile ranking 2.70
+seconds, and opening one full description 0.09 seconds. The previous cold website
+measurement was 13.44 seconds. These measurements overlapped regression tests;
+they are not latency guarantees. Full-text keyword search remains a slower path
+(3.75 seconds for Python) and is a candidate for indexed text search next.
 
 ## Local benchmark
 

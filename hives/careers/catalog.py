@@ -16,6 +16,8 @@ def prepare(data):
     jobs=[]
     for raw in deduplicate(data['jobs']):
         if talent_pool(raw['title']):continue
+        if raw.get('summary_version')==1:
+            jobs.append(raw);continue
         job={**raw,'deadline_info':deadline_info(raw),'sectors':sector_tags(raw),
           'career_field':raw.get('career_field','other') if raw.get('source') in {'simplify','program'} else career_field(raw['title'],raw.get('department','')),
           'role_type':raw['role_type'] if raw.get('is_program') else 'internship' if raw['role_type']=='internship' else role_type(raw['title']),

@@ -26,7 +26,7 @@ document.addEventListener('click',event=>{for(const node of document.querySelect
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {technical_only:false,current_only:true,include_stale:true,include_community:$('include-community').checked,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],closing_within_days:0,recent_days:0,query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community').checked,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],closing_within_days:0,recent_days:0,query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
 function fillPreferences(p){$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
 function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
 function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
@@ -219,7 +219,21 @@ function renderMatchDetails(node,result) {
   node.append(skills,qualifications,next,make('p','Skill coverage measures supported skill groups, not your eligibility or likelihood of being hired.','summary-note'));
 }
 
-function showDetails(job) {
+let detailsVersion=0,detailsController=null;
+async function showDetails(job){
+  const version=++detailsVersion,generation=authGeneration;detailsController?.abort();detailsController=new AbortController();
+  renderDetails(job);
+  if(!job.description_deferred)return;
+  try{
+    const response=await fetch('/api/careers/opportunities/'+encodeURIComponent(job.id)+'/details',{method:'POST',headers:{'Content-Type':'application/json'},signal:detailsController.signal,body:JSON.stringify({profile:accountUser?savedProfile:{}})});
+    const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Could not load full opportunity details.'));
+    if(version!==detailsVersion||generation!==authGeneration||!dialog.open)return;
+    Object.assign(job,data.job);renderDetails(job);
+  }catch(error){if(error.name==='AbortError'||version!==detailsVersion||generation!==authGeneration||!dialog.open)return;const notice=$('details-loading');if(notice){notice.textContent=error.message;const retry=make('button','Retry details','secondary');retry.type='button';retry.onclick=()=>showDetails(job);notice.append(retry)}}
+}
+dialog.addEventListener('close',()=>{detailsVersion++;detailsController?.abort()});
+document.addEventListener('workbee:account-changed',()=>{if(dialog.open)dialog.close()});
+function renderDetails(job) {
 
   const container=$('dialog-content'),header=make('div',undefined,'dialog-header'),heading=make('div',undefined,'dialog-heading');
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
@@ -232,6 +246,7 @@ function showDetails(job) {
   if(job.facts?.pay_quote)body.append(make('p','Pay wording: '+job.facts.pay_quote,'quote'));
   if(job.facts?.commitments?.length)body.append(make('p','Commitment wording: '+job.facts.commitments.map(v=>v.replaceAll('_',' ')).join(' / '),'notice'));
   const deadline=job.deadline_info;if(deadline){body.append(make('p',deadline.date?'Application deadline: '+deadline.date+' · '+deadline.timezone_note:'Application deadline not provided; check the employer posting.','notice'));if(deadline.quote)body.append(make('p',deadline.quote,'quote'))}
+  if(job.description_deferred){const loading=make('p','Loading full description and source evidence…','notice');loading.id='details-loading';loading.setAttribute('role','status');body.append(loading);container.replaceChildren(header,body);if(!dialog.open)dialog.showModal();return}
   const comparison=make('div');renderMatchDetails(comparison,job.match);body.append(comparison);
   const manual=make('div',undefined,'manual-comparison');manual.append(make('h3',job.description?'Compare an updated employer description':'Compare the employer’s requirements'),make('p','Paste the requirements from the employer posting. We’ll compare them with your current profile. This text is used for this comparison only.'));
   const input=make('textarea');input.maxLength=100000;input.minLength=20;input.placeholder='Paste the actual qualifications, skills, and eligibility requirements…';input.setAttribute('aria-label','Employer requirements for comparison');
@@ -243,7 +258,7 @@ function showDetails(job) {
   };
   manual.append(input,compare,message);body.append(manual);
   const description=section('Full employer description');description.append(make('p',job.description||'The source does not supply a full description. Open the employer posting and paste its requirements above for a comparison.','description'));body.append(description);
-  container.replaceChildren(header,body);dialog.showModal();
+  container.replaceChildren(header,body);if(!dialog.open)dialog.showModal();
 }
 
 dialog.addEventListener('click',event=>{if(event.target===dialog){const rect=dialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close()}});
