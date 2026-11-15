@@ -174,3 +174,9 @@ for seven days, with checks older than thirty minutes marked for rechecking.
 Use the website’s Refresh opportunities button for an on-demand check.
 Profiles, notes and saved applications remain available. Resume collection when
 needed with `docker compose up -d careers-queen`. The web app does not need Redis.
+
+## Future Improvements
+- Personal account saved and preferences
+- Verified university/hospital/Workday feeds with source-health reporting
+
+- Verified university/hospital/Workday feeds with source-health reporting

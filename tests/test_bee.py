@@ -1,6 +1,6 @@
 import asyncio,json,os,unittest
 from datetime import datetime,timezone,timedelta
-from unittest.mock import patch,AsyncMock
+from unittest.mock import patch,AsyncMock,MagicMock
 import httpx
 from fastapi.testclient import TestClient
 from hives.careers.app import app
@@ -10,7 +10,7 @@ from hives.careers.api import Search,search_catalog
 class BeeTests(unittest.TestCase):
     def setUp(self):bee._LIMITS.clear()
     def test_guide_is_honest_and_help_does_not_fetch_catalog(self):
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'','GEMINI_API_KEY':'','WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
             self.assertEqual(c.get('/api/bee/status').json()['mode'],'guide')
             response=c.post('/api/bee/ask',json={'question':'How do I import my resume?'})
             self.assertEqual(response.status_code,200)
@@ -22,7 +22,7 @@ class BeeTests(unittest.TestCase):
             self.assertEqual(c.get('/careers/assets/bee.mjs').status_code,200)
     def test_sources_are_grounded_and_provider_errors_are_sanitized(self):
         rows=[{'id':'one','title':'Policy Intern','company':'Example','apply_url':'https://example.com/job','requirements_excerpt':'Public requirements'}]
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee,'retrieve',new=AsyncMock(return_value=rows)),patch.object(bee,'generate',new=AsyncMock(side_effect=httpx.ConnectError('private-provider-detail'))),TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'test-placeholder'}),patch.object(bee,'retrieve',new=AsyncMock(return_value=rows)),patch.object(bee,'generate',new=AsyncMock(side_effect=httpx.ConnectError('private-provider-detail'))),TestClient(app) as c:
             r=c.post('/api/bee/ask',json={'question':'Find policy internships'})
             self.assertEqual(r.status_code,200)
             self.assertEqual(r.json()['mode'],'guide')
@@ -31,7 +31,7 @@ class BeeTests(unittest.TestCase):
             self.assertNotIn('requirements_excerpt',r.text)
             self.assertEqual(r.json()['sources'][0]['apply_url'],'https://example.com/job')
     def test_same_origin_limits_and_bounded_messages(self):
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'','GEMINI_API_KEY':'','WORKBEE_OPENAI_API_KEY':''}),TestClient(app) as c:
             self.assertEqual(c.post('/api/bee/ask',json={'question':'How do I compare?'},headers={'Origin':'https://untrusted.example'}).status_code,403)
             self.assertEqual(c.post('/api/bee/ask',json={'question':'x'*1001}).status_code,422)
             for i in range(12):self.assertEqual(c.post('/api/bee/ask',json={'question':'How do I compare?'}).status_code,200)
@@ -45,19 +45,21 @@ class BeeTests(unittest.TestCase):
 
 class ProviderTests(unittest.IsolatedAsyncioTestCase):
     async def test_responses_request_does_not_store_or_attach_private_state(self):
-        def handle(request):
-            payload=json.loads(request.content)
-            self.assertEqual(request.headers['authorization'],'Bearer test-placeholder')
-            self.assertFalse(payload['store'])
-            self.assertNotIn('test-placeholder',json.dumps(payload))
-            self.assertEqual(json.loads(payload['input'])['workbee_context'],{'opportunities':[]})
-            self.assertNotIn('tools',payload)
-            return httpx.Response(200,json={'output':[{'type':'message','content':[{'type':'output_text','text':'Ask about your preferred field.'}]}]})
-        client=httpx.AsyncClient(transport=httpx.MockTransport(handle))
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee.httpx,'AsyncClient',return_value=client):
+        mock_interaction=MagicMock()
+        mock_interaction.model_dump.return_value={'steps':[{'type':'model_output','content':[{'type':'text','text':'Ask about your preferred field.'}]}]}
+        mock_client=MagicMock()
+        mock_client.aio.interactions.create=AsyncMock(return_value=mock_interaction)
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'test-placeholder'}),patch('google.genai.Client',return_value=mock_client) as mock_cls:
             result=await bee.generate(bee.Ask(question='Find internships',web_search=False),{'opportunities':[]})
             self.assertEqual(result['answer'],'Ask about your preferred field.')
             self.assertFalse(result['web_searched'])
+            mock_cls.assert_called_once_with(api_key='test-placeholder')
+            kwargs=mock_client.aio.interactions.create.call_args.kwargs
+            self.assertFalse(kwargs['store'])
+            self.assertIsNone(kwargs['tools'])
+            input_data=json.loads(kwargs['input'])
+            self.assertEqual(input_data['workbee_context'],{'opportunities':[]})
+            self.assertNotIn('test-placeholder',json.dumps(kwargs['input']))
 
 class CommunityTests(unittest.TestCase):
     def test_recent_opt_in_does_not_promote_community_to_employer_verified(self):
@@ -72,20 +74,20 @@ class CommunityTests(unittest.TestCase):
 class ResourceAssistantTests(unittest.TestCase):
     def setUp(self):bee._LIMITS.clear()
     def test_general_questions_do_not_become_job_searches(self):
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'','GEMINI_API_KEY':'','WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
             r=c.post('/api/bee/ask',json={'question':'What is photosynthesis?'})
             self.assertEqual(r.status_code,200);self.assertEqual(r.json()['intent'],'general')
             self.assertIsNone(r.json()['search']);self.assertFalse(r.json()['web_searched'])
             self.assertIn('local-guide mode',r.json()['answer']);retrieve.assert_not_awaited()
             self.assertEqual(c.get('/careers/assets/bee-logic.mjs').status_code,200)
     def test_resume_advice_is_distinct_from_product_help(self):
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'','GEMINI_API_KEY':'','WORKBEE_OPENAI_API_KEY':''}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,TestClient(app) as c:
             data=c.post('/api/bee/ask',json={'question':'How do I write a resume for my first internship?'}).json()
             self.assertIsNone(data['topic']);self.assertEqual(data['intent'],'advice')
             self.assertTrue(data['resources']);self.assertIn('Never invent',data['answer']);retrieve.assert_not_awaited()
             self.assertEqual(c.post('/api/bee/ask',json={'question':'How do I import my resume?'}).json()['topic'],'resume')
     def test_research_resources_are_not_open_postings(self):
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':''}),TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'','GEMINI_API_KEY':'','WORKBEE_OPENAI_API_KEY':''}),TestClient(app) as c:
             data=c.post('/api/bee/ask',json={'question':'How do I contact a research lab?'}).json()
             self.assertEqual(data['sources'],[]);self.assertIn('not verified open positions',data['answer'])
             self.assertTrue(any('nsf.gov' in r['url'] for r in data['resources']))
@@ -96,7 +98,7 @@ class ResourceAssistantTests(unittest.TestCase):
         self.assertEqual(bee.question_intent('How do I prepare for an interview?',history)[0],'advice')
     def test_ai_general_answer_does_not_read_catalog(self):
         result={'answer':'Photosynthesis converts light energy.','citations':[],'web_searched':False}
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,patch.object(bee,'generate',new=AsyncMock(return_value=result)) as generate,TestClient(app) as c:
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'test-placeholder'}),patch.object(bee,'retrieve',new=AsyncMock()) as retrieve,patch.object(bee,'generate',new=AsyncMock(return_value=result)) as generate,TestClient(app) as c:
             data=c.post('/api/bee/ask',json={'question':'What is photosynthesis?','web_search':False}).json()
             self.assertEqual(data['answer'],result['answer']);self.assertEqual(data['mode'],'ai');retrieve.assert_not_awaited()
             self.assertFalse(generate.await_args.args[0].web_search)
@@ -107,12 +109,14 @@ class ResourceAssistantTests(unittest.TestCase):
 
 class WebProviderTests(unittest.IsolatedAsyncioTestCase):
     async def test_web_tool_and_provenance(self):
-        def handle(request):
-            payload=json.loads(request.content)
-            self.assertEqual(payload['tools'],[{'type':'web_search','search_context_size':'low'}])
-            self.assertEqual(payload['max_tool_calls'],2);self.assertFalse(payload['store'])
-            return httpx.Response(200,json={'output':[{'type':'web_search_call'},{'type':'message','content':[{'type':'output_text','text':'Read this [source].','annotations':[{'type':'url_citation','start_index':10,'end_index':18,'url':'https://www.nsf.gov/','title':'NSF'}]}]}]})
-        client=httpx.AsyncClient(transport=httpx.MockTransport(handle))
-        with patch.dict(os.environ,{'WORKBEE_OPENAI_API_KEY':'test-placeholder'}),patch.object(bee.httpx,'AsyncClient',return_value=client):
+        mock_interaction=MagicMock()
+        mock_interaction.model_dump.return_value={'steps':[{'type':'google_search_call'},{'type':'model_output','content':[{'type':'text','text':'Read this [source].','annotations':[{'type':'url_citation','start_index':10,'end_index':18,'url':'https://www.nsf.gov/','title':'NSF'}]}]}]}
+        mock_client=MagicMock()
+        mock_client.aio.interactions.create=AsyncMock(return_value=mock_interaction)
+        with patch.dict(os.environ,{'WORKBEE_GEMINI_API_KEY':'test-placeholder'}),patch('google.genai.Client',return_value=mock_client):
             result=await bee.generate(bee.Ask(question='Research current programs'),{'intent':'advice'})
-            self.assertTrue(result['web_searched']);self.assertEqual(result['citations'][0]['url'],'https://www.nsf.gov/')
+            self.assertTrue(result['web_searched'])
+            self.assertEqual(result['citations'][0]['url'],'https://www.nsf.gov/')
+            kwargs=mock_client.aio.interactions.create.call_args.kwargs
+            self.assertFalse(kwargs['store'])
+            self.assertEqual(kwargs['tools'],[{'type':'google_search'}])
