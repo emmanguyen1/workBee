@@ -61,9 +61,9 @@ as resource starting points, not confirmed open postings. Arbitrary questions
 receive an honest explanation of the local guide's limits. Opportunity searches
 still return a bounded sample of up to three public employer listings.
 
-**Bee AI (optional):** server-side OpenAI Responses integration for open-ended
-answers. With **Search the web when useful** enabled, Bee can use the hosted
-`web_search` tool for current information and outside resources. It prefers primary
+**Bee AI (optional):** server-side Google Gemini Interactions API integration for open-ended
+answers. With **Search the web when useful** enabled, Bee can use the built-in
+`google_search` tool for current information and outside resources. It prefers primary
 sources and distinguishes web findings from cached catalog evidence. The switch
 can be disabled for an answer without live web research. Product-help responses
 never need the web tool.
@@ -79,19 +79,18 @@ and cancels its pending request.
 ## Privacy, limits and fallback
 
 Questions, up to four recent chat turns, product help and selected public posting
-excerpts are sent to OpenAI in AI mode. Search queries may also be sent to search
-providers when web search is enabled. Saved profiles, resumes and private notes
+excerpts are sent to Gemini in AI mode. Search queries may also be sent to Google
+Search when web search is enabled. Saved profiles, resumes and private notes
 are never automatically read or attached. Anything the user types into chat is
 part of the message sent to the provider; avoid pasting sensitive data.
 Requests use `store:false`; workBee does not persist chat. This is not a claim
 of zero provider retention. Bee has no account-writing, application-submission,
 email, file-upload or shell tools, and does not guarantee eligibility or hiring.
 
-A request permits at most two hosted tool calls, uses a 55-second HTTP timeout,
-and has bounded answer tokens. The UI permits 75 seconds for the complete request.
-Provider errors fall back to the clearly labelled local guide without exposing
-provider internals or keys. No web-search claim or fabricated citation is added
-to a fallback answer.
+A request uses a 55-second timeout and bounded answer tokens. The UI permits 75 seconds
+for the complete request. Provider errors fall back to the clearly labelled local guide
+without exposing provider internals or keys. No web-search claim or fabricated citation
+is added to a fallback answer.
 
 The endpoint accepts questions up to 1,000 characters and at most four 1,500-character
 history turns. It requires same-origin requests and limits a client to twelve
@@ -101,24 +100,21 @@ controls. There are no idle AI calls or background research jobs.
 
 ## Enable AI and live research locally
 
-Set `WORKBEE_OPENAI_API_KEY` in your private local `.env` file. Keep it out of chat,
-browser code and GitHub. `WORKBEE_AI_MODEL` defaults to `gpt-5-mini`; a custom
-model must support Responses, low reasoning effort, and hosted web search.
+Set `WORKBEE_GEMINI_API_KEY` (or `GEMINI_API_KEY`) in your private local `.env` file.
+Keep it out of chat, browser code and GitHub. `WORKBEE_AI_MODEL` defaults to `gemini-4-hydrogen`.
 Then recreate only workBee:
 
 ```sh
 docker compose up -d --no-deps --build workbee
 ```
 
-No separate search-provider API key is needed: hosted web search uses the same
-OpenAI API account. Model tokens and web-search tool calls can incur charges.
+No separate search-provider API key is needed: Google Search grounding is integrated.
 Check `/api/bee/status` or open Ask Bee to see whether AI is configured. Boolean
 readiness is exposed; key values remain server-side. The integration is covered
 by mocked provider tests. Live AI/web quality cannot be verified until a valid key
 is configured; the current local deployment is in resource-guide mode.
 
-Implementation follows official [OpenAI web-search and citation documentation](https://developers.openai.com/api/docs/guides/tools-web-search)
-and the [GPT-5 mini model reference](https://developers.openai.com/api/docs/models/gpt-5-mini).
+Implementation uses the official `google-genai` SDK and the Gemini Interactions API.
 Curated starting points include [NSF undergraduate research guidance](https://www.nsf.gov/funding/initiatives/reu/students)
 and the [NIH Summer Internship Program guide](https://www.training.nih.gov/research-training/pb/sip/).
 

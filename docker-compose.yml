@@ -62,8 +62,9 @@ services:
       WORKBEE_GOOGLE_CLIENT_SECRET: ${WORKBEE_GOOGLE_CLIENT_SECRET:-}
       WORKBEE_LINKEDIN_CLIENT_ID: ${WORKBEE_LINKEDIN_CLIENT_ID:-}
       WORKBEE_LINKEDIN_CLIENT_SECRET: ${WORKBEE_LINKEDIN_CLIENT_SECRET:-}
+      WORKBEE_GEMINI_API_KEY: ${WORKBEE_GEMINI_API_KEY:-}
       WORKBEE_OPENAI_API_KEY: ${WORKBEE_OPENAI_API_KEY:-}
-      WORKBEE_AI_MODEL: ${WORKBEE_AI_MODEL:-gpt-5-mini}
+      WORKBEE_AI_MODEL: ${WORKBEE_AI_MODEL:-gemini-4-hydrogen}
       DATABASE_URL: postgresql://hivework:hivework@postgres:5432/hivework
     depends_on:
       postgres: { condition: service_healthy }
