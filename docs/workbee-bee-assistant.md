@@ -45,53 +45,82 @@ and qualifications stay unknown. Removed, stale, and explicitly expired entries
 remain excluded. A matching employer listing takes precedence, with community
 attribution retained. Filter totals include community rows only when opted in.
 
-## Assistant modes
+## Questions, coaching and outside resources
 
-**Search guide (available without a key):** read-only local feature help and public
-catalog search. It can translate straightforward field/internship/pay/workplace
-questions into filters and show up to three employer links. This mode is explicitly
-labelled; it is not presented as model-generated AI. Results are a bounded sample,
-so no matches does not imply no jobs exist. Paused collection can yield no recent rows.
+Bee separates workBee help, catalog searches, career advice and general questions.
+It can explain concepts, help draft application materials, plan learning, practice
+interviews, and discuss questions beyond job discovery when AI is enabled. It no
+longer searches for random jobs in response to every question. Simple follow-ups
+such as “What about remote?” retain the preceding search area. Search shortcuts
+remain explicit: Bee does not change filters until the user chooses the shortcut.
 
-**Bee AI (optional):** a server-side OpenAI Responses integration. Questions, up to
-four recent chat turns, product help and up to three selected public posting
-excerpts are sent to the provider. Saved profiles, raw resumes and private application
-notes are never read or attached. Requests use `store:false`; workBee does not persist
-chat, but this is not a claim of zero provider retention. Output is plain text;
-clickable source links come only from retrieved records. Bee has no account-writing,
-application-submission, browsing or shell tools. Provider errors fall back to the
-clearly labelled guide without exposing provider details or keys.
+**Resource guide (no key required):** practical starting advice for resumes,
+interviews, learning plans and research outreach, plus relevant curated links to
+NSF, NIH, MIT career guidance and CareerOneStop. Directories are clearly labelled
+as resource starting points, not confirmed open postings. Arbitrary questions
+receive an honest explanation of the local guide's limits. Opportunity searches
+still return a bounded sample of up to three public employer listings.
 
-The local endpoint accepts questions up to 1,000 characters and history turns up to
-1,500 characters, with at most four history turns. It requires same-origin requests
-and limits a client to twelve questions per ten minutes. The bounded in-memory
-limiter is intended for this local single-process app; public deployment needs
-shared rate limiting and authenticated usage limits.
+**Bee AI (optional):** server-side Google Gemini Interactions API integration for open-ended
+answers. With **Search the web when useful** enabled, Bee can use the built-in
+`google_search` tool for current information and outside resources. It prefers primary
+sources and distinguishes web findings from cached catalog evidence. The switch
+can be disabled for an answer without live web research. Product-help responses
+never need the web tool.
 
-## Enable model-generated answers locally
+Citations come from provider `url_citation` annotations, not URLs invented in answer
+text. The UI renders prominent clickable inline citations and a web-source list,
+using text nodes and validated HTTPS links. Curated resources appear separately;
+their presence does not mean they were searched live. The response states whether
+web search actually ran. HTML is not executed, and links with embedded credentials
+or unsafe schemes are rejected. Clear chat discards the tab's recent conversation
+and cancels its pending request.
 
-Set `WORKBEE_OPENAI_API_KEY` in your local environment or private `.env` file.
-Do not put a key into browser code, chat messages, the example file or GitHub.
-`WORKBEE_AI_MODEL` defaults to `gpt-5-mini`; it must support Responses and low
-reasoning effort. Then recreate only the web service:
+## Privacy, limits and fallback
+
+Questions, up to four recent chat turns, product help and selected public posting
+excerpts are sent to Gemini in AI mode. Search queries may also be sent to Google
+Search when web search is enabled. Saved profiles, resumes and private notes
+are never automatically read or attached. Anything the user types into chat is
+part of the message sent to the provider; avoid pasting sensitive data.
+Requests use `store:false`; workBee does not persist chat. This is not a claim
+of zero provider retention. Bee has no account-writing, application-submission,
+email, file-upload or shell tools, and does not guarantee eligibility or hiring.
+
+A request uses a 55-second timeout and bounded answer tokens. The UI permits 75 seconds
+for the complete request. Provider errors fall back to the clearly labelled local guide
+without exposing provider internals or keys. No web-search claim or fabricated citation
+is added to a fallback answer.
+
+The endpoint accepts questions up to 1,000 characters and at most four 1,500-character
+history turns. It requires same-origin requests and limits a client to twelve
+questions per ten minutes. This bounded in-memory limiter is for the local
+single-process app; public deployment needs shared limits and authenticated usage
+controls. There are no idle AI calls or background research jobs.
+
+## Enable AI and live research locally
+
+Set `WORKBEE_GEMINI_API_KEY` (or `GEMINI_API_KEY`) in your private local `.env` file.
+Keep it out of chat, browser code and GitHub. `WORKBEE_AI_MODEL` defaults to `gemini-4-hydrogen`.
+Then recreate only workBee:
 
 ```sh
-docker compose up -d --no-deps workbee
+docker compose up -d --no-deps --build workbee
 ```
 
-Compose forwards only the named Bee key/model to the web container; other demo
-credentials are not forwarded. The optional key can incur provider charges when
-someone sends a question. The feature is tested with a mocked Responses transport;
-live model access is not verified without a configured key.
+No separate search-provider API key is needed: Google Search grounding is integrated.
+Check `/api/bee/status` or open Ask Bee to see whether AI is configured. Boolean
+readiness is exposed; key values remain server-side. The integration is covered
+by mocked provider tests. Live AI/web quality cannot be verified until a valid key
+is configured; the current local deployment is in resource-guide mode.
 
-The implementation follows the official [text-generation guide](https://developers.openai.com/api/docs/guides/text),
-[conversation-state guide](https://developers.openai.com/api/docs/guides/conversation-state)
-and [GPT-5 mini model reference](https://developers.openai.com/api/docs/models/gpt-5-mini).
+Implementation uses the official `google-genai` SDK and the Gemini Interactions API.
+Curated starting points include [NSF undergraduate research guidance](https://www.nsf.gov/funding/initiatives/reu/students)
+and the [NIH Summer Internship Program guide](https://www.training.nih.gov/research-training/pb/sip/).
 
 ## Battery use
 
-Only workBee and Postgres need to remain running. New feeds and the community list
-are imported once for this update; the collector, Redis and Redis bridge stay
-stopped. Search/help does not restart them. Current-only entries age out after
-thirty minutes without another successful collection. Bee has no idle polling or
-background model requests.
+Only workBee and Postgres need to remain running. Bee never starts the collector,
+Redis or Redis bridge. Source checks older than thirty minutes need rechecking;
+last-known-open listings remain visible for seven days. Bee makes requests only
+when opened or asked a question; it has no idle polling or background model calls.
