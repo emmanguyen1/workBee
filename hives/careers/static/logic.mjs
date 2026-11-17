@@ -88,6 +88,169 @@ export function freshnessWindow(job, now = Date.now()) {
   };
 }
 
+export function formatPayPill(payQuote, payStatus) {
+  if (payQuote && typeof payQuote === 'string') {
+    // Hourly range: $40 to $58/hour or $40 - $58 / hr
+    const hourlyRange = payQuote.match(/\$\s*(\d+(?:\.\d+)?)\s*(?:-|–|to|and)\s*\$\s*(\d+(?:\.\d+)?)\s*(?:\/|\s*per\s*)?\s*(?:hr|hour)\b/i);
+    if (hourlyRange) {
+      const low = parseFloat(hourlyRange[1]), high = parseFloat(hourlyRange[2]);
+      return `$${low}–$${high}/hr`;
+    }
+    // Single hourly: $45/hr or $45.00 per hour
+    const singleHourly = payQuote.match(/\$\s*(\d+(?:\.\d+)?)\s*(?:\/|\s*per\s*)?\s*(?:hr|hour)\b/i);
+    if (singleHourly) {
+      return `$${parseFloat(singleHourly[1])}/hr`;
+    }
+    // Monthly range or single: $8,000 / month
+    const monthly = payQuote.match(/\$\s*(\d[\d,.]*)\s*(?:-|–|to|and)?\s*(?:\$\s*(\d[\d,.]*))?\s*(?:\/|\s*per\s*)?\s*(?:month|mo)\b/i);
+    if (monthly) {
+      const m1 = parseFloat(monthly[1].replace(/,/g, ''));
+      if (monthly[2]) {
+        const m2 = parseFloat(monthly[2].replace(/,/g, ''));
+        return `$${Math.round(m1 / 1000)}k–$${Math.round(m2 / 1000)}k/mo`;
+      }
+      return `$${Math.round(m1 / 1000)}k/mo`;
+    }
+    // Annual salary: $80,000 - $100,000 / year
+    const yearly = payQuote.match(/\$\s*(\d[\d,.]*)\s*(?:-|–|to|and)\s*\$\s*(\d[\d,.]*)\s*(?:\/|\s*per\s*)?\s*(?:year|yr|annum|annually)?/i);
+    if (yearly && parseFloat(yearly[1].replace(/,/g, '')) >= 10000) {
+      const y1 = Math.round(parseFloat(yearly[1].replace(/,/g, '')) / 1000);
+      const y2 = Math.round(parseFloat(yearly[2].replace(/,/g, '')) / 1000);
+      return `$${y1}k–$${y2}k/yr`;
+    }
+  }
+  if (payStatus === 'paid') return 'Explicitly paid';
+  if (payStatus === 'unpaid') return 'Unpaid';
+  return null;
+}
+
+export function eligibilityBadges(job, profile = {}) {
+  const badges = [];
+  const checks = job?.match?.eligibility || [];
+  const description = job?.description || '';
+
+  // 1. Visa Sponsorship
+  const sponsorCheck = checks.find(c => c.criterion === 'Sponsorship');
+  if (sponsorCheck && sponsorCheck.status === 'conflict') {
+    badges.push({
+      type: 'visa',
+      status: 'conflict',
+      label: 'Sponsorship conflict',
+      detail: sponsorCheck.explanation || 'Employer does not offer visa sponsorship.'
+    });
+  } else if (sponsorCheck && sponsorCheck.status === 'matches' && profile.needs_sponsorship === false) {
+    // profile doesn't need it, matches
+  } else if (sponsorCheck && sponsorCheck.quote && !sponsorCheck.quote.includes('No explicit rule')) {
+    if (/no (?:visa )?sponsorship|cannot.*sponsor|will not.*sponsor|not eligible for.*sponsor/i.test(sponsorCheck.quote)) {
+      badges.push({
+        type: 'visa',
+        status: profile?.needs_sponsorship ? 'conflict' : 'warning',
+        label: 'No visa sponsorship',
+        detail: sponsorCheck.quote
+      });
+    } else if (/sponsorship (?:is )?(?:available|provided|offered)|open to (?:f-?1|opt|cpt)/i.test(sponsorCheck.quote)) {
+      badges.push({
+        type: 'visa',
+        status: 'match',
+        label: 'Sponsors visas',
+        detail: sponsorCheck.quote
+      });
+    }
+  } else if (/no (?:visa )?sponsorship|cannot (?:provide |offer )?(?:visa )?sponsor|will not (?:provide |offer )?(?:visa )?sponsor/i.test(description)) {
+    badges.push({
+      type: 'visa',
+      status: profile?.needs_sponsorship ? 'conflict' : 'warning',
+      label: 'No visa sponsorship',
+      detail: 'Employer stated no visa sponsorship is available.'
+    });
+  }
+
+  // 2. US Citizenship / Permanent Residency / Clearance
+  const citizenCheck = checks.find(c => c.criterion === 'Citizenship / Clearance');
+  if (citizenCheck && citizenCheck.quote) {
+    badges.push({
+      type: 'citizenship',
+      status: 'warning',
+      label: 'U.S. Citizen / PR required',
+      detail: citizenCheck.quote
+    });
+  } else if (/\b(?:u\.?s\.?\s+citizenship\s+(?:is\s+)?required|must be a\s+u\.?s\.?\s+citizen|u\.?s\.?\s+citizens?\s+(?:only|or\s+permanent\s+resident)|security\s+clearance\s+(?:required|active)|green\s+card\s+holder)\b/i.test(description)) {
+    badges.push({
+      type: 'citizenship',
+      status: 'warning',
+      label: 'U.S. Citizen / PR required',
+      detail: 'Requires U.S. Citizenship, Permanent Residency, or Security Clearance.'
+    });
+  }
+
+  // 3. Graduation Window & Student Stage
+  const gradCheck = checks.find(c => c.criterion === 'Graduation window');
+  if (gradCheck && gradCheck.status === 'conflict') {
+    badges.push({
+      type: 'grad',
+      status: 'conflict',
+      label: 'Grad year conflict',
+      detail: gradCheck.explanation || gradCheck.quote
+    });
+  } else if (gradCheck && gradCheck.status === 'matches') {
+    badges.push({
+      type: 'grad',
+      status: 'match',
+      label: 'Grad year matches',
+      detail: gradCheck.evidence
+    });
+  } else if (gradCheck && gradCheck.quote && !gradCheck.quote.includes('No explicit rule')) {
+    const m = gradCheck.quote.match(/(20\d{2})\s*(?:-|–|to|and)\s*(20\d{2})/);
+    if (m) {
+      badges.push({
+        type: 'grad',
+        status: 'info',
+        label: `Class of ${m[1]}–${m[2]}`,
+        detail: gradCheck.quote
+      });
+    }
+  } else if (job?.student_audience?.years?.length) {
+    const yrs = job.student_audience.years;
+    const yrLabel = yrs.includes(1) && yrs.includes(2) ? 'Freshmen & Sophomores' : yrs.includes(1) ? 'Freshmen preferred' : 'Sophomores preferred';
+    badges.push({
+      type: 'grad',
+      status: 'info',
+      label: yrLabel,
+      detail: job.student_audience.evidence?.[0] || 'Targeted toward early-year students'
+    });
+  }
+
+  // 4. Minimum GPA
+  const gpaCheck = checks.find(c => c.criterion === 'Minimum GPA (4.0 scale)');
+  if (gpaCheck && gpaCheck.status === 'conflict') {
+    badges.push({
+      type: 'gpa',
+      status: 'conflict',
+      label: 'Min GPA conflict',
+      detail: gpaCheck.evidence || gpaCheck.quote
+    });
+  } else if (gpaCheck && gpaCheck.status === 'matches') {
+    badges.push({
+      type: 'gpa',
+      status: 'match',
+      label: 'GPA matches',
+      detail: gpaCheck.evidence
+    });
+  } else if (gpaCheck && gpaCheck.quote && !gpaCheck.quote.includes('No explicit rule')) {
+    const m = gpaCheck.quote.match(/GPA\s*(?:of|:)?\s*(\d(?:\.\d+)?)/i);
+    if (m) {
+      badges.push({
+        type: 'gpa',
+        status: 'info',
+        label: `Min ${m[1]} GPA`,
+        detail: gpaCheck.quote
+      });
+    }
+  }
+
+  return badges;
+}
+
 export function comparisonPreferences(current, hasSkills) {
   return {...current, sort: 'fit', comparable_only: Boolean(hasSkills)};
 }

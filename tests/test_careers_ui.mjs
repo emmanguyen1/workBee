@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences} from '../hives/careers/static/logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, formatPayPill, eligibilityBadges} from '../hives/careers/static/logic.mjs';
 
 test('comma-separated skills are individual skills; evidence commas are retained',()=>{
   assert.deepEqual(parseSkills('Python, SQL | Built an API, with charts\nReact'),[
@@ -111,4 +111,57 @@ test('account profile submit applies reviewed changes instead of silently doing 
   const dirty=bind(()=>form,()=>applied++,true);
   form.onsubmit({preventDefault(){prevented++}});
   assert.equal(prevented,1);assert.equal(applied,1);assert.equal(dirty(),true);
+});
+
+test('formatPayPill extracts concise hourly, monthly, and yearly salary pills', () => {
+  // Hourly range
+  assert.equal(formatPayPill('The expected pay is between $40 and $58/hour for MA roles.', 'paid'), '$40–$58/hr');
+  assert.equal(formatPayPill('$45.00 - $55.00 / hr', 'paid'), '$45–$55/hr');
+  // Single hourly
+  assert.equal(formatPayPill('$35/hour base compensation', 'paid'), '$35/hr');
+  // Monthly
+  assert.equal(formatPayPill('$8,000/month stipend provided', 'paid'), '$8k/mo');
+  // Yearly
+  assert.equal(formatPayPill('Annual salary $85,000 - $110,000 / year', 'paid'), '$85k–$110k/yr');
+  // Status fallback
+  assert.equal(formatPayPill('', 'paid'), 'Explicitly paid');
+  assert.equal(formatPayPill('', 'unpaid'), 'Unpaid');
+  assert.equal(formatPayPill('', 'unknown'), null);
+});
+
+test('eligibilityBadges detects visa sponsorship, citizenship, grad years, and gpa fit', () => {
+  // 1. Visa sponsorship conflict when user needs sponsorship
+  const noSponsorJob = {
+    description: 'We cannot provide visa sponsorship for this role.',
+    match: {
+      eligibility: [{criterion: 'Sponsorship', status: 'conflict', explanation: 'Only compares sponsorship needs'}]
+    }
+  };
+  const badSponsor = eligibilityBadges(noSponsorJob, {needs_sponsorship: true});
+  assert.ok(badSponsor.some(b => b.type === 'visa' && b.status === 'conflict'));
+
+  // 2. Visa sponsorship match
+  const sponsorJob = {
+    match: {
+      eligibility: [{criterion: 'Sponsorship', status: 'matches', quote: 'Visa sponsorship is available for qualified applicants'}]
+    }
+  };
+  const goodSponsor = eligibilityBadges(sponsorJob, {needs_sponsorship: true});
+  assert.ok(goodSponsor.some(b => b.type === 'visa' && b.status === 'match'));
+
+  // 3. Citizenship requirement
+  const defenseJob = {
+    description: 'Must be a U.S. Citizen due to government contract specifications.'
+  };
+  const citizenBadges = eligibilityBadges(defenseJob, {});
+  assert.ok(citizenBadges.some(b => b.type === 'citizenship' && b.status === 'warning'));
+
+  // 4. Grad year match / conflict
+  const gradJob = {
+    match: {
+      eligibility: [{criterion: 'Graduation window', status: 'conflict', explanation: 'Requires graduation between 2026 and 2027'}]
+    }
+  };
+  const gradBadges = eligibilityBadges(gradJob, {graduation_year: 2029});
+  assert.ok(gradBadges.some(b => b.type === 'grad' && b.status === 'conflict'));
 });

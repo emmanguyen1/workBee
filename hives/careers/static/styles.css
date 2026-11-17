@@ -1090,6 +1090,137 @@ button.secondary:hover, .button-link.secondary:hover {
   font-weight: 700;
 }
 
+.tag.pay-highlight {
+  background: var(--honey-soft);
+  color: #8C6518;
+  border-color: var(--honey-border);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Eligibility & Sponsorship Strip */
+.eligibility-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -6px;
+  margin-bottom: 12px;
+}
+
+.eligibility-pill {
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.eligibility-pill.warning {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FDE68A;
+}
+
+.eligibility-pill.conflict {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #FECACA;
+  font-weight: 700;
+}
+
+.eligibility-pill.match {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #BBF7D0;
+}
+
+.eligibility-pill.info {
+  background: #F1F5F9;
+  color: #475569;
+  border-color: #E2E8F0;
+}
+
+/* Reality Check Modal Box */
+.reality-check-box {
+  background: #F8FAFC;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+
+.reality-check-box h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.reality-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reality-badge-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  background: #FFFFFF;
+}
+
+.reality-badge-item strong {
+  font-size: 12px;
+}
+
+.reality-badge-item span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.reality-badge-item.warning {
+  border-left-color: #D97706;
+  background: #FFFBEB;
+}
+.reality-badge-item.warning strong {
+  color: #92400E;
+}
+
+.reality-badge-item.conflict {
+  border-left-color: #DC2626;
+  background: #FEF2F2;
+}
+.reality-badge-item.conflict strong {
+  color: #991B1B;
+}
+
+.reality-badge-item.match {
+  border-left-color: #16A34A;
+  background: #F0FDF4;
+}
+.reality-badge-item.match strong {
+  color: #166534;
+}
+
+.reality-badge-item.info {
+  border-left-color: #64748B;
+  background: #F8FAFC;
+}
+.reality-badge-item.info strong {
+  color: #334155;
+}
+
 /* Match Box */
 .match-box {
   padding: 12px 14px;

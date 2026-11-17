@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -110,7 +110,8 @@ function tags(job) {
   if(job.workplace!=='unspecified')node.append(make('span',job.workplace==='onsite'?'On-site':job.workplace[0].toUpperCase()+job.workplace.slice(1),'tag remote'));
   if(job.opportunity_types?.includes('lab'))node.append(make('span','Lab / scientific work','tag research'));
   if(job.opportunity_types?.includes('research'))node.append(make('span','Research / fellowship','tag research'));
-  if(job.facts?.pay_status&&job.facts.pay_status!=='unknown')node.append(make('span',job.facts.pay_status==='paid'?'Explicitly paid':'Unpaid','tag pay'));
+  const payPill=formatPayPill(job.facts?.pay_quote,job.facts?.pay_status);
+  if(payPill)node.append(make('span',payPill,'tag pay-highlight'));
   for(const year of job.student_audience?.years||[])node.append(make('span',year===1?'Mentions first-year':'Mentions second-year','tag'));
   if(job.terms?.length)node.append(make('span',job.terms.join(' · '),'tag'));
   return node;
@@ -176,6 +177,17 @@ function card(job) {
   company.append(logo(job),identity);article.append(company);
   const heading=make('h3'),title=make('button',job.title,'job-title');title.type='button';title.onclick=()=>showDetails(job);heading.append(title);article.append(heading);
   const location=make('div',undefined,'job-location');location.append(icon('pin'),make('span',(job.locations||[]).join(' · ')||job.location||'Location not specified'));article.append(location,tags(job));
+  const activeProfile=accountUser?savedProfile:profile();
+  const eBadges=eligibilityBadges(job,activeProfile);
+  if(eBadges.length){
+    const strip=make('div',undefined,'eligibility-strip');
+    for(const b of eBadges){
+      const pill=make('span',b.label,'eligibility-pill '+b.status+' '+b.type);
+      pill.title=b.detail||b.label;
+      strip.append(pill);
+    }
+    article.append(strip);
+  }
   const deadline=make('div',undefined,'opportunity-deadline'),day=job.deadline_info?.date;
   deadline.append(make('span','Application deadline'),make('strong',day?new Date(day+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Not published'));
   deadline.append(make('small',day?job.deadline_info.timezone_note||'Confirm the cutoff on the employer page.':'Check the employer page for current timing.'));
@@ -256,6 +268,20 @@ function renderDetails(job) {
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
   const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close opportunity details');close.onclick=()=>dialog.close();header.append(logo(job),heading,close);
   const body=make('div',undefined,'dialog-body');body.append(availabilityBox(job,true));body.append(tags(job),make('p',(job.locations||[]).join(' · ')||job.location||'Location not specified','muted'));
+  const activeDetailProfile=accountUser?savedProfile:profile();
+  const realityBadges=eligibilityBadges(job,activeDetailProfile);
+  if(realityBadges.length){
+    const realityBox=make('div',undefined,'reality-check-box');
+    realityBox.append(make('h4','Eligibility & Work Authorization Reality Check'));
+    const badgeList=make('div',undefined,'reality-badges');
+    for(const b of realityBadges){
+      const item=make('div',undefined,'reality-badge-item '+b.status);
+      item.append(make('strong',b.label),make('span',b.detail||''));
+      badgeList.append(item);
+    }
+    realityBox.append(badgeList);
+    body.append(realityBox);
+  }
   const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
