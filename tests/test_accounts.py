@@ -162,3 +162,32 @@ class AccountLifecycleTests(unittest.TestCase):
         self.assertEqual(custom["company"], "Scale AI")
         self.assertEqual(custom["status"], "interview")
         self.assertEqual(custom["details"]["notes"], "Referred by mentor")
+
+    def test_custom_avatar_and_mascot_identity_persistence(self):
+        secret = "secret-pass-word"
+        u = self.names[0] + "_avatar"
+        res = self.a.post("/api/account/register", json={"username": u, "password": secret})
+        self.assertEqual(res.status_code, 200)
+
+        fake_photo_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        state_res = self.a.put("/api/account/state", json={
+            "identity": {
+                "display_name": "Emma Nguyen",
+                "school": "University of South Florida",
+                "headline": "Software Engineering Intern",
+                "mascot": "code",
+                "custom_avatar": fake_photo_data_url
+            },
+            "profile": {"major": "Computer Science"},
+            "preferences": {},
+            "revision": 0
+        })
+        self.assertEqual(state_res.status_code, 200)
+        user_info = state_res.json()["user"]
+        self.assertEqual(user_info["mascot"], "code")
+        self.assertEqual(user_info["custom_avatar"], fake_photo_data_url)
+
+        # Check session fetch retains custom avatar
+        sess = self.a.get("/api/account/session").json()
+        self.assertEqual(sess["user"]["mascot"], "code")
+        self.assertEqual(sess["user"]["custom_avatar"], fake_photo_data_url)
