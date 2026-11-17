@@ -1422,6 +1422,222 @@ dialog::backdrop {
   margin-top: 14px;
 }
 
+/* Bee Prep Pack Modal */
+.prep-dialog {
+  padding: 0;
+  width: min(720px, calc(100% - 32px));
+  max-height: 88vh;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: var(--shadow-xl);
+  overflow-y: auto;
+}
+
+.prep-dialog-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 3;
+}
+
+.prep-title {
+  font-size: 19px;
+  font-weight: 750;
+  margin: 0 0 2px;
+  color: var(--text);
+}
+
+.prep-close {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 18px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+
+.prep-close:hover {
+  background: #F1F5F9;
+  color: var(--text);
+}
+
+.prep-loading {
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.prep-body {
+  padding: 20px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.prep-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.prep-mode-badge.ai {
+  background: rgba(184, 138, 53, 0.12);
+  color: #8C6518;
+  border: 1px solid var(--honey-border);
+}
+
+.prep-mode-badge.template {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--line-strong);
+}
+
+.prep-card {
+  padding: 18px 20px;
+  background: #F8FAFC;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.prep-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.prep-card h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin: 14px 0 6px;
+}
+
+.prep-summary {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.prep-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prep-list.strengths li {
+  color: #065F46;
+  margin-bottom: 6px;
+}
+
+.prep-list.gaps li {
+  color: #92400E;
+  margin-bottom: 6px;
+}
+
+.outreach-box {
+  background: #ffffff;
+  border: 1px solid var(--honey-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.outreach-subject {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.outreach-message {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  margin: 0 0 12px;
+}
+
+.copy-msg-btn {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.interview-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.question-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.question-card strong {
+  font-size: 13px;
+  color: var(--text);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.question-card p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+
+.why-asked {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.talking-point {
+  color: #1E293B;
+  background: var(--honey-soft);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px !important;
+}
+
+.bee-prep-btn {
+  font-weight: 600;
+}
+
 /* Bee AI Assistant Widget */
 .bee-widget {
   position: fixed;
