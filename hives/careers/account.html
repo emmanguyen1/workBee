@@ -19,9 +19,9 @@
     Back to opportunities
   </a>
 </section>
-<div class="google-workspace-layout">
+<div class="google-workspace-layout unauthenticated" id="workspace-layout">
   <!-- Left Category Navigation Sidebar (Google Account style) -->
-  <aside class="account-sidebar" aria-label="Account navigation">
+  <aside class="account-sidebar hidden" id="account-sidebar" aria-label="Account navigation">
     <div class="account-sidebar-nav" role="tablist">
       <button type="button" class="sidebar-pill-tab active" data-tab="tab-personal" role="tab" id="nav-tab-personal" aria-selected="true" aria-controls="tab-personal">
         <span class="pill-icon green" aria-hidden="true">
@@ -298,6 +298,13 @@
                 <div class="social-divider"><span>or connect with</span></div>
                 <div id="social-signin-buttons" class="social-buttons"></div>
                 <p id="oauth-availability" class="notice muted"></p>
+              </div>
+              <div class="guest-continue-section">
+                <div class="guest-divider"><span>or explore opportunities without an account</span></div>
+                <a href="/" id="continue-guest-btn" class="guest-continue-btn">
+                  <span>Continue as guest</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 5"></polyline></svg>
+                </a>
               </div>
             </div>
           </details>

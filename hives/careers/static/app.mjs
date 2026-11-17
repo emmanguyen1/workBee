@@ -173,6 +173,9 @@ identityView(null);
 
 function switchAccountTab(tabKey) {
   if (!isAccountPage) return;
+  if (!accountUser && tabKey !== 'tab-security') {
+    tabKey = 'tab-security';
+  }
   const cleanKey = tabKey.startsWith('tab-') ? tabKey : 'tab-' + tabKey;
   for (const btn of document.querySelectorAll('.sidebar-pill-tab')) {
     const isTarget = btn.dataset.tab === cleanKey;
@@ -190,7 +193,50 @@ function switchAccountTab(tabKey) {
   }
 }
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
-function accountView(data,restore=true){document.dispatchEvent(new Event('workbee:account-changed'));accountUser=data.user;savedProfile=data.profile||{};hasAccountEdits=false;if(isAccountPage){$('account-private').classList.toggle('hidden',!accountUser);$('workspace').open=true;if(accountUser){loadSavedApplications();if(location.hash==='#resume')$('resume').open=true}}accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;$('identity-panel').classList.toggle('hidden',!accountUser);identityView(accountUser);for(const [key,id] of [['display_name','display-name'],['school','profile-school'],['headline','profile-tagline']])$(id).value=accountUser?.[key]||'';if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore){fill(data.profile||{});fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.';if(isAccountPage&&(!location.hash||location.hash==='#'||location.hash==='#personal'))switchAccountTab('tab-security');}if(isAccountPage&&accountUser){try{const pending=sessionStorage.getItem('workbee.pending.preferences');if(pending){sessionStorage.removeItem('workbee.pending.preferences');fillPreferences(JSON.parse(pending));hasAccountEdits=true;$('account-message').textContent='Search preferences brought from Explore. Save them to your account when ready.'}}catch{}}}
+function accountView(data,restore=true){
+  document.dispatchEvent(new Event('workbee:account-changed'));
+  accountUser=data.user;
+  savedProfile=data.profile||{};
+  hasAccountEdits=false;
+  if(isAccountPage){
+    const isAuthenticated=!!accountUser;
+    if($('account-sidebar'))$('account-sidebar').classList.toggle('hidden',!isAuthenticated);
+    if($('workspace-layout'))$('workspace-layout').classList.toggle('unauthenticated',!isAuthenticated);
+    $('account-private').classList.toggle('hidden',!accountUser);
+    $('workspace').open=true;
+    if(accountUser){
+      loadSavedApplications();
+      if(location.hash==='#resume')$('resume').open=true;
+    }
+  }
+  accountRevision=data.revision||0;
+  $('account-actions').classList.toggle('hidden',!accountUser);
+  $('auth-details').classList.toggle('hidden',!!accountUser);
+  $('save').disabled=!!accountUser;
+  $('identity-panel').classList.toggle('hidden',!accountUser);
+  identityView(accountUser);
+  for(const [key,id] of [['display_name','display-name'],['school','profile-school'],['headline','profile-tagline']])$(id).value=accountUser?.[key]||'';
+  if(accountUser){
+    $('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';
+    saved=data.applications||{};
+    if(restore){fill(data.profile||{});fillPreferences(data.preferences||{})}
+    if(isAccountPage&&(!location.hash||location.hash==='#'||location.hash==='#security'))switchAccountTab('tab-personal');
+  }else{
+    $('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.';
+    if(isAccountPage)switchAccountTab('tab-security');
+  }
+  if(isAccountPage&&accountUser){
+    try{
+      const pending=sessionStorage.getItem('workbee.pending.preferences');
+      if(pending){
+        sessionStorage.removeItem('workbee.pending.preferences');
+        fillPreferences(JSON.parse(pending));
+        hasAccountEdits=true;
+        $('account-message').textContent='Search preferences brought from Explore. Save them to your account when ready.';
+      }
+    }catch{}
+  }
+}
 if(!isAccountPage)$('edit-preferences').onclick=()=>{try{sessionStorage.setItem('workbee.pending.preferences',JSON.stringify(preferences()))}catch{}};
 $('account-toggle').onclick=event=>{if(!isAccountPage)return;event.preventDefault();$('workspace').open=true;$('workspace').scrollIntoView({behavior:'smooth',block:'start'});if(!accountUser){$('auth-details').open=true;switchAccountTab('tab-security');$('account-username').focus()}else{switchAccountTab('tab-personal');$('display-name').focus()}};
 $('auth-mode').onchange=()=>{$('account-password').autocomplete=$('auth-mode').value==='register'?'new-password':'current-password'};
@@ -899,13 +945,19 @@ if(isAccountPage){
     btn.onclick = () => switchAccountTab(btn.dataset.tab);
   }
   const initialHash = location.hash.replace('#', '');
-  if (initialHash === 'pipeline') switchAccountTab('tab-pipeline');
-  else if (initialHash === 'matcher' || initialHash === 'resume') switchAccountTab('tab-matcher');
-  else if (initialHash === 'security') switchAccountTab('tab-security');
-  else if (initialHash === 'settings') switchAccountTab('tab-settings');
-  else if (initialHash === 'personal') switchAccountTab('tab-personal');
-  else if (!accountUser) switchAccountTab('tab-security');
-  else switchAccountTab('tab-personal');
+  if (!accountUser) {
+    switchAccountTab('tab-security');
+  } else if (initialHash === 'pipeline') {
+    switchAccountTab('tab-pipeline');
+  } else if (initialHash === 'matcher' || initialHash === 'resume') {
+    switchAccountTab('tab-matcher');
+  } else if (initialHash === 'security') {
+    switchAccountTab('tab-security');
+  } else if (initialHash === 'settings') {
+    switchAccountTab('tab-settings');
+  } else {
+    switchAccountTab('tab-personal');
+  }
   window.addEventListener('hashchange', () => {
     const h = location.hash.replace('#', '');
     if (['personal', 'matcher', 'pipeline', 'security', 'settings'].includes(h)) switchAccountTab('tab-' + h);

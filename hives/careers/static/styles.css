@@ -2773,6 +2773,60 @@ footer {
   gap: 10px;
 }
 
+.guest-continue-section {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.guest-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 4px 0;
+  color: var(--muted, #64748B);
+  font-size: 11.5px;
+}
+
+.guest-divider::before,
+.guest-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--line, #E2E8F0);
+}
+
+.guest-divider span {
+  padding: 0 10px;
+}
+
+.guest-continue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 20px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--line-strong, #CBD5E1);
+  background: #ffffff;
+  color: var(--text, #0E1D35);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.guest-continue-btn:hover {
+  background: var(--bg-hover, #F8FAFC);
+  border-color: var(--text, #0E1D35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 29, 53, 0.06);
+}
+
 /* User Identity Panel when signed in */
 .profile-details h3 {
   font-size: 18px;
@@ -3008,6 +3062,16 @@ footer {
   margin-top: 16px;
 }
 
+.google-workspace-layout.unauthenticated {
+  grid-template-columns: 1fr;
+  max-width: 520px;
+  margin: 16px auto 48px;
+}
+
+.google-workspace-layout.unauthenticated .account-main-content {
+  width: 100%;
+}
+
 @media (max-width: 900px) {
   .google-workspace-layout {
     grid-template-columns: 1fr;
@@ -3018,6 +3082,10 @@ footer {
 .account-sidebar {
   position: sticky;
   top: 20px;
+}
+
+.account-sidebar.hidden {
+  display: none !important;
 }
 
 .account-sidebar-nav {
