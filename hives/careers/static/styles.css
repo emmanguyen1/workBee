@@ -2999,6 +2999,301 @@ footer {
   margin-bottom: 24px;
 }
 
+/* Google Account-style Workspace Layout */
+.google-workspace-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 32px;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .google-workspace-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.account-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.account-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .account-sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+}
+
+.sidebar-pill-tab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s ease;
+  color: var(--text, #0E1D35);
+}
+
+.sidebar-pill-tab:hover {
+  background: rgba(14, 29, 53, 0.05);
+}
+
+.sidebar-pill-tab.active {
+  background: #E8F0FE;
+  color: #1967D2;
+  box-shadow: 0 1px 3px rgba(25, 103, 210, 0.1);
+}
+
+.sidebar-pill-tab.active .pill-title {
+  color: #1967D2;
+  font-weight: 750;
+}
+
+.sidebar-pill-tab.active .pill-desc {
+  color: #1A73E8;
+  opacity: 0.9;
+}
+
+.pill-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.sidebar-pill-tab:hover .pill-icon {
+  transform: scale(1.05);
+}
+
+.pill-icon.green {
+  background: #E6F4EA;
+  color: #137333;
+}
+
+.pill-icon.blue {
+  background: #E8F0FE;
+  color: #1A73E8;
+}
+
+.pill-icon.purple {
+  background: #F3E8FD;
+  color: #9333EA;
+}
+
+.pill-icon.cyan {
+  background: #E0F7FA;
+  color: #00838F;
+}
+
+.pill-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pill-title {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text, #0E1D35);
+  line-height: 1.25;
+}
+
+.pill-desc {
+  font-size: 11.5px;
+  color: var(--muted, #64748B);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-main-content {
+  min-width: 0;
+}
+
+.account-category-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.account-category-panel.hidden {
+  display: none !important;
+}
+
+.category-header {
+  margin-bottom: 4px;
+}
+
+/* Mascot Persona Card */
+.mascot-persona-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #E2E8F0);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 4px 20px rgba(14, 29, 53, 0.03);
+}
+
+.mascot-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-subtitle {
+  font-size: 17px;
+  font-weight: 750;
+  color: var(--text, #0E1D35);
+  margin: 0 0 4px 0;
+}
+
+.card-hint {
+  font-size: 13px;
+  color: var(--muted, #64748B);
+  margin: 0;
+}
+
+.active-persona-pill {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--honey-dark, #8C6212);
+  background: var(--honey-light, #FEF9EE);
+  border: 1px solid var(--honey-border, #F9E7BA);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+
+.mascot-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.mascot-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line, #E2E8F0);
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mascot-tile:hover {
+  border-color: var(--honey, #B88A35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 138, 53, 0.12);
+}
+
+.mascot-tile.active {
+  border-color: var(--honey, #B88A35);
+  background: var(--honey-light, #FEF9EE);
+  box-shadow: 0 0 0 2px var(--honey-border, #F9E7BA);
+}
+
+.tile-mascot-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.tile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tile-name {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--text, #0E1D35);
+}
+
+.tile-track {
+  font-size: 11px;
+  color: var(--muted, #64748B);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.identity-card.panel {
+  background: #ffffff;
+  border: 1px solid var(--line, #E2E8F0);
+  border-radius: 18px;
+  padding: 26px 28px;
+  box-shadow: 0 4px 20px rgba(14, 29, 53, 0.03);
+}
+
+/* Mascot Avatars in Navbar & Profile */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.avatar.large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nav-mascot-svg {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: block;
+}
+
+.profile-mascot-svg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: 0 4px 14px rgba(14, 29, 53, 0.08);
+}
+
 .account-intro {
   margin-bottom: 24px;
 }

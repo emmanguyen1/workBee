@@ -1,10 +1,11 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges, kanbanColumns} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges, kanbanColumns, BEE_PERSONAS, detectOccupation, getBeeMascotSvg} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
 const sourceTimes=new Map();
 let refreshTimer=null,refreshJob=null,lastReloadedRefresh=null;
 let accountUser=null,accountRevision=0,authGeneration=0,savedProfile={},hasAccountEdits=false;
+let currentMascot='scholar';
 const isAccountPage=document.body.dataset.page==='account';
 const PAGE=30,PROFILE_KEY='hivework.careers.profile',SAVED_KEY='hivework.careers.applications';
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
@@ -41,8 +42,88 @@ function fillPreferences(p){
   if($('sort'))$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';
   for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])if($(id))setChoices(id,preferenceChoices(p,key,legacy))
 }
-function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
-function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
+function identity(){
+  return {
+    display_name: $('display-name')?.value?.trim() || '',
+    school: $('profile-school')?.value?.trim() || '',
+    headline: $('profile-tagline')?.value?.trim() || '',
+    mascot: currentMascot,
+  };
+}
+
+function renderMascotPicker(selectedId) {
+  const container = $('mascot-picker');
+  if (!container) return;
+  container.replaceChildren();
+  for (const p of BEE_PERSONAS) {
+    const tile = make('button', undefined, 'mascot-tile' + (p.id === selectedId ? ' active' : ''));
+    tile.type = 'button';
+    tile.setAttribute('role', 'radio');
+    tile.setAttribute('aria-checked', p.id === selectedId);
+    tile.title = `${p.name} · ${p.desc}`;
+    
+    const svgWrap = make('div', undefined, 'tile-mascot-icon');
+    svgWrap.innerHTML = getBeeMascotSvg(p.id, 42, 'tile-svg');
+    
+    const meta = make('div', undefined, 'tile-meta');
+    meta.append(
+      make('strong', p.name, 'tile-name'),
+      make('span', p.track, 'tile-track')
+    );
+    tile.append(svgWrap, meta);
+    
+    tile.onclick = () => {
+      currentMascot = p.id;
+      try { localStorage.setItem('workbee.mascot', p.id); } catch {}
+      hasAccountEdits = true;
+      if ($('nav-avatar')) $('nav-avatar').innerHTML = getBeeMascotSvg(p.id, 32, 'nav-mascot-svg');
+      if ($('profile-avatar')) $('profile-avatar').innerHTML = getBeeMascotSvg(p.id, 64, 'profile-mascot-svg');
+      if ($('active-persona-badge')) $('active-persona-badge').textContent = p.name;
+      renderMascotPicker(p.id);
+    };
+    container.append(tile);
+  }
+}
+
+function identityView(user){
+  const name=user?.display_name||user?.username||'';
+  $('nav-account-label').textContent=name||'Sign in / Create profile';
+  if ($('profile-display-name')) $('profile-display-name').textContent=name||'Guest Candidate';
+  if ($('profile-handle')) $('profile-handle').textContent=user?'@'+user.username:'@guest';
+  if ($('profile-headline')) $('profile-headline').textContent=user?.headline||'Student exploring opportunities in research, software, and business';
+  if ($('workspace-summary')) $('workspace-summary').textContent=user?'Your profile and saved applications':'Sign in to save your profile';
+
+  const storedMascot = localStorage.getItem('workbee.mascot');
+  const autoOcc = detectOccupation(user?.headline || $('profile-tagline')?.value, savedProfile?.major || $('major')?.value, $('skills')?.value);
+  const activeMascot = user?.mascot || storedMascot || autoOcc || 'scholar';
+  currentMascot = activeMascot;
+
+  if ($('nav-avatar')) $('nav-avatar').innerHTML = getBeeMascotSvg(activeMascot, 32, 'nav-mascot-svg');
+  if ($('profile-avatar')) $('profile-avatar').innerHTML = getBeeMascotSvg(activeMascot, 64, 'profile-mascot-svg');
+  const persona = BEE_PERSONAS.find(p => p.id === activeMascot) || BEE_PERSONAS[0];
+  if ($('active-persona-badge')) $('active-persona-badge').textContent = persona.name;
+  renderMascotPicker(activeMascot);
+}
+identityView(null);
+
+function switchAccountTab(tabKey) {
+  if (!isAccountPage) return;
+  const cleanKey = tabKey.startsWith('tab-') ? tabKey : 'tab-' + tabKey;
+  for (const btn of document.querySelectorAll('.sidebar-pill-tab')) {
+    const isTarget = btn.dataset.tab === cleanKey;
+    btn.classList.toggle('active', isTarget);
+    btn.setAttribute('aria-selected', isTarget);
+  }
+  for (const panel of document.querySelectorAll('.account-category-panel')) {
+    const isTarget = panel.id === cleanKey;
+    panel.classList.toggle('hidden', !isTarget);
+    panel.classList.toggle('active', isTarget);
+  }
+  const hashKey = cleanKey.replace('tab-', '');
+  if (location.hash !== '#' + hashKey) {
+    history.replaceState(null, '', location.pathname + '#' + hashKey);
+  }
+}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
 function accountView(data,restore=true){document.dispatchEvent(new Event('workbee:account-changed'));accountUser=data.user;savedProfile=data.profile||{};hasAccountEdits=false;if(isAccountPage){$('account-private').classList.toggle('hidden',!accountUser);$('workspace').open=true;if(accountUser){loadSavedApplications();if(location.hash==='#resume')$('resume').open=true}}accountRevision=data.revision||0;$('account-actions').classList.toggle('hidden',!accountUser);$('auth-details').classList.toggle('hidden',!!accountUser);$('save').disabled=!!accountUser;$('identity-panel').classList.toggle('hidden',!accountUser);identityView(accountUser);for(const [key,id] of [['display_name','display-name'],['school','profile-school'],['headline','profile-tagline']])$(id).value=accountUser?.[key]||'';if(accountUser){$('account-state').textContent='Signed in as '+accountUser.username+'. Save profile and filters explicitly; application status changes sync automatically. Raw resumes are not saved.';saved=data.applications||{};if(restore){fill(data.profile||{});fillPreferences(data.preferences||{})}}else{$('account-state').textContent='Guest mode. Create an account to save your profile, preferences, and application statuses across devices.'}if(isAccountPage&&accountUser){try{const pending=sessionStorage.getItem('workbee.pending.preferences');if(pending){sessionStorage.removeItem('workbee.pending.preferences');fillPreferences(JSON.parse(pending));hasAccountEdits=true;$('account-message').textContent='Search preferences brought from Explore. Save them to your account when ready.'}}catch{}}}
 if(!isAccountPage)$('edit-preferences').onclick=()=>{try{sessionStorage.setItem('workbee.pending.preferences',JSON.stringify(preferences()))}catch{}};
@@ -749,6 +830,18 @@ function renderSavedApplications(){
 }
 async function loadSavedApplications(){if(!isAccountPage||!accountUser)return;const generation=authGeneration,owner=accountUser.username;try{const data=await accountFetch('applications');if(generation!==authGeneration)return;const drafts=new Map(savedApplicationOwner===owner?savedApplications.filter(j=>j._draft).map(j=>[j.id,j._draft]):[]);savedApplications=data.applications.map(j=>({...j,...(drafts.has(j.id)?{_draft:drafts.get(j.id)}:{})}));savedApplicationOwner=owner;renderSavedApplications();$('saved-message').textContent='Application stages save automatically. Save notes and next steps explicitly.'}catch(error){$('saved-message').textContent=error.message}}
 if(isAccountPage){
+  for (const btn of document.querySelectorAll('.sidebar-pill-tab')) {
+    btn.onclick = () => switchAccountTab(btn.dataset.tab);
+  }
+  const initialHash = location.hash.replace('#', '');
+  if (initialHash === 'pipeline') switchAccountTab('tab-pipeline');
+  else if (initialHash === 'matcher' || initialHash === 'resume') switchAccountTab('tab-matcher');
+  else if (initialHash === 'security') switchAccountTab('tab-security');
+  else switchAccountTab('tab-personal');
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.replace('#', '');
+    if (['personal', 'matcher', 'pipeline', 'security'].includes(h)) switchAccountTab('tab-' + h);
+  });
   if($('saved-stage'))$('saved-stage').onchange=renderSavedApplications;
   if($('reload-applications'))$('reload-applications').onclick=loadSavedApplications;
   if($('export-applications'))$('export-applications').onclick=()=>download(applicationsCSV(savedApplications),'workbee-applications.csv','text/csv;charset=utf-8');

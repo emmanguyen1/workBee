@@ -19,192 +19,284 @@
     Back to opportunities
   </a>
 </section>
-<details class="workspace panel" id="workspace" open>
-  <summary class="workspace-summary-clean"><span>✦ Your account</span><span class="muted" id="workspace-summary">Sign in to save your profile</span></summary>
-  <div class="workspace-body">
-    <details id="auth-details" open>
-      <summary class="auth-details-summary">Sign in or create an account</summary>
-      <div class="auth-card-clean">
-        <div class="auth-card-header">
-          <div class="auth-badge">workBee Account</div>
-          <h2 id="account-title">Save your progress</h2>
-          <p id="account-state" class="notice muted">Guest mode. Sign in to keep your reviewed profile and application statuses synced across devices.</p>
-        </div>
-        <div class="auth-tab-switch" role="tablist" aria-label="Sign in mode">
-          <button type="button" class="auth-tab-btn active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
-          <button type="button" class="auth-tab-btn" id="tab-register" role="tab" aria-selected="false">Create Account</button>
-        </div>
-        <form id="auth-form" class="auth-form-clean">
-          <select id="auth-mode" class="sr-only" tabindex="-1"><option value="login" selected>Sign in</option><option value="register">Create account</option></select>
-          <div class="auth-input-group">
-            <label for="account-username">Username</label>
-            <input id="account-username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Letters, numbers, underscores">
-          </div>
-          <div class="auth-input-group">
-            <label for="account-password">Password</label>
-            <input id="account-password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required placeholder="At least 12 characters">
-          </div>
-          <button id="auth-submit" type="submit" class="primary-pill-btn auth-submit-btn">Sign in to workBee</button>
-        </form>
-        <div class="social-signin" id="social-signin">
-          <div class="social-divider"><span>or connect with</span></div>
-          <div id="social-signin-buttons" class="social-buttons"></div>
-          <p id="oauth-availability" class="notice muted"></p>
+<div class="google-workspace-layout">
+  <!-- Left Category Navigation Sidebar (Google Account style) -->
+  <aside class="account-sidebar" aria-label="Account navigation">
+    <div class="account-sidebar-nav" role="tablist">
+      <button type="button" class="sidebar-pill-tab active" data-tab="tab-personal" role="tab" id="nav-tab-personal" aria-selected="true" aria-controls="tab-personal">
+        <span class="pill-icon green" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </span>
+        <span class="pill-text">
+          <span class="pill-title">Personal info</span>
+          <span class="pill-desc">Name, school, headline & mascot</span>
+        </span>
+      </button>
+
+      <button type="button" class="sidebar-pill-tab" data-tab="tab-matcher" role="tab" id="nav-tab-matcher" aria-selected="false" aria-controls="tab-matcher">
+        <span class="pill-icon blue" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+        </span>
+        <span class="pill-text">
+          <span class="pill-title">Candidate matcher</span>
+          <span class="pill-desc">Resume import & skill match fit</span>
+        </span>
+      </button>
+
+      <button type="button" class="sidebar-pill-tab" data-tab="tab-pipeline" role="tab" id="nav-tab-pipeline" aria-selected="false" aria-controls="tab-pipeline">
+        <span class="pill-icon purple" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        </span>
+        <span class="pill-text">
+          <span class="pill-title">Application pipeline</span>
+          <span class="pill-desc">Recruiting velocity & Kanban</span>
+        </span>
+      </button>
+
+      <button type="button" class="sidebar-pill-tab" data-tab="tab-security" role="tab" id="nav-tab-security" aria-selected="false" aria-controls="tab-security">
+        <span class="pill-icon cyan" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </span>
+        <span class="pill-text">
+          <span class="pill-title">Security & sign-in</span>
+          <span class="pill-desc">Password & connected providers</span>
+        </span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Right Main Content Area (Single Category Displayed at a Time) -->
+  <div class="account-main-content">
+    
+    <!-- CATEGORY 1: Personal Info & Bee Mascot -->
+    <section id="tab-personal" class="account-category-panel active" role="tabpanel" aria-labelledby="nav-tab-personal">
+      <div class="category-header">
+        <div>
+          <h2 class="section-title">Personal info</h2>
+          <p class="section-desc">Manage how you appear to mentors and employers across workBee, and select your custom mascot.</p>
         </div>
       </div>
-    </details>
-    <section id="identity-panel" class="hidden">
+
       <div class="user-profile-card">
-        <span class="avatar large" id="profile-avatar" aria-hidden="true">wB</span>
+        <span class="avatar large mascot-avatar-box" id="profile-avatar" aria-hidden="true"></span>
         <div class="profile-details">
-          <h3 id="profile-display-name"></h3>
-          <p id="profile-handle" class="muted"></p>
-          <p id="profile-headline" class="notice"></p>
+          <h3 id="profile-display-name">Guest Candidate</h3>
+          <p id="profile-handle" class="muted">@guest</p>
+          <p id="profile-headline" class="notice">Student exploring opportunities in research, tech, and business</p>
         </div>
       </div>
-      <div class="identity-fields">
-        <div><label for="display-name">Display name</label><input id="display-name" maxlength="80" autocomplete="name" placeholder="How you want to be addressed"></div>
-        <div><label for="profile-school">School / university (optional)</label><input id="profile-school" maxlength="120" autocomplete="organization" placeholder="Your college or university"></div>
-        <div><label for="profile-tagline">Career headline (optional)</label><input id="profile-tagline" maxlength="160" placeholder="Student exploring opportunities in research and business"></div>
+
+      <!-- Mascot Persona Selector -->
+      <div class="mascot-persona-card">
+        <div class="mascot-header-row">
+          <div>
+            <h3 class="card-subtitle">Choose your Mascot Persona</h3>
+            <p class="card-hint">Select a mascot variation that reflects your focus, or let workBee auto-match your field.</p>
+          </div>
+          <span class="active-persona-pill" id="active-persona-badge">Scholar Bee</span>
+        </div>
+        <div class="mascot-selector-grid" id="mascot-picker" role="radiogroup" aria-label="Bee Mascot Variations">
+          <!-- Populated with SVG mascot buttons in app.mjs -->
+        </div>
+      </div>
+
+      <div class="identity-card panel">
+        <h3 class="card-subtitle">Account details</h3>
+        <section id="identity-panel">
+          <div class="identity-fields">
+            <div><label for="display-name">Display name</label><input id="display-name" maxlength="80" autocomplete="name" placeholder="How you want to be addressed"></div>
+            <div><label for="profile-school">School / university (optional)</label><input id="profile-school" maxlength="120" autocomplete="organization" placeholder="Your college or university"></div>
+            <div class="full-span"><label for="profile-tagline">Career headline (optional)</label><input id="profile-tagline" maxlength="160" placeholder="Student exploring opportunities in research, software, and business"></div>
+          </div>
+        </section>
+        <div id="account-actions" class="actions">
+          <button id="save-account" type="button" class="primary-pill-btn">Save profile to account</button>
+          <button id="reload-account" type="button" class="secondary">Reload saved account data</button>
+          <button id="logout-account" type="button" class="secondary text-danger">Sign out</button>
+        </div>
+        <p id="account-message" class="notice" role="status" aria-live="polite"></p>
       </div>
     </section>
-    <div id="account-actions" class="actions hidden">
-      <button id="save-account" type="button" class="primary-pill-btn">Save profile to account</button>
-      <button id="reload-account" type="button" class="secondary">Reload saved account data</button>
-      <button id="logout-account" type="button" class="secondary text-danger">Sign out</button>
-    </div>
-    <p id="account-message" class="notice" role="status" aria-live="polite"></p>
-  </div>
-</details>
-<p id="oauth-message" class="notice oauth-message" role="status" aria-live="polite"></p>
-<div id="account-private" class="hidden">
-  <section class="panel account-connections" aria-labelledby="connections-title">
-    <h2 id="connections-title">Sign-in methods</h2>
-    <p id="password-method" class="notice muted"></p>
-    <p class="notice muted">Connect a provider here to use it with this same profile and saved applications. Save any profile edits before connecting.</p>
-    <div id="provider-connections" class="provider-connections"></div>
-    <p id="connection-message" class="notice" role="status"></p>
-  </section>
-</div>
-<section class="panel profile-panel account-profile-editor">
-  <div class="profile-header-clean">
-    <div>
-      <h2 class="section-title">Candidate Match Profile</h2>
-      <p class="section-desc">Save your profile and skills to personalize match scoring against all opportunities. Raw resume files are never saved.</p>
-    </div>
-  </div>
-  <details id="profile-drawer" open class="profile-drawer-clean">
-    <summary class="profile-toggle">Candidate details & resume import <span>⌄</span></summary>
-    <div class="profile-content">
-      <details id="resume" class="import-box" aria-labelledby="import-title">
-        <summary>Import a resume <span>↗</span></summary>
-        <h3 id="import-title">Start with your resume</h3>
-        <p class="notice muted">Choose a PDF, DOCX, or UTF-8 text file (up to 4 MB), or paste text. Processing happens on this server without saving the file or sending it to an AI service. Review the draft before applying it.</p>
-        <label for="resume-file">Resume file</label>
-        <input class="file-input" id="resume-file" type="file" accept=".pdf,.docx,.txt">
-        <label for="resume-text">Or paste resume text</label>
-        <textarea id="resume-text" maxlength="60000" placeholder="Paste your education, skills, and project or work experience…"></textarea>
-        <div class="actions">
-          <button id="extract-resume" type="button" class="secondary">Extract review draft</button>
-          <button id="discard-resume" type="button" class="secondary">Clear import</button>
-        </div>
-        <p id="resume-message" class="notice" role="status" aria-live="polite"></p>
-        <section id="resume-review" class="import-review hidden" aria-labelledby="review-title">
-          <h3 id="review-title" tabindex="-1">Review your draft</h3>
-          <p class="notice">Correct any mistakes. Choose whether to merge with your existing skills or replace them. Filled education fields update your profile after review. Save your profile after applying the reviewed draft.</p>
-          <ul id="resume-warnings" class="notice muted"></ul>
-          <label for="draft-skills">Suggested skills and source evidence</label>
-          <textarea id="draft-skills"></textarea>
-          <div class="profile-form-grid">
-            <div><label for="draft-degree">Degree / program</label><select id="draft-degree"><option value="">Not identified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select></div>
-            <div><label for="draft-degree-status">Program completion</label><select id="draft-degree-status"><option value="">Not identified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
-            <div><label for="draft-major">Major / field of study</label><input id="draft-major" maxlength="100"></div>
-            <div><label for="draft-graduation">Graduation year</label><input id="draft-graduation" type="number" min="2020" max="2040"></div>
-            <div><label for="draft-gpa">GPA (4.0 scale only)</label><input id="draft-gpa" type="number" min="0" max="4" step="0.01"></div>
+
+    <!-- CATEGORY 2: Candidate Matcher & Resume -->
+    <section id="tab-matcher" class="account-category-panel hidden" role="tabpanel" aria-labelledby="nav-tab-matcher">
+      <div class="panel profile-panel account-profile-editor">
+        <div class="profile-header-clean">
+          <div>
+            <h2 class="section-title">Candidate Match Profile</h2>
+            <p class="section-desc">Save your profile and skills to personalize match scoring against all opportunities. Raw resume files are never saved.</p>
           </div>
-          <details><summary>Education source excerpts</summary><div id="resume-sources" class="notice muted"></div></details>
-          <label for="resume-apply-mode">Apply skills</label>
-          <select id="resume-apply-mode"><option value="merge">Merge with my existing skills</option><option value="replace">Replace my existing skills</option></select>
-          <p id="resume-quality" class="notice"></p>
-          <label class="confirm"><input id="review-confirm" type="checkbox">I reviewed the draft and corrected any unsupported claims.</label>
-          <button id="apply-resume" type="button" disabled>Apply reviewed draft</button>
-        </section>
-      </details>
-      <form id="profile" novalidate class="profile-form-clean">
-        <div class="profile-section-block">
-          <label for="skills">Skills and evidence</label>
-          <textarea id="skills" placeholder="Python, SQL | Built a class project&#10;React | Student club website"></textarea>
-          <small class="field-hint">Use commas or new lines. Add a project or concrete example after |.</small>
         </div>
-        <div class="profile-form-grid">
-          <div><label for="graduation">Expected graduation year</label><input id="graduation" type="number" min="2020" max="2040" placeholder="2028"></div>
-          <div><label for="gpa">GPA on a 4.0 scale (optional)</label><input id="gpa" type="number" min="0" max="4" step="0.01" placeholder="3.50"><small class="field-hint">Leave blank if another scale.</small></div>
-          <div><label for="enrolled">Currently enrolled?</label><select id="enrolled"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select></div>
-          <div><label for="sponsorship">Need visa sponsorship?</label><select id="sponsorship"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select></div>
-          <div class="full-span"><label for="location">Preferred state or country</label><input id="location" maxlength="100" list="preferred-regions" placeholder="e.g. California, New York, or Remote"><datalist id="preferred-regions"></datalist></div>
-        </div>
-        <details class="profile-more">
-          <summary>Education background & work availability <span>⌄</span></summary>
-          <div class="profile-form-grid more-grid">
-            <div><label for="degree">Degree level</label><select id="degree"><option value="">Not specified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select></div>
-            <div><label for="degree-status">Program status</label><select id="degree-status"><option value="">Not specified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
-            <div><label for="major">Major / field of study</label><input id="major" maxlength="100" placeholder="Computer Science"></div>
-            <div><label for="experience">Relevant experience (years)</label><input id="experience" type="number" min="0" max="60" step="0.1" placeholder="0"></div>
-            <div><label for="available-from">Earliest start date</label><input id="available-from" type="date"></div>
-            <div><label for="available-until">Last work date</label><input id="available-until" type="date"></div>
+        <details id="profile-drawer" open class="profile-drawer-clean">
+          <summary class="profile-toggle">Candidate details & resume import <span>⌄</span></summary>
+          <div class="profile-content">
+            <details id="resume" class="import-box" aria-labelledby="import-title">
+              <summary>Import a resume <span>↗</span></summary>
+              <h3 id="import-title">Start with your resume</h3>
+              <p class="notice muted">Choose a PDF, DOCX, or UTF-8 text file (up to 4 MB), or paste text. Processing happens on this server without saving the file or sending it to an AI service. Review the draft before applying it.</p>
+              <label for="resume-file">Resume file</label>
+              <input class="file-input" id="resume-file" type="file" accept=".pdf,.docx,.txt">
+              <label for="resume-text">Or paste resume text</label>
+              <textarea id="resume-text" maxlength="60000" placeholder="Paste your education, skills, and project or work experience…"></textarea>
+              <div class="actions">
+                <button id="extract-resume" type="button" class="secondary">Extract review draft</button>
+                <button id="discard-resume" type="button" class="secondary">Clear import</button>
+              </div>
+              <p id="resume-message" class="notice" role="status" aria-live="polite"></p>
+              <section id="resume-review" class="import-review hidden" aria-labelledby="review-title">
+                <h3 id="review-title" tabindex="-1">Review your draft</h3>
+                <p class="notice">Correct any mistakes. Choose whether to merge with your existing skills or replace them. Filled education fields update your profile after review. Save your profile after applying the reviewed draft.</p>
+                <ul id="resume-warnings" class="notice muted"></ul>
+                <label for="draft-skills">Suggested skills and source evidence</label>
+                <textarea id="draft-skills"></textarea>
+                <div class="profile-form-grid">
+                  <div><label for="draft-degree">Degree / program</label><select id="draft-degree"><option value="">Not identified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select></div>
+                  <div><label for="draft-degree-status">Program completion</label><select id="draft-degree-status"><option value="">Not identified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
+                  <div><label for="draft-major">Major / field of study</label><input id="draft-major" maxlength="100"></div>
+                  <div><label for="draft-graduation">Graduation year</label><input id="draft-graduation" type="number" min="2020" max="2040"></div>
+                  <div><label for="draft-gpa">GPA (4.0 scale only)</label><input id="draft-gpa" type="number" min="0" max="4" step="0.01"></div>
+                </div>
+                <details><summary>Education source excerpts</summary><div id="resume-sources" class="notice muted"></div></details>
+                <label for="resume-apply-mode">Apply skills</label>
+                <select id="resume-apply-mode"><option value="merge">Merge with my existing skills</option><option value="replace">Replace my existing skills</option></select>
+                <p id="resume-quality" class="notice"></p>
+                <label class="confirm"><input id="review-confirm" type="checkbox">I reviewed the draft and corrected any unsupported claims.</label>
+                <button id="apply-resume" type="button" disabled>Apply reviewed draft</button>
+              </section>
+            </details>
+            <form id="profile" novalidate class="profile-form-clean">
+              <div class="profile-section-block">
+                <label for="skills">Skills and evidence</label>
+                <textarea id="skills" placeholder="Python, SQL | Built a class project&#10;React | Student club website"></textarea>
+                <small class="field-hint">Use commas or new lines. Add a project or concrete example after |.</small>
+              </div>
+              <div class="profile-form-grid">
+                <div><label for="graduation">Expected graduation year</label><input id="graduation" type="number" min="2020" max="2040" placeholder="2028"></div>
+                <div><label for="gpa">GPA on a 4.0 scale (optional)</label><input id="gpa" type="number" min="0" max="4" step="0.01" placeholder="3.50"><small class="field-hint">Leave blank if another scale.</small></div>
+                <div><label for="enrolled">Currently enrolled?</label><select id="enrolled"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select></div>
+                <div><label for="sponsorship">Need visa sponsorship?</label><select id="sponsorship"><option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option></select></div>
+                <div class="full-span"><label for="location">Preferred state or country</label><input id="location" maxlength="100" list="preferred-regions" placeholder="e.g. California, New York, or Remote"><datalist id="preferred-regions"></datalist></div>
+              </div>
+              <details class="profile-more">
+                <summary>Education background & work availability <span>⌄</span></summary>
+                <div class="profile-form-grid more-grid">
+                  <div><label for="degree">Degree level</label><select id="degree"><option value="">Not specified</option><option value="associate">Associate</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="doctorate">Doctorate</option><option value="other">Other</option></select></div>
+                  <div><label for="degree-status">Program status</label><select id="degree-status"><option value="">Not specified</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
+                  <div><label for="major">Major / field of study</label><input id="major" maxlength="100" placeholder="Computer Science"></div>
+                  <div><label for="experience">Relevant experience (years)</label><input id="experience" type="number" min="0" max="60" step="0.1" placeholder="0"></div>
+                  <div><label for="available-from">Earliest start date</label><input id="available-from" type="date"></div>
+                  <div><label for="available-until">Last work date</label><input id="available-until" type="date"></div>
+                </div>
+              </details>
+              <div class="actions profile-actions">
+                <button type="submit" id="match-profile" class="primary-pill-btn">Save profile & find matches <span aria-hidden="true">→</span></button>
+                <button type="button" id="save" class="secondary">Save on device</button>
+                <button type="button" id="clear" class="secondary text-danger">Clear device data</button>
+              </div>
+              <p id="profile-message" class="notice" aria-live="polite"></p>
+            </form>
           </div>
         </details>
-        <div class="actions profile-actions">
-          <button type="submit" id="match-profile" class="primary-pill-btn">Save profile & find matches <span aria-hidden="true">→</span></button>
-          <button type="button" id="save" class="secondary">Save on device</button>
-          <button type="button" id="clear" class="secondary text-danger">Clear device data</button>
+      </div>
+    </section>
+
+    <!-- CATEGORY 3: Application Pipeline & Velocity -->
+    <section id="tab-pipeline" class="account-category-panel hidden" role="tabpanel" aria-labelledby="nav-tab-pipeline">
+      <div class="saved-section panel">
+        <div class="results-heading">
+          <div>
+            <h2 class="section-title">Your Application Pipeline</h2>
+            <p class="section-desc">Track and organize applications, interview rounds, offers, and external submissions.</p>
+          </div>
+          <div class="heading-actions">
+            <button id="open-custom-app-dialog" type="button" class="primary-pill-btn">+ Track external role</button>
+            <span id="saved-application-count" class="results-count"></span>
+          </div>
         </div>
-        <p id="profile-message" class="notice" aria-live="polite"></p>
-      </form>
-    </div>
-  </details>
-</section>
-<section class="saved-section panel">
-  <div class="results-heading">
-    <div>
-      <h2 class="section-title">Your Application Pipeline</h2>
-      <p class="section-desc">Track and organize applications, interview rounds, offers, and external submissions.</p>
-    </div>
-    <div class="heading-actions">
-      <button id="open-custom-app-dialog" type="button" class="primary-pill-btn">+ Track external role</button>
-      <span id="saved-application-count" class="results-count"></span>
-    </div>
+        <div id="velocity-stats" class="velocity-stats"></div>
+        <div class="tracker-toolbar">
+          <div id="pipeline-counters" class="pipeline-counters"></div>
+          <div class="view-toggle" role="group" aria-label="Layout view">
+            <button id="toggle-view-board" type="button" class="view-chip active" aria-pressed="true">Board view</button>
+            <button id="toggle-view-list" type="button" class="view-chip" aria-pressed="false">List view</button>
+          </div>
+        </div>
+        <div class="actions tracker-actions">
+          <button id="export-applications" type="button" class="secondary">Export tracker CSV ↓</button>
+          <button id="reload-applications" type="button" class="secondary">Reload applications</button>
+        </div>
+        <div id="next-steps" class="next-steps" aria-live="polite"></div>
+        <div id="list-controls" class="list-controls hidden">
+          <label for="saved-stage">Filter stage</label>
+          <select id="saved-stage">
+            <option value="all">All stages</option>
+            <option value="saved">Saved / Wishlist</option>
+            <option value="preparing">Preparing</option>
+            <option value="applied">Applied</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+        </div>
+        <div id="kanban-board" class="kanban-board"></div>
+        <div id="saved-applications" class="saved-applications hidden"></div>
+        <p id="saved-message" role="status" class="notice"></p>
+      </div>
+    </section>
+
+    <!-- CATEGORY 4: Security & Sign-in Methods -->
+    <section id="tab-security" class="account-category-panel hidden" role="tabpanel" aria-labelledby="nav-tab-security">
+      <details class="workspace panel" id="workspace" open>
+        <summary class="workspace-summary-clean"><span>✦ Your account</span><span class="muted" id="workspace-summary">Sign in to save your profile</span></summary>
+        <div class="workspace-body">
+          <details id="auth-details" open>
+            <summary class="auth-details-summary">Sign in or create an account</summary>
+            <div class="auth-card-clean">
+              <div class="auth-card-header">
+                <div class="auth-badge">workBee Account</div>
+                <h2 id="account-title">Save your progress</h2>
+                <p id="account-state" class="notice muted">Guest mode. Sign in to keep your reviewed profile and application statuses synced across devices.</p>
+              </div>
+              <div class="auth-tab-switch" role="tablist" aria-label="Sign in mode">
+                <button type="button" class="auth-tab-btn active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
+                <button type="button" class="auth-tab-btn" id="tab-register" role="tab" aria-selected="false">Create Account</button>
+              </div>
+              <form id="auth-form" class="auth-form-clean">
+                <select id="auth-mode" class="sr-only" tabindex="-1"><option value="login" selected>Sign in</option><option value="register">Create account</option></select>
+                <div class="auth-input-group">
+                  <label for="account-username">Username</label>
+                  <input id="account-username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Letters, numbers, underscores">
+                </div>
+                <div class="auth-input-group">
+                  <label for="account-password">Password</label>
+                  <input id="account-password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required placeholder="At least 12 characters">
+                </div>
+                <button id="auth-submit" type="submit" class="primary-pill-btn auth-submit-btn">Sign in to workBee</button>
+              </form>
+              <div class="social-signin" id="social-signin">
+                <div class="social-divider"><span>or connect with</span></div>
+                <div id="social-signin-buttons" class="social-buttons"></div>
+                <p id="oauth-availability" class="notice muted"></p>
+              </div>
+            </div>
+          </details>
+          <div id="account-private" class="hidden">
+            <section class="panel account-connections" aria-labelledby="connections-title">
+              <h2 id="connections-title">Sign-in methods</h2>
+              <p id="password-method" class="notice muted"></p>
+              <p class="notice muted">Connect a provider here to use it with this same profile and saved applications. Save any profile edits before connecting.</p>
+              <div id="provider-connections" class="provider-connections"></div>
+              <p id="connection-message" class="notice" role="status"></p>
+            </section>
+          </div>
+        </div>
+      </details>
+      <p id="oauth-message" class="notice oauth-message" role="status" aria-live="polite"></p>
+    </section>
+
   </div>
-  <div id="velocity-stats" class="velocity-stats"></div>
-  <div class="tracker-toolbar">
-    <div id="pipeline-counters" class="pipeline-counters"></div>
-    <div class="view-toggle" role="group" aria-label="Layout view">
-      <button id="toggle-view-board" type="button" class="view-chip active" aria-pressed="true">Board view</button>
-      <button id="toggle-view-list" type="button" class="view-chip" aria-pressed="false">List view</button>
-    </div>
-  </div>
-  <div class="actions tracker-actions">
-    <button id="export-applications" type="button" class="secondary">Export tracker CSV ↓</button>
-    <button id="reload-applications" type="button" class="secondary">Reload applications</button>
-  </div>
-  <div id="next-steps" class="next-steps" aria-live="polite"></div>
-  <div id="list-controls" class="list-controls hidden">
-    <label for="saved-stage">Filter stage</label>
-    <select id="saved-stage">
-      <option value="all">All stages</option>
-      <option value="saved">Saved / Wishlist</option>
-      <option value="preparing">Preparing</option>
-      <option value="applied">Applied</option>
-      <option value="interview">Interview</option>
-      <option value="offer">Offer</option>
-      <option value="rejected">Rejected</option>
-      <option value="dismissed">Dismissed</option>
-    </select>
-  </div>
-  <div id="kanban-board" class="kanban-board"></div>
-  <div id="saved-applications" class="saved-applications hidden"></div>
-  <p id="saved-message" role="status" class="notice"></p>
-</section>
+</div>
 <div hidden id="search-storage"><div id="coverage"></div><div class="layout"><section id="results" class="results" aria-labelledby="results-title"><span id="results-count"></span><div id="status"></div><div id="jobs"></div><div id="sources"></div><span id="page"></span><button id="previous"></button><button id="next"></button></section></div></div>  <dialog id="opportunity-dialog" aria-labelledby="opportunity-title"><div id="dialog-content"></div></dialog>
   <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
   <dialog id="custom-app-dialog" class="custom-app-dialog" aria-labelledby="custom-app-title">

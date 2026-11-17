@@ -183,3 +183,23 @@ test('kanbanColumns groups applications into pipeline stages and closed', () => 
   assert.equal(cols.offer.jobs.length, 1);
   assert.equal(cols.closed.jobs.length, 2); // 'rejected' and 'dismissed'
 });
+
+test('detectOccupation identifies occupation and getBeeMascotSvg generates distinctive SVG', async () => {
+  const { detectOccupation, getBeeMascotSvg, BEE_PERSONAS } = await import('../hives/careers/static/logic.mjs');
+  assert.equal(detectOccupation('Software Engineer Intern', 'Computer Science', 'Python, React'), 'code');
+  assert.equal(detectOccupation('Machine Learning Researcher', 'Data Science', 'PyTorch, SQL'), 'data');
+  assert.equal(detectOccupation('Lab Assistant', 'Biochemistry', 'PCR, Gel electrophoresis'), 'research');
+  assert.equal(detectOccupation('Product Designer', 'Interaction Design', 'Figma, Prototyping'), 'design');
+  assert.equal(detectOccupation('Investment Banking Analyst', 'Finance', 'Excel, Financial Modeling'), 'business');
+  assert.equal(detectOccupation('Clinical Research Intern', 'Nursing / Pre-Med', 'Patient Care'), 'health');
+  assert.equal(detectOccupation('Explorer', 'General Studies', ''), 'scholar');
+
+  // Verify mascot SVGs
+  assert.equal(BEE_PERSONAS.length, 7);
+  for (const p of BEE_PERSONAS) {
+    const svg = getBeeMascotSvg(p.id, 48);
+    assert.ok(svg.startsWith('<svg'));
+    assert.ok(svg.includes(p.name));
+    assert.ok(svg.endsWith('</svg>'));
+  }
+});
