@@ -547,17 +547,16 @@ if(subscribeForm){
     if(!email)return;
     const btn=$('subscribe-btn'),status=$('subscribe-status');
     if(btn)btn.disabled=true;
-    if(status){status.className='notice';status.textContent='Subscribing…';}
+    if(status){status.className='notice';status.textContent='Subscribing for weekly drop alerts…';}
     try{
-      const response=await fetch('/api/careers/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const response=await fetch('/api/careers/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,target_term:'summer-2027'})});
       const data=await response.json();
       if(!response.ok)throw new Error(apiError(data,'Could not subscribe.'));
       localStorage.setItem('workbee.subscriber.email',email);
-      if(status){status.className='notice success';status.textContent=data.message||'Subscribed! You will receive new drop alerts.';}
+      if(status){status.className='notice success';status.textContent='✓ '+(data.message||'Subscribed! You will receive weekly drop alerts.');}
       if($('subscribe-email'))$('subscribe-email').value='';
     }catch(error){
-      localStorage.setItem('workbee.subscriber.email',email);
-      if(status){status.className='notice success';status.textContent='Subscribed! You will receive early drop alerts.';}
+      if(status){status.className='notice error';status.textContent=error.message||'Could not complete subscription.';}
     }finally{if(btn)btn.disabled=false}
   };
 }
@@ -1098,40 +1097,3 @@ function showRefresh(state){refreshJob=state||null;const active=state?.status===
 async function checkRefreshStatus(){if(isAccountPage)return;clearTimeout(refreshTimer);try{const data=await refreshRequest();const oldId=refreshJob?.status==='running'?refreshJob.id:null;showRefresh(data.refresh);updateSourceTimes(data.sources);if(data.refresh?.status==='running'&&!document.hidden)refreshTimer=setTimeout(checkRefreshStatus,2500);if(oldId&&data.refresh?.id===oldId&&data.refresh.status!=='running'&&lastReloadedRefresh!==oldId){lastReloadedRefresh=oldId;offset=0;await load()}}catch(error){$('refresh-message').textContent=error.message+' Use Refresh opportunities to retry.';$('refresh-start').disabled=false}}
 async function startSourceRefresh(scope){if(isAccountPage)return;clearTimeout(refreshTimer);let body=scope;if(!body){if($('refresh-scope').value==='selected'&&!choices.company.length){$('refresh-message').textContent='Select one or more employers in the filters first, or choose All employer sources.';return}body={companies:$('refresh-scope').value==='selected'?choices.company:[],include_community:$('include-community')?.checked??false}}$('refresh-start').disabled=true;$('refresh-message').textContent='Starting an on-demand check…';try{const data=await refreshRequest('',body);showRefresh(data.refresh);if(data.joined)$('refresh-message').textContent='Joining the source refresh already in progress.';await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-start').disabled=false}}
 if(!isAccountPage){$('refresh-start').onclick=()=>startSourceRefresh();$('refresh-cancel').onclick=async()=>{if(!refreshJob)return;$('refresh-cancel').disabled=true;try{await refreshRequest('/'+encodeURIComponent(refreshJob.id)+'/cancel',{});await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-cancel').disabled=false}};document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(refreshTimer);else if(refreshJob?.status==='running')checkRefreshStatus()});checkRefreshStatus()}
-
-const subscribeForm = $('subscribe-form');
-if (subscribeForm) {
-  subscribeForm.onsubmit = async event => {
-    event.preventDefault();
-    const email = $('subscribe-email')?.value?.trim();
-    const status = $('subscribe-status');
-    const submitBtn = $('subscribe-btn');
-    if (!email) return;
-    if (submitBtn) submitBtn.disabled = true;
-    if (status) {
-      status.className = 'notice';
-      status.textContent = 'Subscribing for weekly drop alerts…';
-    }
-    try {
-      const res = await fetch('/api/careers/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, target_term: 'summer-2027' })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(apiError(data, 'Could not complete subscription. Check your email and retry.'));
-      if (status) {
-        status.className = 'notice success';
-        status.textContent = '✓ ' + (data.message || 'Subscribed! You will receive weekly drop alerts.');
-      }
-      if ($('subscribe-email')) $('subscribe-email').value = '';
-    } catch (err) {
-      if (status) {
-        status.className = 'notice error';
-        status.textContent = err.message || 'Subscription failed. Retry shortly.';
-      }
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
-  };
-}
