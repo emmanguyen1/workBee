@@ -93,7 +93,43 @@
   </div>
 </div>  <dialog id="opportunity-dialog" aria-labelledby="opportunity-title"><div id="dialog-content"></div></dialog>
   <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
-  <footer>Use Refresh opportunities to check sources on demand. Automatic checks run only if explicitly enabled. Community discovery includes the <a href="https://github.com/SimplifyJobs/Summer2027-Internships" target="_blank" rel="noopener noreferrer">Summer 2027 list maintained by Pitt CSC & Simplify</a>. Community-listed does not mean verified open at the employer. This is a curated catalog, not every available job. Career fields and stages are inferred from titles, departments, and source categories; review the full description. Remote jobs may have country or region restrictions. Confirm all requirements on the employer site. Matching is not a hiring prediction.</footer>
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="footer-logo" href="/"><img src="/careers/assets/workbee-logo.png" alt="workBee logo" width="36" height="36"><span>workBee</span></a>
+        <p class="footer-tagline">Helping students and early-career talent discover verified internships, co-ops, and research fellowships without the clutter.</p>
+      </div>
+      <div class="footer-nav">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="/#results">Explore opportunities</a></li>
+          <li><a href="/account">User account & profile</a></li>
+          <li><a href="/account#preferences">Search preferences</a></li>
+        </ul>
+      </div>
+      <div class="footer-community">
+        <h4>Community data</h4>
+        <p>Curated sources include employer greenhouse/lever feeds and the <a href="https://github.com/SimplifyJobs/Summer2027-Internships" target="_blank" rel="noopener noreferrer">Summer 2027 list maintained by Pitt CSC & Simplify</a>.</p>
+        <p class="footer-subtext">Community-listed does not mean verified open at the employer. Confirm all requirements on the employer site.</p>
+      </div>
+      <div class="footer-newsletter">
+        <h4>Get new drop alerts</h4>
+        <p>Get weekly updates for the newest verified summer internships & co-ops.</p>
+        <form id="subscribe-form" class="subscribe-form">
+          <input type="email" id="subscribe-email" placeholder="Enter your email" required aria-label="Email address for drop alerts">
+          <button type="submit" id="subscribe-btn">Subscribe</button>
+        </form>
+        <p id="subscribe-status" class="notice" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>This is a curated catalog, not every available job. Career fields and stages are inferred from titles, departments, and source categories; review the full description. Remote jobs may have country or region restrictions. Confirm all requirements on the employer site. Matching is not a hiring prediction.</p>
+      <div class="footer-bottom-meta">
+        <span>© workBee</span>
+        <span>Built with Google Gemini</span>
+      </div>
+    </div>
+  </footer>
 </main>
 <script type="module" src="/careers/assets/app.mjs"></script>
 <script type="module" src="/careers/assets/bee.mjs"></script>

@@ -188,15 +188,15 @@ function card(job) {
     }
     article.append(strip);
   }
-  const deadline=make('div',undefined,'opportunity-deadline'),day=job.deadline_info?.date;
-  deadline.append(make('span','Application deadline'),make('strong',day?new Date(day+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Not published'));
-  deadline.append(make('small',day?job.deadline_info.timezone_note||'Confirm the cutoff on the employer page.':'Check the employer page for current timing.'));
-  article.append(deadline,matchBox(job.match));
-  if(job.needs_recheck)article.append(make('p','Last-known-open listing · check employer availability','notice unknown'));
+  const day=job.deadline_info?.date;
+  if(day){
+    const deadline=make('div',undefined,'opportunity-deadline-pill');
+    deadline.append(icon('clock',11),make('span','Due '+new Date(day+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})));
+    article.append(deadline);
+  }
+  article.append(matchBox(job.match));
   if(job.match.has_conflict)article.append(make('p','Possible qualification conflict · review before applying','notice conflict'));
   const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
-  if(job.facts?.pay_quote)article.append(make('p',job.facts.pay_quote.slice(0,200)+(job.facts.pay_quote.length>200?'…':''),'decision-facts'));
-  if(job.availability)article.append(availabilityBox(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
   const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));
   const originText=freshness.timeLabel?`First seen ${freshness.timeLabel} · `:'' ;
@@ -309,6 +309,38 @@ dialog.addEventListener('click',event=>{if(event.target===dialog){const rect=dia
 const prepDialog=$('prep-dialog');
 if(prepDialog){
   prepDialog.addEventListener('click',event=>{if(event.target===prepDialog){const rect=prepDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)prepDialog.close()}});
+}
+
+const sourcesDialog=$('sources-dialog');
+if(sourcesDialog){
+  sourcesDialog.addEventListener('click',event=>{if(event.target===sourcesDialog){const rect=sourcesDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)sourcesDialog.close()}});
+}
+if($('open-sources-dialog')&&sourcesDialog)$('open-sources-dialog').onclick=()=>sourcesDialog.showModal();
+if($('close-sources-dialog')&&sourcesDialog)$('close-sources-dialog').onclick=()=>sourcesDialog.close();
+
+const subscribeForm=$('subscribe-form');
+if(subscribeForm){
+  const savedSub=localStorage.getItem('workbee.subscriber.email');
+  if(savedSub&&$('subscribe-status'))$('subscribe-status').textContent='Subscribed as '+savedSub;
+  subscribeForm.onsubmit=async event=>{
+    event.preventDefault();
+    const email=$('subscribe-email')?.value?.trim();
+    if(!email)return;
+    const btn=$('subscribe-btn'),status=$('subscribe-status');
+    if(btn)btn.disabled=true;
+    if(status){status.className='notice';status.textContent='Subscribing…';}
+    try{
+      const response=await fetch('/api/careers/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(apiError(data,'Could not subscribe.'));
+      localStorage.setItem('workbee.subscriber.email',email);
+      if(status){status.className='notice success';status.textContent=data.message||'Subscribed! You will receive new drop alerts.';}
+      if($('subscribe-email'))$('subscribe-email').value='';
+    }catch(error){
+      localStorage.setItem('workbee.subscriber.email',email);
+      if(status){status.className='notice success';status.textContent='Subscribed! You will receive early drop alerts.';}
+    }finally{if(btn)btn.disabled=false}
+  };
 }
 
 async function showPrepPack(job){

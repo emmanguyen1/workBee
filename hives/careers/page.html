@@ -14,7 +14,7 @@
   <div class="discovery-paths" aria-label="Starting points"><span class="eyebrow">Follow your curiosity</span><button type="button" data-path="internship">Internships</button><button type="button" data-path="research">Research & labs</button><button type="button" data-path="impact">Work with impact</button><button type="button" data-path="part_time">Alongside your studies</button></div>
   <div id="coverage" class="coverage" aria-live="polite"></div>
 <form id="keyword-search" class="keyword-search"><div><label for="query">Search opportunities</label><input id="query" maxlength="200" placeholder="Job title, skills, or employer"></div><button id="keyword-submit" type="submit">Search opportunities</button></form>
-<section class="refresh-panel panel" aria-labelledby="refresh-title"><div class="refresh-heading"><div><h2 id="refresh-title">Keep your search current</h2><p id="freshness-note" class="notice muted">Checking source timestamps…</p></div><div class="refresh-actions"><label class="sr-only" for="refresh-scope">Refresh scope</label><select id="refresh-scope"><option value="all">All sources</option><option value="selected">Selected employers</option></select><button id="refresh-start" type="button">Refresh opportunities</button><button id="refresh-cancel" type="button" class="secondary hidden">Cancel refresh</button></div></div><p class="notice muted">Checks run only when you ask. A full refresh may take a few minutes; sources checked recently are skipped. No background collector is needed.</p><div id="refresh-progress" class="hidden"><progress id="refresh-meter" max="1" value="0" aria-label="Source refresh progress"></progress></div><p id="refresh-message" class="notice" role="status" aria-live="polite"></p><div id="sources" class="sources"></div></section>
+<div class="search-actions-bar"><div class="refresh-compact"><label class="sr-only" for="refresh-scope">Refresh scope</label><select id="refresh-scope" class="refresh-scope-select"><option value="all">All sources</option><option value="selected">Selected employers</option></select><button id="refresh-start" type="button" class="refresh-pill-btn">Refresh opportunities</button><button id="refresh-cancel" type="button" class="secondary hidden">Cancel</button><span id="freshness-note" class="refresh-compact-note">Checked recently</span></div><div id="refresh-progress" class="hidden"><progress id="refresh-meter" max="1" value="0" aria-label="Source refresh progress"></progress></div><p id="refresh-message" class="notice" role="status" aria-live="polite"></p></div>
 
   <div class="layout search-layout"><aside class="filter-sidebar"><div class="filter-sidebar-heading"><h2>Refine your search</h2><a id="edit-preferences" href="/account#preferences">Save preferences ↗</a></div>      <form id="filters" class="toolbar filter-panel">
         <div><label id="opportunity-type-label">Opportunity type</label><details id="opportunity-type" class="multi-filter" aria-labelledby="opportunity-type-label"><summary><span>Any options</span><span aria-hidden="true">⌄</span></summary></details></div>
@@ -100,7 +100,46 @@
 </div>
   <dialog id="opportunity-dialog" aria-labelledby="opportunity-title"><div id="dialog-content"></div></dialog>
   <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
-  <footer>Use Refresh opportunities to check sources on demand. Automatic checks run only if explicitly enabled. Community discovery includes the <a href="https://github.com/SimplifyJobs/Summer2027-Internships" target="_blank" rel="noopener noreferrer">Summer 2027 list maintained by Pitt CSC & Simplify</a>. Community-listed does not mean verified open at the employer. This is a curated catalog, not every available job. Career fields and stages are inferred from titles, departments, and source categories; review the full description. Remote jobs may have country or region restrictions. Confirm all requirements on the employer site. Matching is not a hiring prediction.</footer>
+  <dialog id="sources-dialog" class="sources-dialog" aria-labelledby="sources-dialog-title"><div class="sources-dialog-header"><h2 id="sources-dialog-title">Cited sources & employer feeds</h2><button id="close-sources-dialog" type="button" class="close-dialog" aria-label="Close sources dialog">×</button></div><p class="notice muted">Real-time status of employer career feeds and community discoveries. Checks run on demand.</p><div id="sources" class="sources"></div></dialog>
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="footer-logo" href="/"><img src="/careers/assets/workbee-logo.png" alt="workBee logo" width="36" height="36"><span>workBee</span></a>
+        <p class="footer-tagline">Helping students and early-career talent discover verified internships, co-ops, and research fellowships without the clutter.</p>
+        <div class="footer-auth-cta"><a href="/account" class="footer-auth-btn">Sign in / Create profile ↗</a></div>
+      </div>
+      <div class="footer-nav">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="#results">Explore opportunities</a></li>
+          <li><a href="/account">User account & profile</a></li>
+          <li><a href="/account#preferences">Search preferences</a></li>
+          <li><button id="open-sources-dialog" type="button" class="footer-text-btn">View all cited sources (50+)</button></li>
+        </ul>
+      </div>
+      <div class="footer-community">
+        <h4>Community data</h4>
+        <p>Curated sources include employer greenhouse/lever feeds and the <a href="https://github.com/SimplifyJobs/Summer2027-Internships" target="_blank" rel="noopener noreferrer">Summer 2027 list maintained by Pitt CSC & Simplify</a>.</p>
+        <p class="footer-subtext">Community-listed does not mean verified open at the employer. Confirm all requirements on the employer site.</p>
+      </div>
+      <div class="footer-newsletter">
+        <h4>Get new drop alerts</h4>
+        <p>Get weekly updates for the newest verified summer internships & co-ops.</p>
+        <form id="subscribe-form" class="subscribe-form">
+          <input type="email" id="subscribe-email" placeholder="Enter your email" required aria-label="Email address for drop alerts">
+          <button type="submit" id="subscribe-btn">Subscribe</button>
+        </form>
+        <p id="subscribe-status" class="notice" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>This is a curated catalog, not every available job. Career fields and stages are inferred from titles, departments, and source categories; review the full description. Remote jobs may have country or region restrictions. Confirm all requirements on the employer site. Matching is not a hiring prediction.</p>
+      <div class="footer-bottom-meta">
+        <span>© workBee</span>
+        <span>Built with Google Gemini</span>
+      </div>
+    </div>
+  </footer>
 </main>
 <script type="module" src="/careers/assets/app.mjs"></script>
 <script type="module" src="/careers/assets/bee.mjs"></script>
