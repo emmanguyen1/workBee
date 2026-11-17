@@ -33,7 +33,7 @@ PRIVATE_HEADERS = {"Cache-Control": "no-store"}
 class Search(MultiPreferences):
     profile: Profile = Field(default_factory=Profile)
     query: str = Field(default="", max_length=200)
-    role_type: str = Field(default="early_career", pattern="^(early_career|internship|new_grad|entry_level|apprenticeship|other|all)$")
+    role_type: str = Field(default="early_career", pattern="^(early_career|internship|first_second|program|new_grad|entry_level|apprenticeship|other|all)$")
     career_field: str = Field(default="all", pattern="^(all|" + "|".join(FIELDS) + ")$")
     location: str = Field(default="", max_length=150)  # Legacy API clients only
     country: str = Field(default="", max_length=10)
@@ -168,7 +168,12 @@ def search_catalog(data, request):
         if job.get("is_program") and request.program_status != "all":
             if (job["status"] == "application_window") != (request.program_status == "application_window"):
                 continue
-        if selected_roles and not any(job['role_type']==role or (role=='early_career' and (job['role_type']!='other' or job.get('is_program'))) for role in selected_roles):
+        if selected_roles and not any(
+            job['role_type']==role
+            or (role=='early_career' and (job['role_type']!='other' or job.get('is_program')))
+            or (role in {'first_second','program'} and ('program' in job.get('opportunity_types',[]) or bool(job.get('student_audience',{}).get('years')) or job.get('is_program')))
+            for role in selected_roles
+        ):
             continue
         if request.student_year != "all" and {"incoming":0,"first":1,"second":2}[request.student_year] not in job["student_audience"]["years"]:
             continue

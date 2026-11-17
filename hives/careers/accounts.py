@@ -270,9 +270,26 @@ async def saved_applications(request: Request,response: Response):
         found={}
         for row in rows:
             job=json_value(row['data'])
-            found[row['id']]={'id':row['id'],'title':job.get('title','Saved opportunity'),'company':job.get('company','Employer'),'apply_url':job.get('apply_url'),'open':row['open'],'last_seen':row['last_seen'].isoformat()}
+            facts=job.get('facts') or {}
+            deadline=job.get('deadline_info',{}).get('date') or job.get('deadline')
+            found[row['id']]={
+                'id':row['id'],
+                'title':job.get('title','Saved opportunity'),
+                'company':job.get('company','Employer'),
+                'apply_url':job.get('apply_url'),
+                'open':row['open'],
+                'last_seen':row['last_seen'].isoformat(),
+                'locations':job.get('locations') or ([job.get('location')] if job.get('location') else []),
+                'workplace':job.get('workplace','unspecified'),
+                'deadline_date':deadline,
+                'pay_quote':facts.get('pay_quote',''),
+            }
         details=json_value(account['application_details'])
-        return {'applications':[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status,'details':details.get(id,{'notes':'','next_action':'','follow_up':None,'revision':0})} for id,status in applications.items()]}
+        app_list=[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status,'details':details.get(id,{'notes':'','next_action':'','follow_up':None,'revision':0})} for id,status in applications.items()]
+        counts={'total':len(applications)}
+        for st in applications.values():
+            counts[st]=counts.get(st,0)+1
+        return {'applications':app_list,'summary':counts}
 
 
 class ApplicationDetails(BaseModel):

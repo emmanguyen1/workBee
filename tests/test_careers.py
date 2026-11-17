@@ -124,6 +124,14 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(search_catalog(data, Search(role_type="entry_level"))["jobs"][0]["id"], "2")
         self.assertEqual(search_catalog(data, Search(location="Canada", workplace="remote"))["total"], 0)
 
+    def test_first_second_year_role_filter(self):
+        jobs = [
+            {"id": "1", "title": "Software Intern", "company": "Co1", "location": "", "description": "Open to first-year and second-year students.", "role_type": "internship"},
+            {"id": "2", "title": "Staff Engineer", "company": "Co2", "location": "", "description": "Senior role with 5 years experience.", "role_type": "other"},
+        ]
+        res = search_catalog({"jobs": jobs, "boards": []}, Search(role_types=["first_second"]))
+        self.assertEqual([j["id"] for j in res["jobs"]], ["1"])
+
     def test_newest_sort_uses_publication_when_available(self):
         jobs = [{"id": "1", "title": "Intern", "company": "Example", "location": "", "description": "", "role_type": "internship", "first_seen": "2026-10-21", "published_at": "2026-10-23"}, {"id": "2", "title": "Intern", "company": "Example", "location": "", "description": "", "role_type": "internship", "first_seen": "2026-10-22", "published_at": "2026-10-20"}]
         result = search_catalog({"jobs": jobs, "boards": []}, Search(sort="newest", limit=1))
