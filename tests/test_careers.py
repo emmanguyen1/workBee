@@ -130,6 +130,26 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result["jobs"][0]["id"], "1")
         self.assertIn("match", result["jobs"][0])
 
+    def test_recent_days_filter_isolates_golden_window_and_recent_drops(self):
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        fresh_time = (now - timedelta(hours=6)).isoformat()
+        medium_time = (now - timedelta(days=2)).isoformat()
+        old_time = (now - timedelta(days=10)).isoformat()
+        jobs = [
+            {"id": "fresh", "title": "Intern", "company": "CoA", "location": "", "description": "", "role_type": "internship", "first_seen": fresh_time},
+            {"id": "medium", "title": "Intern", "company": "CoB", "location": "", "description": "", "role_type": "internship", "first_seen": medium_time},
+            {"id": "old", "title": "Intern", "company": "CoC", "location": "", "description": "", "role_type": "internship", "first_seen": old_time},
+        ]
+        res_1 = search_catalog({"jobs": jobs, "boards": []}, Search(recent_days=1))
+        self.assertEqual([j["id"] for j in res_1["jobs"]], ["fresh"])
+
+        res_3 = search_catalog({"jobs": jobs, "boards": []}, Search(recent_days=3))
+        self.assertEqual([j["id"] for j in res_3["jobs"]], ["fresh", "medium"])
+
+        res_all = search_catalog({"jobs": jobs, "boards": []}, Search(recent_days=0))
+        self.assertEqual(len(res_all["jobs"]), 3)
+
     def test_filter_match_and_private_response(self):
         jobs = [{"id": "one", "title": "Intern", "company": "Example", "location": "Boston", "description": "Requirements\nPython", "role_type": "internship"}, {"id": "two", "title": "Senior", "company": "Example", "location": "Boston", "description": "Java", "role_type": "other"}]
         with patch("hives.careers.api.store.catalog", new=AsyncMock(return_value={"jobs": jobs, "boards": []})), TestClient(app) as client:

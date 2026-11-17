@@ -947,6 +947,52 @@ button.secondary:hover, .button-link.secondary:hover {
   background: var(--honey);
 }
 
+.freshness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-top: 5px;
+  width: fit-content;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.freshness-badge svg {
+  flex-shrink: 0;
+}
+
+.freshness-badge.golden {
+  background: var(--honey-soft);
+  color: #8C6518;
+  border: 1px solid var(--honey-border);
+  box-shadow: 0 1px 2px rgba(184, 138, 53, 0.12);
+}
+
+.freshness-badge.golden svg {
+  stroke: var(--honey);
+  fill: var(--honey);
+}
+
+.freshness-badge.early {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--line-strong);
+}
+
+.freshness-badge.early svg {
+  stroke: var(--muted);
+  fill: var(--muted);
+}
+
+.job.is-golden-window {
+  border-top-color: var(--honey-border);
+}
+
 .job-title {
   display: block;
   text-align: left;

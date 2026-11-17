@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences} from '../hives/careers/static/logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences} from '../hives/careers/static/logic.mjs';
 
 test('comma-separated skills are individual skills; evidence commas are retained',()=>{
   assert.deepEqual(parseSkills('Python, SQL | Built an API, with charts\nReact'),[
@@ -35,6 +35,38 @@ test('source freshness is readable and handles absent times',()=>{
   const now=Date.parse('2026-10-22T18:00:00Z');
   assert.equal(relativeTime('2026-10-22T17:45:00Z',now),'Source checked 15m ago');
   assert.equal(relativeTime('',now),'Check time unavailable');
+});
+
+test('freshnessWindow identifies golden window, early drops, and standard listings',()=>{
+  const now=Date.parse('2026-10-22T18:00:00Z');
+  // 3 hours old -> Golden window
+  const golden=freshnessWindow({first_seen:'2026-10-22T15:00:00Z'},now);
+  assert.equal(golden.isGolden,true);
+  assert.equal(golden.isEarly,false);
+  assert.equal(golden.tier,'golden');
+  assert.match(golden.label,/Golden window/);
+  assert.equal(golden.timeLabel,'3h ago');
+
+  // Published date preferred over first_seen if available
+  const pubGolden=freshnessWindow({first_seen:'2026-10-10T12:00:00Z',published_at:'2026-10-22T17:30:00Z'},now);
+  assert.equal(pubGolden.isGolden,true);
+
+  // 48 hours old -> Early drop
+  const early=freshnessWindow({first_seen:'2026-10-20T18:00:00Z'},now);
+  assert.equal(early.isGolden,false);
+  assert.equal(early.isEarly,true);
+  assert.equal(early.tier,'early');
+  assert.match(early.label,/Early drop/);
+
+  // 5 days old -> Standard
+  const standard=freshnessWindow({first_seen:'2026-10-17T18:00:00Z'},now);
+  assert.equal(standard.isGolden,false);
+  assert.equal(standard.isEarly,false);
+  assert.equal(standard.tier,'standard');
+
+  // Missing or invalid dates
+  assert.equal(freshnessWindow({},now).isGolden,false);
+  assert.equal(freshnessWindow({first_seen:'invalid'},now).isGolden,false);
 });
 
 test('calendar exports use the published deadline timezone and escape text', async()=>{
