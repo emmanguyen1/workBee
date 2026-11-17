@@ -14,7 +14,7 @@ class MultiPreferences(BaseModel):
     countries: list[Annotated[str,Field(min_length=1,max_length=10)]] = Field(default_factory=list,max_length=60)
     regions: list[Annotated[str,Field(min_length=1,max_length=10)]] = Field(default_factory=list,max_length=70)
     workplaces: list[Literal["remote","hybrid","onsite","unspecified"]] = Field(default_factory=list,max_length=4)
-    role_types: list[Literal["early_career","internship","new_grad","entry_level","apprenticeship","other"]] = Field(default_factory=list,max_length=6)
+    role_types: list[Literal["early_career","internship","first_second","program","new_grad","entry_level","apprenticeship","other"]] = Field(default_factory=list,max_length=8)
     opportunity_types: list[Literal["internship","job","research","lab","program"]] = Field(default_factory=list,max_length=5)
 
     @field_validator("career_fields")
