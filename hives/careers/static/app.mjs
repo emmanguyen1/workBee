@@ -26,8 +26,21 @@ document.addEventListener('click',event=>{for(const node of document.querySelect
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community')?.checked??false,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],sponsorship:$('sponsorship-filter')?.value||'all',closing_within_days:0,recent_days:0,query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){if($('include-community'))$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';if($('sponsorship-filter'))$('sponsorship-filter').value=p.sponsorship||'all';$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
+let savedPreferences={};
+function preferences(){
+  if(isAccountPage&&!$('filters'))return savedPreferences;
+  return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community')?.checked??false,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field||[],career_fields:choices.career||[],companies:choices.company||[],countries:choices.country||[],regions:choices.region||[],workplaces:choices.workplace||[],role_types:choices.role||[],opportunity_types:choices['opportunity-type']||[],pay:'all',commitments:$('commitment')?.value?[$('commitment').value]:[],sponsorship:$('sponsorship-filter')?.value||'all',closing_within_days:0,recent_days:0,query:$('query')?.value||'',sort:$('sort')?.value||'relevance',comparable_only:$('comparable-only')?.checked??false}
+}
+function fillPreferences(p){
+  savedPreferences=p||{};
+  if($('include-community'))$('include-community').checked=Boolean(p.include_community);
+  if($('commitment'))$('commitment').value=p.commitments?.[0]||'';
+  if($('sponsorship-filter'))$('sponsorship-filter').value=p.sponsorship||'all';
+  if($('comparable-only'))$('comparable-only').checked=Boolean(p.comparable_only);
+  if($('query'))$('query').value=p.query||'';
+  if($('sort'))$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';
+  for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])if($(id))setChoices(id,preferenceChoices(p,key,legacy))
+}
 function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
 function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
@@ -35,8 +48,22 @@ function accountView(data,restore=true){document.dispatchEvent(new Event('workbe
 if(!isAccountPage)$('edit-preferences').onclick=()=>{try{sessionStorage.setItem('workbee.pending.preferences',JSON.stringify(preferences()))}catch{}};
 $('account-toggle').onclick=event=>{if(!isAccountPage)return;event.preventDefault();$('workspace').open=true;$('workspace').scrollIntoView({behavior:'smooth',block:'start'});if(!accountUser){$('auth-details').open=true;$('account-username').focus()}else $('display-name').focus()};
 $('auth-mode').onchange=()=>{$('account-password').autocomplete=$('auth-mode').value==='register'?'new-password':'current-password'};
-$('auth-form').onsubmit=async event=>{event.preventDefault();++authGeneration;$('auth-submit').disabled=true;$('account-message').textContent='Connecting…';try{const data=await accountFetch($('auth-mode').value,'POST',{username:$('account-username').value,password:$('account-password').value});accountView(data);$('auth-details').open=false;$('account-message').textContent=data.revision===0?'Account ready. Save your profile and filters to sync your current work.':'Saved account data loaded.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}finally{$('account-password').value='';$('auth-submit').disabled=false}};
-async function saveAccount(){const generation=authGeneration,owner=accountUser?.username;if(!owner){$('account-message').textContent='Sign in to save your profile.';return false}$('save-account').disabled=true;try{const data=await accountFetch('state','PUT',{identity:identity(),profile:checkedProfile(),preferences:preferences(),revision:accountRevision});if(generation!==authGeneration||accountUser?.username!==owner)return false;accountRevision=data.revision;accountUser=data.user;savedProfile=data.profile;identityView(accountUser);hasAccountEdits=false;$('account-message').textContent='Your profile and preferences are saved. They will load across sessions and devices.';if('BroadcastChannel' in window){const channel=new BroadcastChannel('workbee-account');channel.postMessage({type:'saved'});channel.close()}return true}catch(error){$('account-message').textContent=error.message;return false}finally{$('save-account').disabled=false}}
+if($('tab-login')&&$('tab-register')){
+  const switchAuthMode=mode=>{
+    if($('auth-mode'))$('auth-mode').value=mode;
+    $('tab-login').classList.toggle('active',mode==='login');
+    $('tab-login').setAttribute('aria-selected',mode==='login');
+    $('tab-register').classList.toggle('active',mode==='register');
+    $('tab-register').setAttribute('aria-selected',mode==='register');
+    if($('auth-submit'))$('auth-submit').textContent=mode==='register'?'Create your account':'Sign in to workBee';
+    if($('account-password'))$('account-password').autocomplete=mode==='register'?'new-password':'current-password';
+    if($('account-state'))$('account-state').textContent=mode==='register'?'Create a free workBee account to sync your profile and applications across devices.':'Guest mode. Sign in to keep your reviewed profile and application statuses synced across devices.';
+  };
+  $('tab-login').onclick=()=>switchAuthMode('login');
+  $('tab-register').onclick=()=>switchAuthMode('register');
+}
+$('auth-form').onsubmit=async event=>{event.preventDefault();++authGeneration;$('auth-submit').disabled=true;$('account-message').textContent='Connecting…';try{const data=await accountFetch($('auth-mode').value,'POST',{username:$('account-username').value,password:$('account-password').value});accountView(data);$('auth-details').open=false;$('account-message').textContent=data.revision===0?'Account ready. Save your profile to sync your current work.':'Saved account data loaded.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}finally{$('account-password').value='';$('auth-submit').disabled=false}};
+async function saveAccount(){const generation=authGeneration,owner=accountUser?.username;if(!owner){$('account-message').textContent='Sign in to save your profile.';return false}$('save-account').disabled=true;try{const data=await accountFetch('state','PUT',{identity:identity(),profile:checkedProfile(),preferences:preferences(),revision:accountRevision});if(generation!==authGeneration||accountUser?.username!==owner)return false;accountRevision=data.revision;accountUser=data.user;savedProfile=data.profile;savedPreferences=data.preferences||savedPreferences;identityView(accountUser);hasAccountEdits=false;$('account-message').textContent=isAccountPage?'Your profile is saved. It will load across sessions and devices.':'Your profile and preferences are saved. They will load across sessions and devices.';if('BroadcastChannel' in window){const channel=new BroadcastChannel('workbee-account');channel.postMessage({type:'saved'});channel.close()}return true}catch(error){$('account-message').textContent=error.message;return false}finally{$('save-account').disabled=false}}
 $('save-account').onclick=saveAccount;
 $('reload-account').onclick=async()=>{try{const data=await accountFetch('session');accountView(data);if(!data.user){fill({});fillPreferences({});saved={}}$('account-message').textContent=data.user?'Saved account profile, filters, and application statuses loaded.':'Session expired. Sign in again.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}};
 $('logout-account').onclick=async()=>{try{await accountFetch('logout','POST');++authGeneration;accountView({user:null});fill({});fillPreferences({});clearImport();saved=read(SAVED_KEY,{});$('account-message').textContent='Signed out. Account data remains saved on the server.';offset=0;await load()}catch(error){$('account-message').textContent=error.message}};
@@ -450,39 +477,41 @@ async function load() {
   let current;
   try{current=isAccountPage?{}:accountUser?savedProfile:{}}catch(error){$('profile-message').textContent=error.message;$('profile-message').className='notice error';return false}
   const id=++requestId;searchController?.abort();searchController=new AbortController();
-  $('search').disabled=true;$('match-profile').disabled=true;$('match-profile').textContent='Comparing…';$('status').className='';$('status').textContent='Finding opportunities…';$('jobs').setAttribute('aria-busy','true');
-  if(!$('jobs').children.length)for(let index=0;index<4;index++)$('jobs').append(make('div',undefined,'skeleton'));
+  if($('search'))$('search').disabled=true;$('match-profile').disabled=true;$('match-profile').textContent='Comparing…';if($('status')){$('status').className='';$('status').textContent='Finding opportunities…';}if($('jobs'))$('jobs').setAttribute('aria-busy','true');
+  if($('jobs')&&!$('jobs').children.length)for(let index=0;index<4;index++)$('jobs').append(make('div',undefined,'skeleton'));
   try{
     const response=await fetch('/api/careers/search',{method:'POST',headers:{'Content-Type':'application/json'},signal:searchController.signal,body:JSON.stringify({profile:current,...preferences(),offset,limit:PAGE})});
     const data=await response.json();if(!response.ok)throw new Error(apiError(data));if(id!==requestId)return false;
-    total=data.total;facets(data);updateSourceTimes(data.boards);if(!isAccountPage)renderJobs(data);else $('account-preferences-status').textContent=total.toLocaleString()+' opportunities match these preferences.';
-    $('results-count').textContent=total.toLocaleString()+' opportunities';
+    total=data.total;facets(data);updateSourceTimes(data.boards);if(!isAccountPage)renderJobs(data);else if($('account-preferences-status'))$('account-preferences-status').textContent=total.toLocaleString()+' opportunities match these preferences.';
+    if($('results-count'))$('results-count').textContent=total.toLocaleString()+' opportunities';
     const normalized=data.profile_skills||[];
-    $('match-notice').classList.toggle('active',normalized.length>0);
-    $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only').checked?'Showing current postings with comparable requirements.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
-    $('sort-note').textContent=({newest:'Most recent employer publication where available; otherwise first seen in this catalog.',deadline:'Published closing dates first; missing deadlines are last. Confirm the cutoff on the employer page.',company:'Employers ordered alphabetically.',relevance:'Sorted by saved-profile coverage, qualifications, and supporting examples; possible conflicts last.'})[data.effective_sort];
-    $('status').textContent=total.toLocaleString()+' opportunities in this view'+(data.needs_recheck_total?' · '+data.needs_recheck_total.toLocaleString()+' cached or community listings need rechecking':'');
-    $('previous').disabled=offset===0;$('next').disabled=offset+PAGE>=total;$('page').textContent=total?`${offset+1}–${Math.min(offset+PAGE,total)} of ${total.toLocaleString()}`:'0 roles';
+    if($('match-notice')){
+      $('match-notice').classList.toggle('active',normalized.length>0);
+      $('match-notice').textContent=normalized.length?`Comparing ${normalized.length} skills: ${normalized.slice(0,5).join(', ')}${normalized.length>5?'…':''}. ${$('comparable-only')?.checked?'Showing current postings with comparable requirements.':'Listings without requirements remain unscored.'}`:'Add your skills to see how you fit each opportunity. Unscored listings are not zero-percent matches.';
+    }
+    if($('sort-note'))$('sort-note').textContent=({newest:'Most recent employer publication where available; otherwise first seen in this catalog.',deadline:'Published closing dates first; missing deadlines are last. Confirm the cutoff on the employer page.',company:'Employers ordered alphabetically.',relevance:'Sorted by saved-profile coverage, qualifications, and supporting examples; possible conflicts last.'})[data.effective_sort];
+    if($('status'))$('status').textContent=total.toLocaleString()+' opportunities in this view'+(data.needs_recheck_total?' · '+data.needs_recheck_total.toLocaleString()+' cached or community listings need rechecking':'');
+    if($('previous'))$('previous').disabled=offset===0;if($('next'))$('next').disabled=offset+PAGE>=total;if($('page'))$('page').textContent=total?`${offset+1}–${Math.min(offset+PAGE,total)} of ${total.toLocaleString()}`:'0 roles';
     return true;
-  }catch(error){if(id!==requestId||error.name==='AbortError')return false;$('status').textContent=error.message;$('status').className='error';if(!visibleJobs.length)$('jobs').replaceChildren(make('p','Unable to load opportunities. Check the message above and retry.','empty'));return false}
-  finally{if(id===requestId){$('search').disabled=false;$('match-profile').disabled=false;$('match-profile').textContent=isAccountPage?'Save profile & find matches →':'Match my profile →';$('jobs').setAttribute('aria-busy','false')}}
+  }catch(error){if(id!==requestId||error.name==='AbortError')return false;if($('status')){$('status').textContent=error.message;$('status').className='error';}if($('jobs')&&!visibleJobs.length)$('jobs').replaceChildren(make('p','Unable to load opportunities. Check the message above and retry.','empty'));return false}
+  finally{if(id===requestId){if($('search'))$('search').disabled=false;$('match-profile').disabled=false;$('match-profile').textContent=isAccountPage?'Save profile & find matches →':'Match my profile →';if($('jobs'))$('jobs').setAttribute('aria-busy','false')}}
 }
 
 function resetFilters(){fillPreferences({});offset=0;load()}
 $('profile').onsubmit=event=>{event.preventDefault();hasAccountEdits=true;applyProfile()};
-$('identity-panel').addEventListener('input',()=>{hasAccountEdits=true;$('account-message').textContent='Unsaved profile changes. Choose Save profile & filters to account.'});
-$('filters').addEventListener('change',()=>{hasAccountEdits=true;if(accountUser)$('account-message').textContent='Preferences changed. Save profile & filters to keep them across devices.'});
+$('identity-panel').addEventListener('input',()=>{hasAccountEdits=true;$('account-message').textContent='Unsaved profile changes. Choose Save profile to account.'});
+if($('filters'))$('filters').addEventListener('change',()=>{hasAccountEdits=true;if(accountUser)$('account-message').textContent='Preferences changed. Save profile to keep them across devices.'});
 $('profile').addEventListener('input',()=>{hasAccountEdits=true;$('profile-message').className='notice';$('profile-message').textContent='Profile changed. Apply it to update your matches.'});
-$('filters').onsubmit=event=>{event.preventDefault();refreshFilters()};
-$('keyword-search').onsubmit=event=>{event.preventDefault();refreshFilters()};
-if(!isAccountPage)$('sort').addEventListener('change',()=>{hasAccountEdits=true;refreshFilters()});
+if($('filters'))$('filters').onsubmit=event=>{event.preventDefault();refreshFilters()};
+if($('keyword-search'))$('keyword-search').onsubmit=event=>{event.preventDefault();refreshFilters()};
+if(!isAccountPage&&$('sort'))$('sort').addEventListener('change',()=>{hasAccountEdits=true;refreshFilters()});
 let filterTimer;
 function refreshFilters(){clearTimeout(filterTimer);offset=0;load()}
-$('filters').addEventListener('change',event=>{if(event.target.dataset.facet==='country'&&choices.country.length)setChoices('region',choices.region.filter(r=>choices.country.includes(r.split('-')[0])));if(event.target.tagName==='SELECT'||event.target.type==='checkbox')refreshFilters()});
-for(const id of ['query'])$(id).addEventListener('input',()=>{clearTimeout(filterTimer);filterTimer=setTimeout(refreshFilters,400);hasAccountEdits=true});
-$('reset-filters').onclick=resetFilters;
-$('previous').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};
-$('next').onclick=()=>{offset+=PAGE;load()};
+if($('filters'))$('filters').addEventListener('change',event=>{if(event.target.dataset.facet==='country'&&choices.country.length)setChoices('region',choices.region.filter(r=>choices.country.includes(r.split('-')[0])));if(event.target.tagName==='SELECT'||event.target.type==='checkbox')refreshFilters()});
+for(const id of ['query'])if($(id))$(id).addEventListener('input',()=>{clearTimeout(filterTimer);filterTimer=setTimeout(refreshFilters,400);hasAccountEdits=true});
+if($('reset-filters'))$('reset-filters').onclick=resetFilters;
+if($('previous'))$('previous').onclick=()=>{offset=Math.max(0,offset-PAGE);load()};
+if($('next'))$('next').onclick=()=>{offset+=PAGE;load()};
 let savedApplications=[],savedApplicationOwner=null;const compared=new Map();
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type})),a=make('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function toggleCompare(job){if(compared.has(job.id))compared.delete(job.id);else if(compared.size<3)compared.set(job.id,job);else{$('compare-message').textContent='Your shortlist has three opportunities. Remove one to compare another.';return}$('compare-message').textContent='';renderComparison();$('jobs').replaceChildren(...visibleJobs.map(card))}
