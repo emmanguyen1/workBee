@@ -251,6 +251,35 @@ export function eligibilityBadges(job, profile = {}) {
   return badges;
 }
 
+export function kanbanColumns(applications = []) {
+  const cols = {
+    saved: { id: 'saved', label: 'Wishlist & Prep', jobs: [] },
+    applied: { id: 'applied', label: 'Applied', jobs: [] },
+    interview: { id: 'interview', label: 'Interviewing', jobs: [] },
+    offer: { id: 'offer', label: 'Offers', jobs: [] },
+    closed: { id: 'closed', label: 'Closed / Inactive', jobs: [] },
+  };
+
+  for (const job of applications) {
+    const s = job.status || 'saved';
+    if (s === 'saved' || s === 'preparing') {
+      cols.saved.jobs.push(job);
+    } else if (s === 'applied') {
+      cols.applied.jobs.push(job);
+    } else if (s === 'interview') {
+      cols.interview.jobs.push(job);
+    } else if (s === 'offer') {
+      cols.offer.jobs.push(job);
+    } else if (s === 'rejected' || s === 'dismissed') {
+      cols.closed.jobs.push(job);
+    } else {
+      cols.saved.jobs.push(job);
+    }
+  }
+
+  return cols;
+}
+
 export function comparisonPreferences(current, hasSkills) {
   return {...current, sort: 'fit', comparable_only: Boolean(hasSkills)};
 }

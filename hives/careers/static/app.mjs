@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges, kanbanColumns} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -458,14 +458,147 @@ function renderComparison(){if(isAccountPage)return;$('compare-tray').classList.
 if(!isAccountPage){$('clear-compare').onclick=()=>{compared.clear();renderComparison();$('jobs').replaceChildren(...visibleJobs.map(card))};for(const button of document.querySelectorAll('[data-path]'))button.onclick=()=>{fillPreferences({});const key=button.dataset.path;if(key==='internship')setChoices('opportunity-type',['internship']);if(key==='research')setChoices('opportunity-type',['research','lab']);if(key==='impact')setChoices('field',['nonprofit']);if(key==='part_time')$('commitment').value='part_time';refreshFilters();$('results').scrollIntoView({behavior:'smooth'})}}
 function renderNextSteps(){const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-'),upcoming=savedApplications.filter(j=>j.details?.follow_up&&!['rejected','dismissed','offer'].includes(j.status)).sort((a,b)=>a.details.follow_up.localeCompare(b.details.follow_up));$('next-steps').replaceChildren();if(upcoming.length){$('next-steps').append(make('h3','Your next small steps'));for(const job of upcoming.slice(0,8))$('next-steps').append(make('p',(job.details.follow_up<today?'Overdue · ':'')+job.details.follow_up+' · '+job.company+' — '+(job.details.next_action||job.title)));$('next-steps').append(make('p','Personal follow-up dates appear here when you visit. No email or background notifications are sent.','notice muted'))}}
 function noteEditor(job){const editor=make('details',undefined,'note-editor');editor.append(make('summary','Notes & next step'));const values=job._draft||job.details||{},fields={};for(const [key,label,type] of [['notes','Private notes','textarea'],['next_action','Next action','input'],['follow_up','Follow-up date','date']]){const row=make('label',label),input=make(type==='textarea'?'textarea':'input');if(type==='date')input.type='date';else input.maxLength=key==='notes'?3000:200;input.value=values[key]||'';fields[key]=input;row.append(input);editor.append(row);input.oninput=()=>{job._draft={notes:fields.notes.value,next_action:fields.next_action.value,follow_up:fields.follow_up.value||null,revision:job._draft?.revision??job.details?.revision??0}}}const save=make('button','Save next step','secondary'),message=make('p',undefined,'notice');message.setAttribute('role','status');save.type='button';save.onclick=async()=>{const generation=authGeneration;save.disabled=true;try{const data=await accountFetch('application-details/'+encodeURIComponent(job.id),'PUT',{notes:fields.notes.value,next_action:fields.next_action.value,follow_up:fields.follow_up.value||null,revision:job._draft?.revision??job.details?.revision??0});if(generation!==authGeneration)return;job.details=data;delete job._draft;message.textContent='Notes and next step saved.';renderNextSteps()}catch(error){message.textContent=error.message}finally{save.disabled=false}};const discard=make('button','Discard unsaved notes','text-button');discard.type='button';discard.onclick=()=>{delete job._draft;for(const key of ['notes','next_action','follow_up'])fields[key].value=job.details?.[key]||'';message.textContent='Unsaved notes discarded. Reload applications to fetch changes from other devices.'};editor.append(save,discard,message);return editor}
+let trackerLayout = 'board';
+
+async function moveJobStage(job, newStatus) {
+  const before = job.status || saved[job.id] || '';
+  job.status = newStatus;
+  saved[job.id] = newStatus;
+  const owner = accountUser?.username, generation = authGeneration;
+  try {
+    if (owner) await accountFetch('applications/' + encodeURIComponent(job.id), 'PUT', { status: newStatus });
+    if (generation !== authGeneration) return;
+    renderSavedApplications();
+  } catch (error) {
+    if (generation !== authGeneration) return;
+    job.status = before;
+    saved[job.id] = before;
+    renderSavedApplications();
+    $('saved-message').textContent = error.message || 'Could not update stage.';
+  }
+}
+
+function renderKanbanBoard() {
+  const container = $('kanban-board');
+  if (!container) return;
+  const cols = kanbanColumns(savedApplications);
+  const activeColumns = [
+    { key: 'saved', label: 'Wishlist & Prep', next: 'applied', nextLabel: 'Applied →' },
+    { key: 'applied', label: 'Applied', next: 'interview', nextLabel: 'Interview →' },
+    { key: 'interview', label: 'Interviewing', next: 'offer', nextLabel: 'Offer 🎉' },
+    { key: 'offer', label: 'Offers', next: null, nextLabel: null },
+  ];
+
+  const board = make('div', undefined, 'kanban-columns');
+  for (const colDef of activeColumns) {
+    const colData = cols[colDef.key];
+    const column = make('div', undefined, 'kanban-column');
+    column.dataset.stage = colDef.key;
+
+    const colHeader = make('div', undefined, 'kanban-column-header');
+    colHeader.append(
+      make('span', colData.label, 'kanban-column-title'),
+      make('span', String(colData.jobs.length), 'kanban-count-badge')
+    );
+    column.append(colHeader);
+
+    const cardList = make('div', undefined, 'kanban-column-cards');
+    if (!colData.jobs.length) {
+      cardList.append(make('div', 'No roles in this stage', 'kanban-empty'));
+    } else {
+      for (const job of colData.jobs) {
+        const kCard = make('article', undefined, 'kanban-card');
+        kCard.append(make('strong', job.title, 'kanban-card-title'));
+        kCard.append(make('div', job.company, 'kanban-card-company'));
+
+        const meta = make('div', undefined, 'kanban-card-meta');
+        if (job.locations?.length) {
+          const loc = make('span', job.locations[0], 'saved-meta-item');
+          loc.prepend(icon('pin', 10));
+          meta.append(loc);
+        }
+        if (job.pay_quote) {
+          const pill = formatPayPill(job.pay_quote, 'paid');
+          if (pill) meta.append(make('span', pill, 'saved-meta-item pay'));
+        }
+        if (job.deadline_date) {
+          meta.append(make('span', 'Due ' + job.deadline_date, 'saved-meta-item deadline'));
+        }
+        if (meta.children.length) kCard.append(meta);
+
+        const actions = make('div', undefined, 'kanban-card-actions');
+        if (colDef.next) {
+          const moveBtn = make('button', colDef.nextLabel, 'kanban-move-btn' + (colDef.next === 'offer' ? ' offer' : ''));
+          moveBtn.type = 'button';
+          moveBtn.onclick = () => moveJobStage(job, colDef.next);
+          actions.append(moveBtn);
+        }
+        const select = make('select', undefined, 'kanban-quick-select');
+        select.setAttribute('aria-label', 'Change stage for ' + job.title);
+        for (const [val, txt] of [
+          ['saved', 'Wishlist'],
+          ['preparing', 'Preparing'],
+          ['applied', 'Applied'],
+          ['interview', 'Interview'],
+          ['offer', 'Offer'],
+          ['rejected', 'Rejected'],
+          ['dismissed', 'Dismissed']
+        ]) {
+          const opt = make('option', txt);
+          opt.value = val;
+          select.append(opt);
+        }
+        select.value = job.status || 'saved';
+        select.onchange = () => moveJobStage(job, select.value);
+        actions.append(select);
+        kCard.append(actions);
+
+        if (job.open) {
+          const link = applicationLink(job, 'Post ↗');
+          if (link) {
+            link.className = 'kanban-link';
+            kCard.append(link);
+          }
+        }
+        kCard.append(noteEditor(job));
+        cardList.append(kCard);
+      }
+    }
+    column.append(cardList);
+    board.append(column);
+  }
+
+  container.replaceChildren(board);
+
+  if (cols.closed.jobs.length) {
+    const closedDetails = make('details', undefined, 'kanban-closed-tray');
+    closedDetails.append(make('summary', `Archived & Closed (${cols.closed.jobs.length})`));
+    const closedList = make('div', undefined, 'kanban-closed-list');
+    for (const job of cols.closed.jobs) {
+      const row = make('div', undefined, 'kanban-closed-row');
+      row.append(
+        make('strong', job.company + ' — ' + job.title),
+        make('span', job.status === 'rejected' ? 'Rejected' : 'Dismissed', 'saved-meta-item')
+      );
+      const restoreBtn = make('button', 'Restore to Wishlist', 'text-button');
+      restoreBtn.type = 'button';
+      restoreBtn.onclick = () => moveJobStage(job, 'saved');
+      row.append(restoreBtn);
+      closedList.append(row);
+    }
+    closedDetails.append(closedList);
+    container.append(closedDetails);
+  }
+}
+
 function renderSavedApplications(){
   if(!isAccountPage)return;
-  const stage=$('saved-stage').value,rows=savedApplications.filter(j=>stage==='all'||j.status===stage);
   $('saved-application-count').textContent=savedApplications.length+' tracked';
   renderNextSteps();
   if($('pipeline-counters')){
     const counts={all:savedApplications.length,saved:0,preparing:0,applied:0,interview:0,offer:0};
     for(const j of savedApplications){if(counts[j.status]!==undefined)counts[j.status]++;}
+    const currentStage=$('saved-stage')?.value||'all';
     const stages=[
       ['all','All ('+counts.all+')'],
       ['saved','Saved ('+counts.saved+')'],
@@ -475,37 +608,79 @@ function renderSavedApplications(){
       ['offer','Offer ('+counts.offer+')'],
     ];
     $('pipeline-counters').replaceChildren(...stages.map(([s,label])=>{
-      const btn=make('button',label,'pipeline-chip'+(stage===s?' active':''));
+      const btn=make('button',label,'pipeline-chip'+(currentStage===s?' active':''));
       btn.type='button';
-      btn.onclick=()=>{ $('saved-stage').value=s; renderSavedApplications(); };
+      btn.onclick=()=>{
+        if($('saved-stage'))$('saved-stage').value=s;
+        if(trackerLayout==='board'){
+          const col=document.querySelector(`.kanban-column[data-stage="${s}"]`);
+          if(col)col.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+        }
+        renderSavedApplications();
+      };
       return btn;
     }));
   }
-  $('saved-applications').replaceChildren(...rows.map(job=>{
-    const card=make('article',undefined,'saved-application');
-    const header=make('div',undefined,'saved-application-header');
-    header.append(make('strong',job.title),make('p',job.company,'muted'));
-    card.append(header);
-    const meta=make('div',undefined,'saved-application-meta');
-    if(job.locations?.length){
-      const loc=make('span',job.locations.join(' · '),'saved-meta-item');
-      loc.prepend(icon('pin',11));
-      meta.append(loc);
-    }
-    if(job.workplace&&job.workplace!=='unspecified')meta.append(make('span',job.workplace,'saved-meta-item workplace'));
-    if(job.pay_quote)meta.append(make('span',job.pay_quote,'saved-meta-item pay'));
-    if(job.deadline_date)meta.append(make('span','Due '+job.deadline_date,'saved-meta-item deadline'));
-    if(meta.children.length)card.append(meta);
-    card.append(make('p',job.open?'Active employer posting · confirm availability':'Archived or no longer in the source feed','notice'+(job.open?'':' muted')));
-    const link=applicationLink(job,'View employer posting ↗');
-    if(job.open&&link)card.append(link);
-    card.append(tracking(job),noteEditor(job));
-    return card;
-  }));
-  if(!rows.length)$('saved-applications').append(make('p','No tracked applications in this stage. Save roles from the opportunities page to start.','notice muted'));
+  if(trackerLayout==='board'){
+    if($('kanban-board'))$('kanban-board').classList.remove('hidden');
+    if($('saved-applications'))$('saved-applications').classList.add('hidden');
+    if($('list-controls'))$('list-controls').classList.add('hidden');
+    renderKanbanBoard();
+  }else{
+    if($('kanban-board'))$('kanban-board').classList.add('hidden');
+    if($('saved-applications'))$('saved-applications').classList.remove('hidden');
+    if($('list-controls'))$('list-controls').classList.remove('hidden');
+    const stage=$('saved-stage')?.value||'all',rows=savedApplications.filter(j=>stage==='all'||j.status===stage);
+    $('saved-applications').replaceChildren(...rows.map(job=>{
+      const card=make('article',undefined,'saved-application');
+      const header=make('div',undefined,'saved-application-header');
+      header.append(make('strong',job.title),make('p',job.company,'muted'));
+      card.append(header);
+      const meta=make('div',undefined,'saved-application-meta');
+      if(job.locations?.length){
+        const loc=make('span',job.locations.join(' · '),'saved-meta-item');
+        loc.prepend(icon('pin',11));
+        meta.append(loc);
+      }
+      if(job.workplace&&job.workplace!=='unspecified')meta.append(make('span',job.workplace,'saved-meta-item workplace'));
+      if(job.pay_quote)meta.append(make('span',job.pay_quote,'saved-meta-item pay'));
+      if(job.deadline_date)meta.append(make('span','Due '+job.deadline_date,'saved-meta-item deadline'));
+      if(meta.children.length)card.append(meta);
+      card.append(make('p',job.open?'Active employer posting · confirm availability':'Archived or no longer in the source feed','notice'+(job.open?'':' muted')));
+      const link=applicationLink(job,'View employer posting ↗');
+      if(job.open&&link)card.append(link);
+      card.append(tracking(job),noteEditor(job));
+      return card;
+    }));
+    if(!rows.length)$('saved-applications').append(make('p','No tracked applications in this stage. Save roles from the opportunities page to start.','notice muted'));
+  }
 }
 async function loadSavedApplications(){if(!isAccountPage||!accountUser)return;const generation=authGeneration,owner=accountUser.username;try{const data=await accountFetch('applications');if(generation!==authGeneration)return;const drafts=new Map(savedApplicationOwner===owner?savedApplications.filter(j=>j._draft).map(j=>[j.id,j._draft]):[]);savedApplications=data.applications.map(j=>({...j,...(drafts.has(j.id)?{_draft:drafts.get(j.id)}:{})}));savedApplicationOwner=owner;renderSavedApplications();$('saved-message').textContent='Application stages save automatically. Save notes and next steps explicitly.'}catch(error){$('saved-message').textContent=error.message}}
-if(isAccountPage){$('saved-stage').onchange=renderSavedApplications;$('reload-applications').onclick=loadSavedApplications;$('export-applications').onclick=()=>download(applicationsCSV(savedApplications),'workbee-applications.csv','text/csv;charset=utf-8')}
+if(isAccountPage){
+  if($('saved-stage'))$('saved-stage').onchange=renderSavedApplications;
+  if($('reload-applications'))$('reload-applications').onclick=loadSavedApplications;
+  if($('export-applications'))$('export-applications').onclick=()=>download(applicationsCSV(savedApplications),'workbee-applications.csv','text/csv;charset=utf-8');
+  if($('toggle-view-board')){
+    $('toggle-view-board').onclick=()=>{
+      trackerLayout='board';
+      $('toggle-view-board').classList.add('active');
+      $('toggle-view-board').setAttribute('aria-pressed','true');
+      $('toggle-view-list').classList.remove('active');
+      $('toggle-view-list').setAttribute('aria-pressed','false');
+      renderSavedApplications();
+    };
+  }
+  if($('toggle-view-list')){
+    $('toggle-view-list').onclick=()=>{
+      trackerLayout='list';
+      $('toggle-view-list').classList.add('active');
+      $('toggle-view-list').setAttribute('aria-pressed','true');
+      $('toggle-view-board').classList.remove('active');
+      $('toggle-view-board').setAttribute('aria-pressed','false');
+      renderSavedApplications();
+    };
+  }
+}
 async function refreshAccount(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation!==authGeneration)return;const changed=data.user?.username!==accountUser?.username||data.revision!==accountRevision;if(changed){if(isAccountPage&&hasAccountEdits&&data.user?.username===accountUser?.username){$('account-message').textContent='Your saved profile changed elsewhere. Reload saved account data when ready.';return}if(data.user?.username!==accountUser?.username)++authGeneration;if(!isAccountPage){compared.clear();renderComparison()}accountView(data);if(!data.user){fill({});savedProfile={};saved={}}if(!isAccountPage||accountUser)await load()}else if(data.user){saved=data.applications||{};if(isAccountPage)await loadSavedApplications();else if(visibleJobs.length)$('jobs').replaceChildren(...visibleJobs.map(card))}}catch{}}
 window.addEventListener('focus',refreshAccount);
 if('BroadcastChannel' in window){const channel=new BroadcastChannel('workbee-account');channel.onmessage=event=>{if(event.data?.type==='saved')refreshAccount()}}

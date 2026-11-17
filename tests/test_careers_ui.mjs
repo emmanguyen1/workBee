@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, formatPayPill, eligibilityBadges} from '../hives/careers/static/logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, formatPayPill, eligibilityBadges, kanbanColumns} from '../hives/careers/static/logic.mjs';
 
 test('comma-separated skills are individual skills; evidence commas are retained',()=>{
   assert.deepEqual(parseSkills('Python, SQL | Built an API, with charts\nReact'),[
@@ -164,4 +164,22 @@ test('eligibilityBadges detects visa sponsorship, citizenship, grad years, and g
   };
   const gradBadges = eligibilityBadges(gradJob, {graduation_year: 2029});
   assert.ok(gradBadges.some(b => b.type === 'grad' && b.status === 'conflict'));
+});
+
+test('kanbanColumns groups applications into pipeline stages and closed', () => {
+  const apps = [
+    { id: '1', title: 'Job 1', company: 'A', status: 'saved' },
+    { id: '2', title: 'Job 2', company: 'B', status: 'preparing' },
+    { id: '3', title: 'Job 3', company: 'C', status: 'applied' },
+    { id: '4', title: 'Job 4', company: 'D', status: 'interview' },
+    { id: '5', title: 'Job 5', company: 'E', status: 'offer' },
+    { id: '6', title: 'Job 6', company: 'F', status: 'rejected' },
+    { id: '7', title: 'Job 7', company: 'G', status: 'dismissed' },
+  ];
+  const cols = kanbanColumns(apps);
+  assert.equal(cols.saved.jobs.length, 2); // 'saved' and 'preparing'
+  assert.equal(cols.applied.jobs.length, 1);
+  assert.equal(cols.interview.jobs.length, 1);
+  assert.equal(cols.offer.jobs.length, 1);
+  assert.equal(cols.closed.jobs.length, 2); // 'rejected' and 'dismissed'
 });
