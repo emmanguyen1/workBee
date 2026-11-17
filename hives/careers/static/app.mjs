@@ -26,8 +26,8 @@ document.addEventListener('click',event=>{for(const node of document.querySelect
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community')?.checked??false,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],closing_within_days:0,recent_days:Number($('posted-age')?.value||0),query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){if($('include-community'))$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';if($('posted-age'))$('posted-age').value=String(p.recent_days||0);$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
+function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community')?.checked??false,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],sponsorship:$('sponsorship-filter')?.value||'all',closing_within_days:0,recent_days:0,query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function fillPreferences(p){if($('include-community'))$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';if($('sponsorship-filter'))$('sponsorship-filter').value=p.sponsorship||'all';$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
 function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
 function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
@@ -623,10 +623,41 @@ function renderKanbanBoard() {
   }
 }
 
+function renderVelocityStats() {
+  const container = $('velocity-stats');
+  if (!container || !isAccountPage) return;
+  const counts = { total: savedApplications.length, applied: 0, interview: 0, offer: 0, rejected: 0 };
+  for (const j of savedApplications) {
+    if (counts[j.status] !== undefined) counts[j.status]++;
+  }
+  const appliedTotal = counts.applied + counts.interview + counts.offer + counts.rejected;
+  const conversionRate = appliedTotal > 0 ? Math.round(((counts.interview + counts.offer) / appliedTotal) * 100) : null;
+
+  const stats = [
+    { label: 'Active Pipeline', value: counts.total, sub: 'Roles tracked' },
+    { label: 'In Interview', value: counts.interview, sub: 'Active candidate rounds' },
+    { label: 'Offers Received', value: counts.offer, sub: counts.offer ? 'Congratulations!' : 'Ready to land' },
+    { label: 'Interview Conversion', value: conversionRate != null ? conversionRate + '%' : '—', sub: appliedTotal ? appliedTotal + ' applied total' : 'Log applications to see rate' },
+  ];
+
+  const grid = make('div', undefined, 'velocity-grid');
+  for (const st of stats) {
+    const card = make('div', undefined, 'velocity-card');
+    card.append(
+      make('span', st.label, 'velocity-label'),
+      make('strong', String(st.value), 'velocity-value'),
+      make('small', st.sub, 'velocity-sub')
+    );
+    grid.append(card);
+  }
+  container.replaceChildren(grid);
+}
+
 function renderSavedApplications(){
   if(!isAccountPage)return;
   $('saved-application-count').textContent=savedApplications.length+' tracked';
   renderNextSteps();
+  renderVelocityStats();
   if($('pipeline-counters')){
     const counts={all:savedApplications.length,saved:0,preparing:0,applied:0,interview:0,offer:0};
     for(const j of savedApplications){if(counts[j.status]!==undefined)counts[j.status]++;}
@@ -710,6 +741,51 @@ if(isAccountPage){
       $('toggle-view-board').classList.remove('active');
       $('toggle-view-board').setAttribute('aria-pressed','false');
       renderSavedApplications();
+    };
+  }
+  const customAppDialog=$('custom-app-dialog');
+  if($('open-custom-app-dialog')&&customAppDialog)$('open-custom-app-dialog').onclick=()=>customAppDialog.showModal();
+  if($('close-custom-app-dialog')&&customAppDialog)$('close-custom-app-dialog').onclick=()=>customAppDialog.close();
+  if($('cancel-custom-app')&&customAppDialog)$('cancel-custom-app').onclick=()=>customAppDialog.close();
+  const customForm=$('custom-app-form');
+  if(customForm){
+    customForm.onsubmit=async event=>{
+      event.preventDefault();
+      const title=$('custom-role-title')?.value?.trim(),company=$('custom-company')?.value?.trim();
+      if(!title||!company)return;
+      const submitBtn=$('save-custom-app'),msg=$('custom-app-message');
+      if(submitBtn)submitBtn.disabled=true;
+      if(msg){msg.className='notice';msg.textContent='Saving application…';}
+      const body={
+        title,company,
+        status:$('custom-stage')?.value||'applied',
+        deadline_date:$('custom-deadline')?.value||'',
+        location:$('custom-location')?.value?.trim()||'',
+        pay_quote:$('custom-pay')?.value?.trim()||'',
+        apply_url:$('custom-url')?.value?.trim()||'',
+        notes:$('custom-notes')?.value?.trim()||'',
+      };
+      try{
+        if(accountUser){
+          await accountFetch('applications/custom','POST',body);
+          await loadSavedApplications();
+        }else{
+          const customId='custom:'+Date.now();
+          saved[customId]=body.status;
+          localStorage.setItem(SAVED_KEY,JSON.stringify(saved));
+          savedApplications.unshift({
+            id:customId,title:body.title,company:body.company,status:body.status,
+            locations:body.location?[body.location]:[],pay_quote:body.pay_quote,
+            deadline_date:body.deadline_date,open:true,
+            details:{notes:body.notes,next_action:'',follow_up:null,revision:1}
+          });
+          renderSavedApplications();
+        }
+        customForm.reset();
+        customAppDialog?.close();
+      }catch(err){
+        if(msg){msg.className='notice error';msg.textContent=err.message||'Could not save application.';}
+      }finally{if(submitBtn)submitBtn.disabled=false}
     };
   }
 }

@@ -5,7 +5,8 @@ import json
 import os
 import re
 import secrets
-from datetime import date
+import uuid
+from datetime import date, datetime, timezone
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -285,11 +286,66 @@ async def saved_applications(request: Request,response: Response):
                 'pay_quote':facts.get('pay_quote',''),
             }
         details=json_value(account['application_details'])
-        app_list=[{**found.get(id,{'id':id,'title':'Archived saved opportunity','company':'Posting unavailable','open':False}), 'status':status,'details':details.get(id,{'notes':'','next_action':'','follow_up':None,'revision':0})} for id,status in applications.items()]
+        app_list=[]
+        for id, status in applications.items():
+            if id in found:
+                item = found[id]
+            elif id.startswith('custom:') and details.get(id, {}).get('custom_job'):
+                item = details[id]['custom_job']
+            else:
+                item = {'id': id, 'title': 'Archived saved opportunity', 'company': 'Posting unavailable', 'open': False}
+            app_list.append({**item, 'status': status, 'details': details.get(id, {'notes':'','next_action':'','follow_up':None,'revision':0})})
         counts={'total':len(applications)}
         for st in applications.values():
             counts[st]=counts.get(st,0)+1
         return {'applications':app_list,'summary':counts}
+
+
+class CustomApplication(BaseModel):
+    title: str = Field(min_length=1, max_length=150)
+    company: str = Field(min_length=1, max_length=100)
+    status: Literal['saved', 'preparing', 'applied', 'interview', 'offer', 'rejected', 'dismissed'] = 'applied'
+    apply_url: str = Field(default='', max_length=500)
+    location: str = Field(default='', max_length=100)
+    pay_quote: str = Field(default='', max_length=100)
+    deadline_date: str = Field(default='', max_length=20)
+    notes: str = Field(default='', max_length=3000)
+
+
+@router.post('/applications/custom')
+async def add_custom_application(data: CustomApplication, request: Request, response: Response):
+    same_origin(request)
+    response.headers.update(PRIVATE)
+    custom_id = f"custom:{uuid.uuid4().hex[:12]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    custom_meta = {
+        'id': custom_id,
+        'title': data.title.strip(),
+        'company': data.company.strip(),
+        'apply_url': data.apply_url.strip(),
+        'open': True,
+        'last_seen': now_iso,
+        'locations': [data.location.strip()] if data.location.strip() else [],
+        'workplace': 'unspecified',
+        'deadline_date': data.deadline_date.strip() or None,
+        'pay_quote': data.pay_quote.strip(),
+    }
+    initial_details = {
+        'notes': data.notes.strip(),
+        'next_action': '',
+        'follow_up': None,
+        'revision': 1,
+        'custom_job': custom_meta,
+    }
+    async with connection() as conn:
+        async with conn.transaction():
+            account = await user(conn, request)
+            applications = json_value(account['applications'])
+            if len(applications) >= 2000:
+                raise HTTPException(400, "Application limit reached.", headers=PRIVATE)
+            await conn.execute("UPDATE career_accounts SET applications=applications || jsonb_build_object($2::text, $3::text), application_details=application_details || jsonb_build_object($2::text, $4::jsonb) WHERE id=$1",
+                               account["id"], custom_id, data.status, json.dumps(initial_details))
+    return {'id': custom_id, 'status': data.status, 'job': custom_meta}
 
 
 class ApplicationDetails(BaseModel):
@@ -315,5 +371,7 @@ async def save_application_details(job_id: str,data: ApplicationDetails,request:
             if data.revision!=current.get('revision',0):
                 raise HTTPException(409,'These notes changed elsewhere. Reload saved applications before editing.',headers=PRIVATE)
             value=data.model_dump(mode='json');value['revision']+=1
+            if 'custom_job' in current:
+                value['custom_job'] = current['custom_job']
             await conn.execute('UPDATE career_accounts SET application_details=application_details || jsonb_build_object($2::text,$3::jsonb) WHERE id=$1',account['id'],job_id,json.dumps(value))
             return value

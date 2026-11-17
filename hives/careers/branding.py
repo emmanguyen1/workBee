@@ -58,6 +58,8 @@ DOMAINS = {
     "pinterest": "pinterest.com", "snap": "snap.com", "spotify": "spotify.com", "netflix": "netflix.com",
     "akuna capital": "akunacapital.com", "akuna capital university": "akunacapital.com",
     "jane street": "janestreet.com", "citadel": "citadel.com", "citadel securities": "citadelsecurities.com",
+    "scale ai": "scale.com", "coinbase": "coinbase.com", "samsara": "samsara.com",
+    "roblox": "roblox.com", "openai": "openai.com", "varda space": "varda.com", "hugging face": "huggingface.co",
 }
 
 

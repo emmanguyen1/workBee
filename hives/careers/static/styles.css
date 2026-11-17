@@ -498,7 +498,35 @@ small {
   gap: 14px;
 }
 
-.filter-panel > div:not(.filter-footer) {
+.filter-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.filter-section-group:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.filter-section-group > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.filter-panel > div:not(.filter-footer):not(.filter-section-group) {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2407,6 +2435,113 @@ footer {
 
 .unknown {
   color: var(--amber);
+}
+
+/* Heading actions & Primary Pill Button */
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primary-pill-btn {
+  background: var(--honey-soft);
+  color: #8C6518;
+  border: 1px solid var(--honey-border);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.primary-pill-btn:hover {
+  background: #F8DFAC;
+}
+
+/* Recruiting Velocity Stats */
+.velocity-stats {
+  margin: 16px 0;
+}
+
+.velocity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.velocity-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.velocity-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.velocity-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.velocity-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Custom Application Dialog */
+.custom-app-dialog {
+  max-width: 540px;
+  width: 90vw;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.custom-app-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.custom-app-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.custom-app-form label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.custom-app-form input, .custom-app-form select, .custom-app-form textarea {
+  width: 100%;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+}
+
+.custom-app-form textarea {
+  min-height: 70px;
 }
 
 /* Account & Application Tracker */

@@ -1,6 +1,7 @@
 from pathlib import Path
 from collections import Counter
 import asyncio
+import re
 from typing import Literal
 from time import perf_counter
 from hives.careers.catalog import cache as catalog_cache,prepare as prepare_catalog
@@ -196,6 +197,16 @@ def search_catalog(data, request):
         if request.pay=='disclosed' and not facts['pay_disclosed']:continue
         if request.pay in {'paid','unpaid'} and facts['pay_status']!=request.pay:continue
         if request.commitments and not set(request.commitments).intersection(facts['commitments']):continue
+        if request.sponsorship != "all":
+            desc = job.get("description", "")
+            has_no_sponsor = bool(re.search(r"(?:no (?:visa )?sponsorship(?:\s+(?:is\s+)?(?:available|offered|provided)|[.!]?$)|(?:cannot|unable to|do not|will not) (?:provide |offer )?(?:visa )?sponsor)", desc, re.I))
+            has_citizen_pr = bool(re.search(r"\b(?:u\.?s\.?\s+citizen(?:ship)?\s+(?:is\s+)?required|must be a\s+u\.?s\.?\s+citizen|u\.?s\.?\s+citizens?\s+(?:only|or\s+permanent\s+resident)|security\s+clearance\s+(?:required|active)|green\s+card\s+holder)\b", desc, re.I))
+            if request.sponsorship == "opt_cpt" and (has_no_sponsor or has_citizen_pr):
+                continue
+            elif request.sponsorship == "no_sponsorship" and not has_no_sponsor:
+                continue
+            elif request.sponsorship == "citizen_pr" and not has_citizen_pr:
+                continue
         if request.closing_within_days:
             day=job['deadline_info']['date']
             if not day or not now.date().isoformat()<=day<=(now+timedelta(days=request.closing_within_days)).date().isoformat():continue

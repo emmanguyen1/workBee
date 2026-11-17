@@ -156,3 +156,27 @@ employers:
   - name: Sigma Computing
     source: greenhouse
     board: sigmacomputing
+  - name: Scale AI
+    source: greenhouse
+    board: scaleai
+  - name: Coinbase
+    source: greenhouse
+    board: coinbase
+  - name: Samsara
+    source: greenhouse
+    board: samsara
+  - name: Roblox
+    source: greenhouse
+    board: roblox
+  - name: OpenAI
+    source: greenhouse
+    board: openai
+  - name: Anduril Industries
+    source: greenhouse
+    board: andurilindustries
+  - name: Varda Space
+    source: greenhouse
+    board: vardaspaceindustries
+  - name: Hugging Face
+    source: greenhouse
+    board: huggingface
