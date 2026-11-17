@@ -182,7 +182,7 @@ function card(job) {
   article.append(deadline,matchBox(job.match));
   if(job.needs_recheck)article.append(make('p','Last-known-open listing · check employer availability','notice unknown'));
   if(job.match.has_conflict)article.append(make('p','Possible qualification conflict · review before applying','notice conflict'));
-  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
+  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
   if(job.facts?.pay_quote)article.append(make('p',job.facts.pay_quote.slice(0,200)+(job.facts.pay_quote.length>200?'…':''),'decision-facts'));
   if(job.availability)article.append(availabilityBox(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
@@ -256,7 +256,7 @@ function renderDetails(job) {
   heading.append(make('div',job.company,'company-name'));const title=make('h2',job.title);title.id='opportunity-title';heading.append(title);
   const close=make('button','×','close-dialog');close.type='button';close.setAttribute('aria-label','Close opportunity details');close.onclick=()=>dialog.close();header.append(logo(job),heading,close);
   const body=make('div',undefined,'dialog-body');body.append(availabilityBox(job,true));body.append(tags(job),make('p',(job.locations||[]).join(' · ')||job.location||'Location not specified','muted'));
-  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);body.append(actions);
+  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
   if(job.student_audience?.evidence?.length){const audience=section('Class-year wording in the posting');audience.open=true;for(const quote of job.student_audience.evidence)audience.append(make('p',quote,'quote'));audience.append(make('p','A class-year mention is not a complete eligibility decision. Review the full requirements.','notice'));body.append(audience)}
@@ -279,6 +279,91 @@ function renderDetails(job) {
 }
 
 dialog.addEventListener('click',event=>{if(event.target===dialog){const rect=dialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close()}});
+
+const prepDialog=$('prep-dialog');
+if(prepDialog){
+  prepDialog.addEventListener('click',event=>{if(event.target===prepDialog){const rect=prepDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)prepDialog.close()}});
+}
+
+async function showPrepPack(job){
+  const prepDialog=$('prep-dialog'),prepContent=$('prep-content');
+  if(!prepDialog||!prepContent)return;
+  prepDialog.showModal();
+  prepContent.replaceChildren();
+  const header=make('div',undefined,'prep-dialog-header'),titleGroup=make('div');
+  titleGroup.append(make('h2','Bee Prep Pack','prep-title'),make('p',job.title+' · '+job.company,'muted'));
+  const close=make('button','×','prep-close');close.type='button';close.setAttribute('aria-label','Close Prep Pack');close.onclick=()=>prepDialog.close();
+  header.append(titleGroup,close);
+  const loading=make('div',undefined,'prep-loading');
+  loading.append(make('p','Bee is analyzing job requirements, tailoring ATS advice, and preparing interview questions…','notice'));
+  const dots=make('div',undefined,'bee-dots');
+  dots.append(make('span'),make('span'),make('span'));
+  loading.append(dots);
+  prepContent.append(header,loading);
+  try{
+    const res=await fetch('/api/bee/prep',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({job_id:job.id,profile:profile()})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(apiError(data,'Could not generate Prep Pack.'));
+    loading.remove();
+    const body=make('div',undefined,'prep-body');
+    const badgeText=data.mode==='ai'?'AI Grounded Strategy · Powered by Gemini':'Tailored Strategy · Local Intelligence';
+    body.append(make('div',badgeText,'prep-mode-badge '+(data.mode==='ai'?'ai':'template')));
+    const ats=make('section',undefined,'prep-card');
+    ats.append(make('h3','1. ATS Fit & Highlight Strategy'));
+    if(data.ats_strategy?.summary)ats.append(make('p',data.ats_strategy.summary,'prep-summary'));
+    if(data.ats_strategy?.strengths?.length){
+      ats.append(make('h4','Strengths to Emphasize'));
+      const stList=make('ul',undefined,'prep-list strengths');
+      for(const s of data.ats_strategy.strengths)stList.append(make('li',s));
+      ats.append(stList);
+    }
+    if(data.ats_strategy?.gap_advice?.length){
+      ats.append(make('h4','How to Bridge Missing Skills'));
+      const gapList=make('ul',undefined,'prep-list gaps');
+      for(const g of data.ats_strategy.gap_advice)gapList.append(make('li',g));
+      ats.append(gapList);
+    }
+    body.append(ats);
+    const out=make('section',undefined,'prep-card');
+    out.append(make('h3','2. Direct Outreach Note (LinkedIn / Email)'));
+    out.append(make('p','Concise 3-sentence message to send a team lead or recruiter:','notice muted'));
+    const outBox=make('div',undefined,'outreach-box');
+    if(data.outreach?.subject)outBox.append(make('div',data.outreach.subject,'outreach-subject'));
+    const msgText=make('p',data.outreach?.message||'','outreach-message');
+    outBox.append(msgText);
+    const copy=make('button','Copy message','secondary copy-msg-btn');
+    copy.type='button';
+    copy.onclick=async()=>{
+      try{
+        await navigator.clipboard.writeText(data.outreach?.message||'');
+        copy.textContent='Copied ✓';
+        setTimeout(()=>copy.textContent='Copy message',2000);
+      }catch{copy.textContent='Select text to copy';}
+    };
+    outBox.append(copy);
+    if(data.outreach?.tips)outBox.append(make('p',data.outreach.tips,'notice muted small'));
+    out.append(outBox);
+    body.append(out);
+    const intv=make('section',undefined,'prep-card');
+    intv.append(make('h3','3. Predicted Interview Questions & Angles'));
+    const qContainer=make('div',undefined,'interview-questions');
+    for(const q of data.interview_prep||[]){
+      const card=make('article',undefined,'question-card');
+      card.append(make('strong',q.question));
+      if(q.why_asked)card.append(make('p','Why asked: '+q.why_asked,'why-asked muted'));
+      if(q.talking_point)card.append(make('p','Recommended angle: '+q.talking_point,'talking-point'));
+      qContainer.append(card);
+    }
+    intv.append(qContainer);
+    body.append(intv);
+    prepContent.append(body);
+  }catch(err){
+    loading.replaceChildren(make('p',err.message||'Could not generate prep pack. Please try again.','notice error'));
+  }
+}
 
 function checkedProfile() {
   const value=profile();

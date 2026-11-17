@@ -43,6 +43,19 @@ class BeeTests(unittest.TestCase):
         self.assertEqual(p['workplaces'],['remote'])
         self.assertEqual(p['pay'],'paid')
 
+    def test_prep_pack_endpoint_returns_structured_strategy_and_outreach(self):
+        job = {"id": "greenhouse:acme:1", "title": "Software Intern", "company": "Acme Corp", "career_field": "software", "requirements": [{"skills": ["Python", "Docker"], "quote": "Must know Python"}]}
+        with patch.dict(os.environ, {'WORKBEE_GEMINI_API_KEY': '', 'GEMINI_API_KEY': '', 'WORKBEE_OPENAI_API_KEY': ''}), patch('hives.careers.bee.store.get_job', new=AsyncMock(return_value=job)), TestClient(app) as c:
+            res = c.post('/api/bee/prep', json={"job_id": "greenhouse:acme:1", "profile": {"skills": [{"skill": "Python", "evidence": "Built web service"}]}})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["company"], "Acme Corp")
+            self.assertIn("ats_strategy", data)
+            self.assertTrue(any("Python" in s for s in data["ats_strategy"]["strengths"]))
+            self.assertIn("outreach", data)
+            self.assertIn("Acme Corp", data["outreach"]["message"])
+            self.assertEqual(len(data["interview_prep"]), 3)
+
 class ProviderTests(unittest.IsolatedAsyncioTestCase):
     async def test_responses_request_does_not_store_or_attach_private_state(self):
         mock_interaction=MagicMock()

@@ -15,6 +15,8 @@ from fastapi import APIRouter,HTTPException,Request,Response
 from pydantic import BaseModel,Field
 from starlette.concurrency import run_in_threadpool
 from hives.careers.accounts import same_origin
+from hives.careers.matching import Profile
+from hives.careers import store
 from hives.careers.api import Search,search_catalog
 from hives.careers.feeds import employers
 from core import db
@@ -38,6 +40,9 @@ class Ask(BaseModel):
     question: str=Field(min_length=2,max_length=1000)
     history: list[Turn]=Field(default_factory=list,max_length=4)
     web_search: bool=True
+class PrepRequest(BaseModel):
+    job_id: str=Field(min_length=1,max_length=500)
+    profile: Profile=Field(default_factory=Profile)
 
 
 def api_key():return (os.getenv('WORKBEE_GEMINI_API_KEY','').strip() or os.getenv('GEMINI_API_KEY','').strip() or os.getenv('WORKBEE_OPENAI_API_KEY','').strip())
@@ -191,3 +196,137 @@ async def ask(data:Ask,request:Request,response:Response):
             result=await generate(data,{'intent':intent,'product_help':HELP,'opportunities':jobs,'resources':resources,'retrieval_unavailable':source_error,'web_search_allowed':data.web_search});mode='ai'
         except (ValueError,KeyError,TypeError,Exception):provider_error=True
     return {**result,'mode':mode,'provider_unavailable':provider_error,'resources':resources,'sources':[{k:v for k,v in j.items() if k!='requirements_excerpt'} for j in jobs],'search':plan,'topic':topic,'intent':intent,'notice':'AI is unavailable; showing the local resource guide.' if provider_error else 'Local resource guide. Open-ended AI answers require a server-side API key.' if not enabled() else 'Web sources checked for this answer; confirm details on the linked pages.' if result['web_searched'] else 'AI answer · no live web search used for this response.'}
+
+
+def extract_json(text):
+    text=text.strip()
+    match=re.search(r'\{[\s\S]*\}',text)
+    if match:
+        try:return json.loads(match.group(0))
+        except Exception:pass
+    return None
+
+
+def local_prep_pack(job,profile):
+    company=job.get('company','Employer')
+    title=job.get('title','Role')
+    user_skills={s.skill.lower():s for s in profile.skills}
+    job_reqs=[r.get('skills',[]) for r in job.get('requirements',[])]
+    flat_reqs=[s for group in job_reqs for s in group]
+    strengths,gaps=[],[]
+    for req in flat_reqs:
+        if req.lower() in user_skills:
+            evidence=user_skills[req.lower()].evidence
+            strengths.append(f"Direct match: {req}"+(f" ({evidence})" if evidence else ""))
+        else:
+            gaps.append(req)
+    if not strengths and user_skills:
+        first_skill=list(user_skills.values())[0]
+        strengths=[f"Transferable foundation in {first_skill.skill}"]
+    if not strengths:
+        strengths=["Solid educational background and eagerness to learn"]
+    gap_advice=[]
+    for g in gaps[:3]:
+        gap_advice.append(f"Position mentions {g}: highlight related coursework, academic projects, or adjacent tools on your resume.")
+    if not gap_advice:
+        gap_advice=["Align your resume keywords with the job description's preferred technical concepts."]
+    outreach={
+        "subject":f"Inquiring about {title} at {company}",
+        "message":f"Hi there, I noticed the {title} opening at {company} and was drawn to your mission. With hands-on experience in {list(user_skills.keys())[0] if user_skills else 'relevant coursework'}, I'd love to learn more about what your team is prioritizing this upcoming season. Would you be open to a quick 5-minute chat?",
+        "tips":"Send as a personalized LinkedIn connection note or short email to a current engineer or recruiter."
+    }
+    field=job.get('career_field','software')
+    if field=='software':
+        questions=[
+            {"question":"Can you walk through a software project where you had to make trade-offs between speed and code quality?","why_asked":f"Assessing engineering judgment for {company}.","talking_point":"Describe your architecture decisions, testing approach, and how you communicated trade-offs."},
+            {"question":"How do you approach debugging an unfamiliar codebase or intermittent error?","why_asked":"Testing systematic debugging and problem-solving.","talking_point":"Mention reproducing locally, unit tests, isolating logs, and consulting docs."},
+            {"question":f"What interests you about {company}'s tech stack and domain?","why_asked":f"Testing genuine enthusiasm for {company}.","talking_point":f"Cite specific public engineering work or challenges {company} tackles."}
+        ]
+    elif field in {'science','research'}:
+        questions=[
+            {"question":"Tell me about a research experiment or lab project where unexpected results occurred.","why_asked":"Assessing scientific rigor and resilience.","talking_point":"Detail how you isolated variables and refined your hypothesis."},
+            {"question":"How do you document and share experimental methodologies with collaborators?","why_asked":"Testing reproducibility and communication.","talking_point":"Discuss lab notebooks, protocol standardization, and data sharing."},
+            {"question":f"What attracted you to {company}'s research focus?","why_asked":f"Testing alignment with {company}'s investigative agenda.","talking_point":"Connect your academic background with their recent publications or mission."}
+        ]
+    else:
+        questions=[
+            {"question":f"Why are you interested in this {title} role at {company}?","why_asked":"Testing motivation and preparation.","talking_point":f"Link your career goals directly to {company}'s initiatives."},
+            {"question":"Describe a project where you had to balance competing priorities and tight deadlines.","why_asked":"Evaluating execution and organization.","talking_point":"Use the STAR method to describe scoping, prioritization, and delivery."},
+            {"question":"How do you handle ambiguous requirements or feedback?","why_asked":"Assessing adaptability in a professional environment.","talking_point":"Explain how you ask clarifying questions and iterate in small milestones."}
+        ]
+    return {
+        "job_id":job.get('id',''),
+        "company":company,
+        "title":title,
+        "ats_strategy":{
+            "summary":f"Targeting {title} at {company}. Emphasize verified evidence and tailored project experience.",
+            "strengths":strengths[:4],
+            "gap_advice":gap_advice[:3]
+        },
+        "outreach":outreach,
+        "interview_prep":questions,
+        "mode":"template"
+    }
+
+
+async def generate_prep_pack(job,profile):
+    company=job.get('company','Employer')
+    title=job.get('title','Role')
+    skills=[s.model_dump() for s in profile.skills]
+    reqs=[r.get('quote','') for r in job.get('requirements',[])]
+    desc=(job.get('description') or '')[:3000]
+    prompt=json.dumps({
+        "job":{"title":title,"company":company,"requirements":reqs,"description_excerpt":desc,"field":job.get('career_field','')},
+        "applicant_profile":{"skills":skills,"major":profile.major,"degree":profile.degree_level,"graduation":profile.graduation_year}
+    })
+    system_instruction=(
+        "You are Bee, workBee's career strategist. Generate an actionable, realistic Prep Pack for this student applying to this specific job. "
+        "Return ONLY a valid JSON object with the exact keys: "
+        "'ats_strategy' (with keys 'summary', 'strengths' [list of strings], 'gap_advice' [list of strings]), "
+        "'outreach' (with keys 'subject', 'message' [concise, non-cringe 3-sentence message to a team lead], 'tips'), "
+        "'interview_prep' (list of 3 objects each having 'question', 'why_asked', 'talking_point'). "
+        "Be specific to this job's actual tech stack and description. Do not write generic fluff."
+    )
+    model=(os.getenv('WORKBEE_AI_MODEL') or 'gemini-4-hydrogen').strip()
+    client=genai.Client(api_key=api_key())
+    interaction=await client.aio.interactions.create(
+        model=model,
+        input=prompt,
+        system_instruction=system_instruction,
+        store=False,
+        generation_config={'max_output_tokens':2000},
+        timeout=45.0,
+    )
+    ans=provider_answer(interaction)
+    parsed=extract_json(ans['answer'])
+    if parsed and 'ats_strategy' in parsed and 'outreach' in parsed and 'interview_prep' in parsed:
+        return {
+            "job_id":job.get('id',''),
+            "company":company,
+            "title":title,
+            "ats_strategy":parsed['ats_strategy'],
+            "outreach":parsed['outreach'],
+            "interview_prep":parsed['interview_prep'],
+            "mode":"ai"
+        }
+    raise ValueError("Invalid JSON schema from model")
+
+
+@router.post('/prep')
+async def prep_pack(data:PrepRequest,request:Request,response:Response):
+    same_origin(request)
+    throttle(request)
+    response.headers['Cache-Control']='no-store'
+    try:
+        job=await store.get_job(data.job_id)
+        if not job:
+            raise HTTPException(404,'Opportunity not found.')
+    except HTTPException:raise
+    except Exception as exc:raise HTTPException(503,'Catalog unavailable.') from exc
+    if enabled():
+        try:
+            return await generate_prep_pack(job,data.profile)
+        except Exception:
+            pass
+    return local_prep_pack(job,data.profile)
+
