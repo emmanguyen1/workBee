@@ -39,6 +39,25 @@ class CompactParityTests(unittest.TestCase):
         with TestClient(app) as c,patch('hives.careers.api.store.get_job',new=AsyncMock(return_value=None)):
             self.assertEqual(c.post('/api/careers/opportunities/missing/details',json={}).status_code,404)
 
+    def test_sponsorship_filtering(self):
+        job_opt = {**job(), 'id': '1', 'title': 'Python Role 1', 'apply_url': 'https://example.com/jobs/1', 'description': 'Python role. Open to F-1 / OPT candidates and offers visa sponsorship.'}
+        job_no = {**job(), 'id': '2', 'title': 'Python Role 2', 'apply_url': 'https://example.com/jobs/2', 'description': 'Python role. No visa sponsorship provided. Must have US work authorization.'}
+        job_cit = {**job(), 'id': '3', 'title': 'Python Role 3', 'apply_url': 'https://example.com/jobs/3', 'description': 'Python role. Must be a U.S. Citizen due to security clearance requirements.'}
+        data = {'boards': [], 'jobs': [job_opt, job_no, job_cit]}
+
+        self.assertEqual(search_catalog(data, Search(sponsorship='all'))['total'], 3)
+        opt_res = search_catalog(data, Search(sponsorship='opt_cpt'))
+        self.assertEqual(opt_res['total'], 1)
+        self.assertEqual(opt_res['jobs'][0]['id'], '1')
+
+        no_res = search_catalog(data, Search(sponsorship='no_sponsorship'))
+        self.assertEqual(no_res['total'], 1)
+        self.assertEqual(no_res['jobs'][0]['id'], '2')
+
+        cit_res = search_catalog(data, Search(sponsorship='citizen_pr'))
+        self.assertEqual(cit_res['total'], 1)
+        self.assertEqual(cit_res['jobs'][0]['id'], '3')
+
 @unittest.skipUnless(os.getenv('CAREERS_DB_TEST')=='1','requires opt-in local Postgres')
 class CompactStoreTests(unittest.IsolatedAsyncioTestCase):
     async def test_summary_and_literal_query_keep_source_timestamps_and_handle_legacy_writes(self):

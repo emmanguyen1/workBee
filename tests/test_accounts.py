@@ -134,3 +134,31 @@ class AccountLifecycleTests(unittest.TestCase):
         self.assertEqual(next(j for j in reset["applications"] if j["id"]=="greenhouse:example:123")["details"]["revision"],0)
         self.assertNotEqual(self.a.cookies.get("hivework_session"), original_token)
         self.assertEqual(self.a.post("/api/account/register", json={"username": self.names[0], "password": secret}).status_code, 409)
+
+    def test_custom_external_application_tracking(self):
+        secret = "secret-pass-word"
+        u = self.names[0] + "_c"
+        res = self.a.post("/api/account/register", json={"username": u, "password": secret})
+        self.assertEqual(res.status_code, 200)
+
+        add = self.a.post("/api/account/applications/custom", json={
+            "title": "Machine Learning Intern",
+            "company": "Scale AI",
+            "status": "interview",
+            "location": "San Francisco, CA",
+            "pay_quote": "$60/hr",
+            "deadline_date": "2027-02-01",
+            "notes": "Referred by mentor"
+        })
+        self.assertEqual(add.status_code, 200)
+        data = add.json()
+        self.assertTrue(data["id"].startswith("custom:"))
+        self.assertEqual(data["status"], "interview")
+        self.assertEqual(data["job"]["title"], "Machine Learning Intern")
+
+        apps = self.a.get("/api/account/applications").json()
+        custom = next(j for j in apps["applications"] if j["id"] == data["id"])
+        self.assertEqual(custom["title"], "Machine Learning Intern")
+        self.assertEqual(custom["company"], "Scale AI")
+        self.assertEqual(custom["status"], "interview")
+        self.assertEqual(custom["details"]["notes"], "Referred by mentor")

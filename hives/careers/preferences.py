@@ -5,6 +5,7 @@ from hives.careers.sectors import SECTORS
 
 class MultiPreferences(BaseModel):
     pay: Literal["all","paid","unpaid","disclosed"] = "all"
+    sponsorship: Literal["all","opt_cpt","no_sponsorship","citizen_pr"] = "all"
     commitments: list[Literal["part_time","full_time","temporary"]] = Field(default_factory=list,max_length=3)
     closing_within_days: int = Field(default=0,ge=0,le=90)
     recent_days: int = Field(default=0,ge=0,le=90)
