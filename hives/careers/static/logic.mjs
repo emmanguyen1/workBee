@@ -45,6 +45,49 @@ export function relativeTime(iso, now = Date.now()) {
   return `Source checked ${Math.floor(minutes / 1440)}d ago`;
 }
 
+export function freshnessWindow(job, now = Date.now()) {
+  const origin = job?.published_at || job?.first_seen;
+  if (!origin) return { tier: 'standard', isGolden: false, isEarly: false, ageHours: Infinity, label: '', timeLabel: '', description: '' };
+  const originTs = Date.parse(origin);
+  if (!Number.isFinite(originTs)) return { tier: 'standard', isGolden: false, isEarly: false, ageHours: Infinity, label: '', timeLabel: '', description: '' };
+  const diffMs = now - originTs;
+  const ageHours = Math.max(0, diffMs / 3600000);
+  if (ageHours <= 24) {
+    const hours = Math.floor(ageHours);
+    const timeLabel = hours < 1 ? 'just now' : `${hours}h ago`;
+    return {
+      tier: 'golden',
+      isGolden: true,
+      isEarly: false,
+      ageHours,
+      label: 'Golden window · First 24h',
+      timeLabel,
+      description: 'First detected within the last 24 hours — high callback window'
+    };
+  }
+  if (ageHours <= 72) {
+    const days = Math.floor(ageHours / 24);
+    return {
+      tier: 'early',
+      isGolden: false,
+      isEarly: true,
+      ageHours,
+      label: 'Early drop · Under 3d',
+      timeLabel: `${days}d ago`,
+      description: 'First detected within the last 3 days'
+    };
+  }
+  return {
+    tier: 'standard',
+    isGolden: false,
+    isEarly: false,
+    ageHours,
+    label: '',
+    timeLabel: '',
+    description: ''
+  };
+}
+
 export function comparisonPreferences(current, hasSkills) {
   return {...current, sort: 'fit', comparable_only: Boolean(hasSkills)};
 }

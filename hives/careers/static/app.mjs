@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -26,8 +26,8 @@ document.addEventListener('click',event=>{for(const node of document.querySelect
 const bool=id=>$(id).value===''?null:$(id).value==='true';
 function profile(){return {skills:parseSkills($('skills').value),graduation_year:$('graduation').value?Number($('graduation').value):null,gpa:$('gpa').value!==''?Number($('gpa').value):null,enrolled:bool('enrolled'),needs_sponsorship:bool('sponsorship'),location:$('location').value.trim(),degree_level:$('degree').value,degree_status:$('degree-status').value,major:$('major').value.trim(),experience_years:$('experience').value!==''?Number($('experience').value):null,available_from:$('available-from').value||null,available_until:$('available-until').value||null}}
 function fill(p){$('skills').value=(p.skills||[]).map(s=>s.skill+(s.evidence?' | '+s.evidence:'')).join('\n');$('graduation').value=p.graduation_year||'';$('gpa').value=p.gpa??'';$('enrolled').value=p.enrolled==null?'':String(p.enrolled);$('sponsorship').value=p.needs_sponsorship==null?'':String(p.needs_sponsorship);$('location').value=p.location||'';$('degree').value=p.degree_level||'';$('degree-status').value=p.degree_status||'';$('major').value=p.major||'';$('experience').value=p.experience_years??'';$('available-from').value=p.available_from||'';$('available-until').value=p.available_until||''}
-function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community').checked,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],closing_within_days:0,recent_days:0,query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
-function fillPreferences(p){$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
+function preferences(){return {technical_only:false,current_only:true,include_stale:true,compact:true,include_community:$('include-community').checked,include_programs:false,student_year:'all',program_status:'all',opportunity_type:'all',role_type:'all',career_field:'all',company:'',country:'',region:'',workplace:'all',sectors:choices.field,career_fields:choices.career,companies:choices.company,countries:choices.country,regions:choices.region,workplaces:choices.workplace,role_types:choices.role,opportunity_types:choices['opportunity-type'],pay:'all',commitments:$('commitment').value?[$('commitment').value]:[],closing_within_days:0,recent_days:Number($('posted-age')?.value||0),query:$('query').value,sort:$('sort').value,comparable_only:$('comparable-only').checked}}
+function fillPreferences(p){$('include-community').checked=Boolean(p.include_community);$('commitment').value=p.commitments?.[0]||'';if($('posted-age'))$('posted-age').value=String(p.recent_days||0);$('comparable-only').checked=Boolean(p.comparable_only);$('query').value=p.query||'';$('sort').value=p.sort==='fit'?'relevance':p.sort||'relevance';for(const [key,id,legacy] of [['career_fields','career','career_field'],['sectors','field','sector'],['companies','company','company'],['countries','country','country'],['regions','region','region'],['workplaces','workplace','workplace'],['role_types','role','role_type'],['opportunity_types','opportunity-type','opportunity_type']])setChoices(id,preferenceChoices(p,key,legacy))}
 function identity(){return {display_name:$('display-name').value.trim(),school:$('profile-school').value.trim(),headline:$('profile-tagline').value.trim()}}
 function identityView(user){const name=user?.display_name||user?.username||'',initials=name.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'wB';$('nav-avatar').textContent=initials;$('profile-avatar').textContent=initials;$('nav-account-label').textContent=name||'Sign in / Create profile';$('profile-display-name').textContent=name;$('profile-handle').textContent=user?'@'+user.username:'';$('profile-headline').textContent=user?.headline||'';$('workspace-summary').textContent=user?'Your profile and saved preferences':'Sign in to save your profile & preferences'}
 async function accountFetch(path,method='GET',body){const response=await fetch('/api/account/'+path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Check the account fields and try again.'));return data}
@@ -63,6 +63,7 @@ function icon(name, size = 14) {
   const paths = {
     pin: ['M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z', 'M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z'],
     clock: ['M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z', 'M12 6v6l4 2'],
+    bolt: ['M13 2L3 14h9l-1 8 10-12h-9l1-8z'],
   };
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   for (const [key, value] of Object.entries({width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', 'stroke-width':'1.7', 'stroke-linecap':'round', 'stroke-linejoin':'round', 'aria-hidden':'true'})) svg.setAttribute(key, value);
@@ -158,7 +159,21 @@ function card(job) {
 
   const article=make('article',undefined,'job'),company=make('div',undefined,'company-row'),identity=make('div',undefined,'company-identity');
   identity.append(make('div',job.company,'company-name'));
-  const source=make('div',undefined,'source-tag'+(job.listing_status==='community_listed'?' community':''));source.append(make('span'),document.createTextNode(job.listing_status==='community_listed'?'Community discovery':'Employer feed'));identity.append(source);company.append(logo(job),identity);article.append(company);
+  const source=make('div',undefined,'source-tag'+(job.listing_status==='community_listed'?' community':''));source.append(make('span'),document.createTextNode(job.listing_status==='community_listed'?'Community discovery':'Employer feed'));identity.append(source);
+  const freshness=freshnessWindow(job);
+  if(freshness.isGolden){
+    const badge=make('span',undefined,'freshness-badge golden');
+    badge.append(icon('bolt',11),document.createTextNode('Golden window · First 24h'));
+    badge.title='Detected in the last 24 hours — applying early provides the highest recruiter response rate.';
+    identity.append(badge);
+    article.classList.add('is-golden-window');
+  }else if(freshness.isEarly){
+    const badge=make('span',undefined,'freshness-badge early');
+    badge.append(icon('bolt',11),document.createTextNode('Early drop · Under 3d'));
+    badge.title='Detected within 3 days — high application response window.';
+    identity.append(badge);
+  }
+  company.append(logo(job),identity);article.append(company);
   const heading=make('h3'),title=make('button',job.title,'job-title');title.type='button';title.onclick=()=>showDetails(job);heading.append(title);article.append(heading);
   const location=make('div',undefined,'job-location');location.append(icon('pin'),make('span',(job.locations||[]).join(' · ')||job.location||'Location not specified'));article.append(location,tags(job));
   const deadline=make('div',undefined,'opportunity-deadline'),day=job.deadline_info?.date;
@@ -171,7 +186,9 @@ function card(job) {
   if(job.facts?.pay_quote)article.append(make('p',job.facts.pay_quote.slice(0,200)+(job.facts.pay_quote.length>200?'…':''),'decision-facts'));
   if(job.availability)article.append(availabilityBox(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
-  const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));fresh.append(icon('clock',11),document.createTextNode(relativeTime(job.last_seen).replace('Source checked','Last seen in source')));article.append(fresh);return article;
+  const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));
+  const originText=freshness.timeLabel?`First seen ${freshness.timeLabel} · `:'' ;
+  fresh.append(icon('clock',11),document.createTextNode(originText+relativeTime(job.last_seen).replace('Source checked','Last confirmed in source')));article.append(fresh);return article;
 }
 
 function availabilityBox(job, interactive=false) {

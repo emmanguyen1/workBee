@@ -6,3 +6,6 @@ venv/
 logs/
 .pytest_cache/
 .vercel
+docker-compose.override.yml
+.DS_Store
+*/.DS_Store
