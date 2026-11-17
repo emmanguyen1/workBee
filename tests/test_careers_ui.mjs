@@ -80,6 +80,47 @@ test('calendar exports use the published deadline timezone and escape text', asy
   assert.match(day,/DTEND;VALUE=DATE:20270107/);
 });
 
+test('googleCalendarUrl and pipelineCalendarIcs generate correct sync links and multi-event feeds', async()=>{
+  const {googleCalendarUrl, pipelineCalendarIcs}=await import('../hives/careers/static/logic.mjs');
+  
+  // Test Google Calendar link
+  const gUrl = googleCalendarUrl({
+    company: 'Stripe',
+    title: 'Software Engineer Intern',
+    deadline: '2027-02-15',
+    apply_url: 'https://stripe.com/jobs/123'
+  });
+  assert.match(gUrl, /https:\/\/calendar\.google\.com\/calendar\/render/);
+  assert.match(gUrl, /Stripe/);
+  assert.match(gUrl, /20270215/);
+
+  // Test multi-event ICS feed
+  const apps = [
+    {
+      id: 'app-1',
+      company: 'Microsoft',
+      title: 'Explore Intern',
+      deadline_date: '2027-03-01',
+      status: 'applied',
+      apply_url: 'https://careers.microsoft.com/456'
+    },
+    {
+      id: 'app-2',
+      company: 'Apple',
+      title: 'Hardware Co-op',
+      deadline_date: '2027-04-10',
+      status: 'preparing'
+    }
+  ];
+  const multiIcs = pipelineCalendarIcs(apps, new Date('2026-11-01T00:00:00Z'));
+  assert.match(multiIcs, /BEGIN:VCALENDAR/);
+  assert.match(multiIcs, /X-WR-CALNAME:workBee Application Deadlines/);
+  assert.match(multiIcs, /\[Deadline\] Microsoft - Explore Intern/);
+  assert.match(multiIcs, /\[Prep Milestone\] 3 days until Microsoft/);
+  assert.match(multiIcs, /\[Deadline\] Apple - Hardware Co-op/);
+  assert.match(multiIcs, /END:VCALENDAR\r\n$/);
+});
+
 test('resume merging retains user skills and upgrades weak evidence',async()=>{
   const {mergeProfileSkills}=await import('../hives/careers/static/logic.mjs');
   const old=[{skill:'Python',evidence:'Listed skill'},{skill:'Excel',evidence:'Managed a budget project'}],incoming=[{skill:'Python',evidence:'Built a data pipeline'},{skill:'SQL',evidence:'Built a reporting project'}];
