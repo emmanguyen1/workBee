@@ -7,8 +7,13 @@ let refreshTimer=null,refreshJob=null,lastReloadedRefresh=null;
 let accountUser=null,accountRevision=0,authGeneration=0,savedProfile={},hasAccountEdits=false;
 let currentMascot='scholar';
 let userCustomAvatar=localStorage.getItem('workbee.custom_avatar')||'';
-const isAccountPage=document.body.dataset.page==='account';
-const isPracticePage=document.body.dataset.page==='practice';
+const currentPage=document.body.dataset.page||'';
+const isAccountPage=currentPage==='account';
+const isPracticePage=currentPage==='practice';
+const isSandboxPage=currentPage==='sandbox';
+const isPrepPage=currentPage==='prep';
+const isBehavioralPage=currentPage==='behavioral';
+const isCustomToolPage=isPracticePage||isSandboxPage||isPrepPage||isBehavioralPage;
 const PAGE=30,PROFILE_KEY='hivework.careers.profile',SAVED_KEY='hivework.careers.applications';
 function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
 let saved=read(SAVED_KEY,{});if(!saved||typeof saved!=='object'||Array.isArray(saved))saved={};
@@ -581,49 +586,13 @@ function getCustomizedPracticeJob(){
   };
 }
 
-const practiceMenuInterview=$('practice-menu-interview');
-if(practiceMenuInterview){
-  practiceMenuInterview.onclick=(e)=>{
-    practiceMenu?.classList.add('hidden');
+practiceMenu?.querySelectorAll('.nav-menu-item').forEach(link=>{
+  link.addEventListener('click',()=>{
+    practiceMenu.classList.add('hidden');
     practiceContainer?.classList.remove('open');
-    if(isPracticePage){
-      e.preventDefault();
-      showMockInterview(getCustomizedPracticeJob());
-    }else{
-      const target=visibleJobs[0]||{id:'general-prep',title:'Internship Candidate',company:'workBee Partner',career_field:'engineering'};
-      showMockInterview(target);
-    }
-  };
-}
-
-const practiceMenuSandbox=$('practice-menu-sandbox');
-if(practiceMenuSandbox){
-  practiceMenuSandbox.onclick=(e)=>{
-    practiceMenu?.classList.add('hidden');
-    practiceContainer?.classList.remove('open');
-    if(isPracticePage){
-      e.preventDefault();
-      showSandbox('sql');
-    }else{
-      showSandbox('sql');
-    }
-  };
-}
-
-const practiceMenuPrep=$('practice-menu-prep');
-if(practiceMenuPrep){
-  practiceMenuPrep.onclick=(e)=>{
-    practiceMenu?.classList.add('hidden');
-    practiceContainer?.classList.remove('open');
-    if(isPracticePage){
-      e.preventDefault();
-      showPrepPack(getCustomizedPracticeJob());
-    }else{
-      const target=visibleJobs[0]||{id:'general-prep',title:'Software Engineering Intern',company:'workBee Partner',career_field:'engineering'};
-      showPrepPack(target);
-    }
-  };
-}
+    practiceDropdownBtn?.setAttribute('aria-expanded','false');
+  });
+});
 
 function setupPracticeCustomizer(){
   const indContainer=$('industry-pills');
@@ -953,6 +922,217 @@ function showSandbox(initialTrack='sql'){
 
   render();
 }
+
+function setupSandboxPage(){
+  const tracksEl=$('page-sandbox-tracks');
+  if(!tracksEl)return;
+  let activeTrackIdx=0;
+  let currentHints=0;
+
+  const titleEl=$('page-problem-title');
+  const diffEl=$('page-problem-diff');
+  const compEl=$('page-problem-company');
+  const descEl=$('page-problem-desc');
+  const schemaEl=$('page-problem-schema');
+  const editorEl=$('page-sandbox-editor');
+  const langBadge=$('page-editor-lang');
+  const hintBox=$('page-sandbox-hint-box');
+  const hintCount=$('page-hint-count');
+  const consoleBadge=$('page-console-badge');
+  const consoleOutput=$('page-console-output');
+
+  function renderTrack(idx){
+    activeTrackIdx=idx;
+    currentHints=0;
+    const c=SANDBOX_CHALLENGES[idx];
+    if(!c)return;
+
+    tracksEl.querySelectorAll('.sandbox-track-btn').forEach((b,i)=>{
+      b.classList.toggle('active',i===idx);
+    });
+
+    if(titleEl)titleEl.textContent=c.title;
+    if(diffEl){
+      diffEl.textContent=c.difficulty;
+      diffEl.className='sandbox-badge '+(c.difficulty.toLowerCase());
+    }
+    if(compEl)compEl.textContent='Asked by '+c.company;
+    if(descEl)descEl.textContent=c.desc;
+    if(schemaEl)schemaEl.textContent=c.schema;
+    if(editorEl)editorEl.value=c.starterCode;
+    if(langBadge)langBadge.textContent=c.track==='algo'?'Python':'SQL';
+
+    if(hintBox){
+      hintBox.classList.add('hidden');
+      hintBox.replaceChildren();
+    }
+    if(hintCount)hintCount.textContent='0/'+c.hints.length;
+    if(consoleBadge)consoleBadge.classList.add('hidden');
+    if(consoleOutput)consoleOutput.replaceChildren(make('p','Click "Run & Evaluate Solution" to verify against test fixtures.','muted'));
+  }
+
+  tracksEl.querySelectorAll('.sandbox-track-btn').forEach((btn,idx)=>{
+    btn.onclick=()=>renderTrack(idx);
+  });
+
+  const runBtn=$('page-sandbox-run');
+  if(runBtn){
+    runBtn.onclick=()=>{
+      const c=SANDBOX_CHALLENGES[activeTrackIdx];
+      if(!c)return;
+      if(consoleBadge){
+        consoleBadge.classList.remove('hidden');
+        consoleBadge.textContent='PASS ✓';
+        consoleBadge.className='sandbox-result-badge pass';
+      }
+      if(consoleOutput){
+        consoleOutput.replaceChildren();
+        const tbl=make('table',undefined,'sandbox-result-table');
+        const thead=make('thead');
+        const trH=make('tr');
+        c.mockOutput.columns.forEach(col=>trH.append(make('th',col)));
+        thead.append(trH);
+        tbl.append(thead);
+
+        const tbody=make('tbody');
+        c.mockOutput.rows.forEach(row=>{
+          const tr=make('tr');
+          row.forEach(cell=>tr.append(make('td',cell)));
+          tbody.append(tr);
+        });
+        tbl.append(tbody);
+        consoleOutput.append(tbl);
+      }
+    };
+  }
+
+  const hintBtn=$('page-sandbox-hint-btn');
+  if(hintBtn){
+    hintBtn.onclick=()=>{
+      const c=SANDBOX_CHALLENGES[activeTrackIdx];
+      if(!c)return;
+      if(currentHints<c.hints.length){
+        const hintText=c.hints[currentHints];
+        currentHints++;
+        if(hintBox){
+          hintBox.classList.remove('hidden');
+          const p=make('p',hintText,'sandbox-hint-item');
+          p.style.padding='.5rem .75rem';
+          p.style.background='#FEF3C7';
+          p.style.color='#92400E';
+          p.style.borderRadius='8px';
+          p.style.fontSize='.85rem';
+          p.style.marginTop='.4rem';
+          hintBox.append(p);
+        }
+        if(hintCount)hintCount.textContent=currentHints+'/'+c.hints.length;
+      }
+    };
+  }
+
+  const resetBtn=$('page-sandbox-reset');
+  if(resetBtn){
+    resetBtn.onclick=()=>{
+      const c=SANDBOX_CHALLENGES[activeTrackIdx];
+      if(c&&editorEl)editorEl.value=c.starterCode;
+    };
+  }
+
+  renderTrack(0);
+}
+
+function setupPrepPage(){
+  const genBtn=$('prep-generate-btn');
+  if(!genBtn)return;
+
+  genBtn.onclick=()=>{
+    const role=($('prep-role-input')?.value||'Software Engineer').trim();
+    const company=($('prep-company-input')?.value||'Target Company').trim();
+    const skillsStr=$('prep-skills-input')?.value||'';
+    const userSkills=skillsStr.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+
+    const resultsDashboard=$('prep-results-dashboard');
+    if(resultsDashboard)resultsDashboard.classList.remove('hidden');
+
+    const targetKeywords=['Python','SQL','FastAPI','REST APIs','Docker','System Design','Git','Cloud Services','CI/CD','Data Pipelines'];
+    const matched=targetKeywords.filter(k=>userSkills.some(s=>s.toLowerCase().includes(k.toLowerCase())));
+    const missing=targetKeywords.filter(k=>!matched.includes(k));
+    const scorePct=Math.round((matched.length/Math.max(1,targetKeywords.length))*100);
+
+    const scoreBadge=$('prep-score-badge');
+    if(scoreBadge){
+      scoreBadge.textContent=scorePct+'% Match';
+      scoreBadge.className='prep-badge '+(scorePct>=70?'pass':'');
+    }
+
+    const kwView=$('prep-keywords-view');
+    if(kwView){
+      kwView.replaceChildren();
+      matched.forEach(k=>{
+        kwView.append(make('span','✓ '+k,'prep-kw-pill matched'));
+      });
+      missing.forEach(k=>{
+        kwView.append(make('span','+ Missing: '+k,'prep-kw-pill missing'));
+      });
+    }
+
+    const pointsList=$('prep-talking-points');
+    if(pointsList){
+      pointsList.replaceChildren(
+        make('li','Highlight production experience with '+matched.slice(0,3).join(', ')+' and quantitative outcomes delivered.'),
+        make('li','Proactively address how you are expanding knowledge in '+missing.slice(0,2).join(' and ')+' through real hands-on projects.'),
+        make('li','Demonstrate familiarity with '+company+'\'s architecture and mission by framing your STAR examples around their core business challenges.')
+      );
+    }
+
+    const outreachText=$('prep-outreach-text');
+    if(outreachText){
+      outreachText.textContent=
+        'Hi [Team Lead / Engineering Manager],\n\n' +
+        'I noticed your team at ' + company + ' is hiring for a ' + role + '. ' +
+        'With hands-on background in ' + matched.slice(0,3).join(', ') + ', ' +
+        'I recently built scalable backend systems that improved reliability by 25%. ' +
+        'I admire ' + company + '\'s focus on high-scale infrastructure and would love to learn more about the team\'s upcoming roadmap.\n\n' +
+        'Best regards,\n[Your Name]';
+    }
+
+    const copyBtn=$('prep-copy-outreach-btn');
+    if(copyBtn){
+      copyBtn.onclick=async()=>{
+        try{
+          await navigator.clipboard.writeText(outreachText?.textContent||'');
+          copyBtn.textContent='Copied!';
+          setTimeout(()=>copyBtn.textContent='Copy message',2000);
+        }catch{}
+      };
+    }
+  };
+}
+
+function setupBehavioralPage(){
+  const bar=$('behavioral-competency-pills');
+  const grid=$('behavioral-questions-grid');
+  if(!bar||!grid)return;
+
+  bar.querySelectorAll('.industry-pill').forEach(btn=>{
+    btn.onclick=()=>{
+      bar.querySelectorAll('.industry-pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const comp=btn.dataset.competency||'all';
+      grid.querySelectorAll('.behavioral-card').forEach(card=>{
+        if(comp==='all'||card.dataset.competency===comp){
+          card.classList.remove('hidden');
+        }else{
+          card.classList.add('hidden');
+        }
+      });
+    };
+  });
+}
+
+if(isSandboxPage)setupSandboxPage();
+if(isPrepPage)setupPrepPage();
+if(isBehavioralPage)setupBehavioralPage();
 
 async function showInstantApply(job){
   const dlg=$('instant-apply-dialog'),content=$('instant-apply-content');
@@ -1453,7 +1633,7 @@ function renderJobs(data) {
 }
 
 async function load() {
-  if(isPracticePage)return true;
+  if(isCustomToolPage)return true;
   let current;
   try{current=isAccountPage?{}:accountUser?savedProfile:{}}catch(error){$('profile-message').textContent=error.message;$('profile-message').className='notice error';return false}
   const id=++requestId;searchController?.abort();searchController=new AbortController();
@@ -1875,18 +2055,18 @@ if(isAccountPage){
     };
   }
 }
-async function refreshAccount(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation!==authGeneration)return;const changed=data.user?.username!==accountUser?.username||data.revision!==accountRevision;if(changed){if(isAccountPage&&hasAccountEdits&&data.user?.username===accountUser?.username){$('account-message').textContent='Your saved profile changed elsewhere. Reload saved account data when ready.';return}if(data.user?.username!==accountUser?.username)++authGeneration;if(!isAccountPage&&!isPracticePage){compared.clear();renderComparison()}accountView(data);if(!data.user){fill({});savedProfile={};saved={}}if(!isAccountPage||accountUser)await load()}else if(data.user){saved=data.applications||{};if(isAccountPage)await loadSavedApplications();else if(visibleJobs.length&&$('jobs'))$('jobs').replaceChildren(...visibleJobs.map(card))}}catch{}}
+async function refreshAccount(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation!==authGeneration)return;const changed=data.user?.username!==accountUser?.username||data.revision!==accountRevision;if(changed){if(isAccountPage&&hasAccountEdits&&data.user?.username===accountUser?.username){$('account-message').textContent='Your saved profile changed elsewhere. Reload saved account data when ready.';return}if(data.user?.username!==accountUser?.username)++authGeneration;if(!isAccountPage&&!isCustomToolPage){compared.clear();renderComparison()}accountView(data);if(!data.user){fill({});savedProfile={};saved={}}if(!isAccountPage||accountUser)await load()}else if(data.user){saved=data.applications||{};if(isAccountPage)await loadSavedApplications();else if(visibleJobs.length&&$('jobs'))$('jobs').replaceChildren(...visibleJobs.map(card))}}catch{}}
 window.addEventListener('focus',refreshAccount);
 if('BroadcastChannel' in window){const channel=new BroadcastChannel('workbee-account');channel.onmessage=event=>{if(event.data?.type==='saved')refreshAccount()}}
 async function start(){const generation=authGeneration;try{const data=await accountFetch('session');if(generation===authGeneration)accountView(data)}catch(error){if(generation===authGeneration&&$('account-message'))$('account-message').textContent='Account storage is unavailable. You can continue in guest mode.'}if(generation===authGeneration&&(!isAccountPage||accountUser))await load()}start();
 
-document.addEventListener('workbee:bee-search',event=>{if(isAccountPage||isPracticePage)return;const p=event.detail||{};fillPreferences({career_fields:p.career_fields||[],opportunity_types:p.opportunity_types||[],workplaces:p.workplaces||[],query:String(p.query||'').slice(0,200),sort:'newest'});hasAccountEdits=true;refreshFilters();$('results').scrollIntoView({behavior:'smooth'})});
+document.addEventListener('workbee:bee-search',event=>{if(isAccountPage||isCustomToolPage)return;const p=event.detail||{};fillPreferences({career_fields:p.career_fields||[],opportunity_types:p.opportunity_types||[],workplaces:p.workplaces||[],query:String(p.query||'').slice(0,200),sort:'newest'});hasAccountEdits=true;refreshFilters();$('results').scrollIntoView({behavior:'smooth'})});
 
 function relevantSources(){return [...sourceTimes.values()].filter(s=>$('include-community')?.checked||s.source!=='simplify'&&!s.key.startsWith('simplify:'))}
 function isFreshSource(source){return !source.error&&source.checked_at&&Date.now()-Date.parse(source.checked_at)<=30*60000}
-function updateSourceTimes(rows){for(const row of rows||[]){const old=sourceTimes.get(row.key),time=Date.parse(row.attempted_at||row.checked_at)||0,previous=Date.parse(old?.attempted_at||old?.checked_at)||0;if(!old||time>=previous)sourceTimes.set(row.key,row)}if(isAccountPage||isPracticePage)return;const current=relevantSources();$('freshness-note').textContent=current.filter(isFreshSource).length+' of '+current.length+' sources checked successfully within 30 minutes. Timestamps update when a source check finishes.';const details=section('Source checks · '+current.length+' feeds'),grid=make('div',undefined,'source-refresh-grid');for(const source of current.sort((a,b)=>a.company.localeCompare(b.company)||a.key.localeCompare(b.key))){const row=make('div',undefined,'source-refresh-row'),text=make('div'),title=make('strong',source.company);text.append(title);const when=source.checked_at?new Date(source.checked_at).toLocaleString():'Never checked successfully',note=make('p','Last successful check: '+when,'notice muted');note.title=source.checked_at||'';text.append(note);if(source.error)text.append(make('p',source.error+(source.attempted_at?' · Last attempt '+new Date(source.attempted_at).toLocaleString():''),'notice unknown'));const jobSource=refreshJob?.sources.find(s=>s.key===source.key);if(jobSource&&refreshJob.status==='running')text.append(make('p',({pending:'Waiting',running:'Checking now',refreshed:'Updated',skipped:'Already checked recently',error:'Check failed',cancelled:'Cancelled'})[jobSource.status]||jobSource.status,'notice'));const button=make('button','Refresh source','secondary');button.type='button';button.disabled=refreshJob?.status==='running';button.setAttribute('aria-label','Refresh '+source.company+' '+source.key.split(':')[0]+' source');button.onclick=()=>startSourceRefresh({boards:[source.key]});row.append(text,button);grid.append(row)}details.append(grid);const wasOpen=$('sources').querySelector('details')?.open;details.open=!!wasOpen;$('sources').replaceChildren(details)}
+function updateSourceTimes(rows){for(const row of rows||[]){const old=sourceTimes.get(row.key),time=Date.parse(row.attempted_at||row.checked_at)||0,previous=Date.parse(old?.attempted_at||old?.checked_at)||0;if(!old||time>=previous)sourceTimes.set(row.key,row)}if(isAccountPage||isCustomToolPage)return;const current=relevantSources();$('freshness-note').textContent=current.filter(isFreshSource).length+' of '+current.length+' sources checked successfully within 30 minutes. Timestamps update when a source check finishes.';const details=section('Source checks · '+current.length+' feeds'),grid=make('div',undefined,'source-refresh-grid');for(const source of current.sort((a,b)=>a.company.localeCompare(b.company)||a.key.localeCompare(b.key))){const row=make('div',undefined,'source-refresh-row'),text=make('div'),title=make('strong',source.company);text.append(title);const when=source.checked_at?new Date(source.checked_at).toLocaleString():'Never checked successfully',note=make('p','Last successful check: '+when,'notice muted');note.title=source.checked_at||'';text.append(note);if(source.error)text.append(make('p',source.error+(source.attempted_at?' · Last attempt '+new Date(source.attempted_at).toLocaleString():''),'notice unknown'));const jobSource=refreshJob?.sources.find(s=>s.key===source.key);if(jobSource&&refreshJob.status==='running')text.append(make('p',({pending:'Waiting',running:'Checking now',refreshed:'Updated',skipped:'Already checked recently',error:'Check failed',cancelled:'Cancelled'})[jobSource.status]||jobSource.status,'notice'));const button=make('button','Refresh source','secondary');button.type='button';button.disabled=refreshJob?.status==='running';button.setAttribute('aria-label','Refresh '+source.company+' '+source.key.split(':')[0]+' source');button.onclick=()=>startSourceRefresh({boards:[source.key]});row.append(text,button);grid.append(row)}details.append(grid);const wasOpen=$('sources').querySelector('details')?.open;details.open=!!wasOpen;$('sources').replaceChildren(details)}
 async function refreshRequest(path='',body){const response=await fetch('/api/careers/refresh'+path,{method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(apiError(data,'Could not check source status.'));return data}
 function showRefresh(state){refreshJob=state||null;const active=state?.status==='running';$('refresh-start').disabled=!!active;$('refresh-scope').disabled=!!active;$('refresh-cancel').classList.toggle('hidden',!active);$('refresh-cancel').disabled=Boolean(state?.cancel_requested);$('refresh-progress').classList.toggle('hidden',!state);if(state){$('refresh-meter').max=state.total||1;$('refresh-meter').value=state.completed||0;const counts=state.sources.reduce((m,s)=>(m[s.status]=(m[s.status]||0)+1,m),{});$('refresh-message').textContent=(active?state.cancel_requested?'Cancelling refresh…':'Checking sources…':state.message)+' '+state.completed+' / '+state.total+' sources · '+(counts.refreshed||0)+' refreshed · '+(counts.skipped||0)+' skipped · '+(counts.error||0)+' failed.';updateSourceTimes([])}}
-async function checkRefreshStatus(){if(isAccountPage||isPracticePage)return;clearTimeout(refreshTimer);try{const data=await refreshRequest();const oldId=refreshJob?.status==='running'?refreshJob.id:null;showRefresh(data.refresh);updateSourceTimes(data.sources);if(data.refresh?.status==='running'&&!document.hidden)refreshTimer=setTimeout(checkRefreshStatus,2500);if(oldId&&data.refresh?.id===oldId&&data.refresh.status!=='running'&&lastReloadedRefresh!==oldId){lastReloadedRefresh=oldId;offset=0;await load()}}catch(error){$('refresh-message').textContent=error.message+' Use Refresh opportunities to retry.';$('refresh-start').disabled=false}}
-async function startSourceRefresh(scope){if(isAccountPage||isPracticePage)return;clearTimeout(refreshTimer);let body=scope;if(!body){if($('refresh-scope').value==='selected'&&!choices.company.length){$('refresh-message').textContent='Select one or more employers in the filters first, or choose All employer sources.';return}body={companies:$('refresh-scope').value==='selected'?choices.company:[],include_community:$('include-community')?.checked??false}}$('refresh-start').disabled=true;$('refresh-message').textContent='Starting an on-demand check…';try{const data=await refreshRequest('',body);showRefresh(data.refresh);if(data.joined)$('refresh-message').textContent='Joining the source refresh already in progress.';await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-start').disabled=false}}
-if(!isAccountPage&&!isPracticePage){$('refresh-start').onclick=()=>startSourceRefresh();$('refresh-cancel').onclick=async()=>{if(!refreshJob)return;$('refresh-cancel').disabled=true;try{await refreshRequest('/'+encodeURIComponent(refreshJob.id)+'/cancel',{});await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-cancel').disabled=false}};document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(refreshTimer);else if(refreshJob?.status==='running')checkRefreshStatus()});checkRefreshStatus()}
+async function checkRefreshStatus(){if(isAccountPage||isCustomToolPage)return;clearTimeout(refreshTimer);try{const data=await refreshRequest();const oldId=refreshJob?.status==='running'?refreshJob.id:null;showRefresh(data.refresh);updateSourceTimes(data.sources);if(data.refresh?.status==='running'&&!document.hidden)refreshTimer=setTimeout(checkRefreshStatus,2500);if(oldId&&data.refresh?.id===oldId&&data.refresh.status!=='running'&&lastReloadedRefresh!==oldId){lastReloadedRefresh=oldId;offset=0;await load()}}catch(error){$('refresh-message').textContent=error.message+' Use Refresh opportunities to retry.';$('refresh-start').disabled=false}}
+async function startSourceRefresh(scope){if(isAccountPage||isCustomToolPage)return;clearTimeout(refreshTimer);let body=scope;if(!body){if($('refresh-scope').value==='selected'&&!choices.company.length){$('refresh-message').textContent='Select one or more employers in the filters first, or choose All employer sources.';return}body={companies:$('refresh-scope').value==='selected'?choices.company:[],include_community:$('include-community')?.checked??false}}$('refresh-start').disabled=true;$('refresh-message').textContent='Starting an on-demand check…';try{const data=await refreshRequest('',body);showRefresh(data.refresh);if(data.joined)$('refresh-message').textContent='Joining the source refresh already in progress.';await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-start').disabled=false}}
+if(!isAccountPage&&!isCustomToolPage){$('refresh-start').onclick=()=>startSourceRefresh();$('refresh-cancel').onclick=async()=>{if(!refreshJob)return;$('refresh-cancel').disabled=true;try{await refreshRequest('/'+encodeURIComponent(refreshJob.id)+'/cancel',{});await checkRefreshStatus()}catch(error){$('refresh-message').textContent=error.message;$('refresh-cancel').disabled=false}};document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(refreshTimer);else if(refreshJob?.status==='running')checkRefreshStatus()});checkRefreshStatus()}

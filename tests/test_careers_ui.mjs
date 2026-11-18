@@ -293,18 +293,20 @@ test('sandbox dialog element exists in page.html and account.html', async () => 
   assert.ok(accHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in account.html');
 });
 
-test('header tabs open another browser tab via target="_blank" in all pages', async () => {
+test('header tabs navigate directly to distinct pages without opening new browser tabs', async () => {
   const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
   const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
   const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
   
-  assert.ok(pageHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'page.html explore tab target="_blank"');
-  assert.ok(accHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'account.html explore tab target="_blank"');
-  assert.ok(pracHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'practice.html explore tab target="_blank"');
+  const getHeader = html => html.slice(0, html.indexOf('</header>'));
+  assert.ok(!getHeader(pageHtml).includes('target="_blank"'), 'page.html header should not have target="_blank"');
+  assert.ok(!getHeader(accHtml).includes('target="_blank"'), 'account.html header should not have target="_blank"');
+  assert.ok(!getHeader(pracHtml).includes('target="_blank"'), 'practice.html header should not have target="_blank"');
 
-  assert.ok(pageHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'page.html practice studio target="_blank"');
-  assert.ok(accHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'account.html practice studio target="_blank"');
-  assert.ok(pracHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'practice.html practice studio target="_blank"');
+  assert.ok(pageHtml.includes('href="/practice"'), 'page.html has link to /practice');
+  assert.ok(pageHtml.includes('href="/sandbox"'), 'page.html has link to /sandbox');
+  assert.ok(pageHtml.includes('href="/prep"'), 'page.html has link to /prep');
+  assert.ok(pageHtml.includes('href="/behavioral"'), 'page.html has link to /behavioral');
 });
 
 test('practice studio contains industry and career customization controls', async () => {
@@ -318,6 +320,19 @@ test('practice studio contains industry and career customization controls', asyn
   assert.ok(pracHtml.includes('id="practice-company-name"'), 'company name input');
   assert.ok(pracHtml.includes('id="stage-pills"'), 'stage pills container');
   assert.ok(pracHtml.includes('id="launch-custom-interview"'), 'launch interview button');
-  assert.ok(pracHtml.includes('id="launch-custom-sandbox"'), 'launch sandbox button');
-  assert.ok(pracHtml.includes('id="launch-custom-prep"'), 'launch prep button');
+  assert.ok(pracHtml.includes('href="/sandbox"'), 'direct link to /sandbox');
+  assert.ok(pracHtml.includes('href="/prep"'), 'direct link to /prep');
+});
+
+test('dedicated sandbox, prep, and behavioral pages exist with distinct content', async () => {
+  const sandHtml = await fs.readFile(new URL('../hives/careers/sandbox.html', import.meta.url), 'utf8');
+  const prepHtml = await fs.readFile(new URL('../hives/careers/prep.html', import.meta.url), 'utf8');
+  const behavHtml = await fs.readFile(new URL('../hives/careers/behavioral.html', import.meta.url), 'utf8');
+
+  assert.ok(sandHtml.includes('id="page-sandbox-editor"'), 'sandbox page code editor');
+  assert.ok(sandHtml.includes('id="page-sandbox-run"'), 'sandbox page run button');
+  assert.ok(prepHtml.includes('id="prep-builder-form"'), 'prep page builder form');
+  assert.ok(prepHtml.includes('id="prep-generate-btn"'), 'prep page generate button');
+  assert.ok(behavHtml.includes('id="behavioral-competency-pills"'), 'behavioral competency filters');
+  assert.ok(behavHtml.includes('id="behavioral-questions-grid"'), 'behavioral question grid');
 });

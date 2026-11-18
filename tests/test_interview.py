@@ -87,6 +87,25 @@ class TestInterview(unittest.TestCase):
         self.assertIn('practice-customizer-form', resp.text)
         self.assertIn('industry-pills', resp.text)
 
+    def test_distinct_pages_routes(self):
+        # Sandbox route
+        resp_sand = self.client.get('/sandbox')
+        self.assertEqual(resp_sand.status_code, 200)
+        self.assertIn('page-sandbox-editor', resp_sand.text)
+        self.assertIn('page-sandbox-run', resp_sand.text)
+
+        # Prep route
+        resp_prep = self.client.get('/prep')
+        self.assertEqual(resp_prep.status_code, 200)
+        self.assertIn('prep-builder-form', resp_prep.text)
+        self.assertIn('prep-generate-btn', resp_prep.text)
+
+        # Behavioral route
+        resp_behav = self.client.get('/behavioral')
+        self.assertEqual(resp_behav.status_code, 200)
+        self.assertIn('behavioral-competency-pills', resp_behav.text)
+        self.assertIn('behavioral-questions-grid', resp_behav.text)
+
     def test_interview_industry_customization(self):
         from hives.careers.bee import local_interview_questions
         
