@@ -15,6 +15,7 @@
   <div id="coverage" class="coverage" aria-live="polite"></div>
 <form id="keyword-search" class="keyword-search"><div><label for="query">Search opportunities</label><input id="query" maxlength="200" placeholder="Job title, skills, or employer"></div><button id="keyword-submit" type="submit">Search opportunities</button></form>
 <div class="search-actions-bar"><div class="refresh-compact"><label class="sr-only" for="refresh-scope">Refresh scope</label><select id="refresh-scope" class="refresh-scope-select"><option value="all">All sources</option><option value="selected">Selected employers</option></select><button id="refresh-start" type="button" class="refresh-pill-btn">Refresh opportunities</button><button id="refresh-cancel" type="button" class="secondary hidden">Cancel</button><span id="freshness-note" class="refresh-compact-note">Checked recently</span></div><div id="refresh-progress" class="hidden"><progress id="refresh-meter" max="1" value="0" aria-label="Source refresh progress"></progress></div><p id="refresh-message" class="notice" role="status" aria-live="polite"></p></div>
+<div class="practice-global-bar"><button id="global-practice-btn" type="button" class="global-practice-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4h-2V7h2z"/></svg> Practice with Bee</button></div>
 
   <div class="layout search-layout"><aside class="filter-sidebar"><div class="filter-sidebar-heading"><h2>Refine your search</h2><a id="edit-preferences" href="/account#preferences">Save preferences ↗</a></div>      <form id="filters" class="toolbar filter-panel">
         <div class="filter-section-group"><span class="filter-group-title">Role & Field</span>
@@ -107,6 +108,7 @@
   <dialog id="opportunity-dialog" aria-labelledby="opportunity-title"><div id="dialog-content"></div></dialog>
   <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
   <dialog id="interview-dialog" class="interview-dialog" aria-labelledby="interview-dialog-title"><div id="interview-content"></div></dialog>
+  <dialog id="instant-apply-dialog" class="instant-apply-dialog" aria-labelledby="instant-apply-title"><div id="instant-apply-content"></div></dialog>
   <dialog id="sources-dialog" class="sources-dialog" aria-labelledby="sources-dialog-title"><div class="sources-dialog-header"><h2 id="sources-dialog-title">Cited sources & employer feeds</h2><button id="close-sources-dialog" type="button" class="close-dialog" aria-label="Close sources dialog">×</button></div><p class="notice muted">Real-time status of employer career feeds and community discoveries. Checks run on demand.</p><div id="sources" class="sources"></div></dialog>
   <footer class="site-footer">
     <div class="footer-grid">

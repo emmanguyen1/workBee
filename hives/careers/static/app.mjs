@@ -415,7 +415,7 @@ function card(job) {
   }
   article.append(matchBox(job.match));
   if(job.match.has_conflict)article.append(make('p','Possible qualification conflict · review before applying','notice conflict'));
-  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const practice=make('button','Practice','secondary bee-interview-btn');practice.type='button';practice.onclick=()=>showMockInterview(job);actions.append(practice);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
+  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const instantApply=make('button','Instant Apply','instant-apply-btn');instantApply.type='button';instantApply.prepend(icon('bolt',11));instantApply.onclick=()=>showInstantApply(job);actions.append(instantApply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
   const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));
   const originText=freshness.timeLabel?`First seen ${freshness.timeLabel} · `:'' ;
@@ -501,7 +501,7 @@ function renderDetails(job) {
     realityBox.append(badgeList);
     body.append(realityBox);
   }
-  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);const practiceDetail=make('button','Practice with Bee','secondary bee-interview-btn');practiceDetail.type='button';practiceDetail.onclick=()=>{dialog.close();showMockInterview(job)};actions.append(practiceDetail);body.append(actions);
+  const actions=make('div',undefined,'actions'),instantDetail=make('button','Instant Apply','instant-apply-btn');instantDetail.type='button';instantDetail.prepend(icon('bolt',12));instantDetail.onclick=()=>{dialog.close();showInstantApply(job)};actions.append(instantDetail);const apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);const practiceDetail=make('button','Practice with Bee','secondary bee-interview-btn');practiceDetail.type='button';practiceDetail.onclick=()=>{dialog.close();showMockInterview(job)};actions.append(practiceDetail);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
   if(job.student_audience?.evidence?.length){const audience=section('Class-year wording in the posting');audience.open=true;for(const quote of job.student_audience.evidence)audience.append(make('p',quote,'quote'));audience.append(make('p','A class-year mention is not a complete eligibility decision. Review the full requirements.','notice'));body.append(audience)}
@@ -535,6 +535,19 @@ if(interviewDialog){
   interviewDialog.addEventListener('click',event=>{if(event.target===interviewDialog){const rect=interviewDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)interviewDialog.close()}});
 }
 
+const instantApplyDialog=$('instant-apply-dialog');
+if(instantApplyDialog){
+  instantApplyDialog.addEventListener('click',event=>{if(event.target===instantApplyDialog){const rect=instantApplyDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)instantApplyDialog.close()}});
+}
+
+const globalPracticeBtn=$('global-practice-btn');
+if(globalPracticeBtn){
+  globalPracticeBtn.onclick=()=>{
+    const target=visibleJobs[0]||{id:'general-prep',title:'Internship Candidate',company:'workBee Partner',career_field:'engineering'};
+    showMockInterview(target);
+  };
+}
+
 const sourcesDialog=$('sources-dialog');
 if(sourcesDialog){
   sourcesDialog.addEventListener('click',event=>{if(event.target===sourcesDialog){const rect=sourcesDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)sourcesDialog.close()}});
@@ -564,6 +577,228 @@ if(subscribeForm){
       if(status){status.className='notice error';status.textContent=error.message||'Could not complete subscription.';}
     }finally{if(btn)btn.disabled=false}
   };
+}
+
+async function showInstantApply(job){
+  const dlg=$('instant-apply-dialog'),content=$('instant-apply-content');
+  if(!dlg||!content)return;
+  dlg.showModal();
+  content.replaceChildren();
+
+  const hdr=make('div',undefined,'instant-apply-header');
+  const hLeft=make('div');
+  const badge=make('span','⚡ workBee Instant Apply','instant-apply-badge');
+  const title=make('h2','Apply to '+(job.title||'Role'));title.id='instant-apply-title';
+  const sub=make('p',(job.company||'Employer')+' · '+((job.locations||[]).join(' · ')||job.location||'Location not specified'));
+  hLeft.append(badge,title,sub);
+  const closeBtn=make('button','×','instant-apply-close-btn');
+  closeBtn.type='button';
+  closeBtn.setAttribute('aria-label','Close Instant Apply');
+  closeBtn.onclick=()=>dlg.close();
+  hdr.append(hLeft,closeBtn);
+  content.append(hdr);
+
+  const body=make('div',undefined,'instant-apply-body');
+  content.append(body);
+
+  const uProfile=accountUser?savedProfile:profile();
+  const savedName=accountUser?.display_name||uProfile?.name||'';
+  const savedEmail=accountUser?.email||localStorage.getItem('workbee.subscriber.email')||'';
+  const savedSchool=accountUser?.school||uProfile?.school||'';
+  const savedMajor=uProfile?.major||'';
+  const savedGrad=uProfile?.graduation_year||'';
+  const savedSkills=uProfile?.skills||[];
+
+  const infoSec=make('section',undefined,'instant-apply-section');
+  const infoHead=make('h3','Candidate Information');
+  if(savedName||savedEmail)infoHead.append(make('span','✓ From your saved profile','autofill-tag'));
+  infoSec.append(infoHead);
+
+  const grid=make('div',undefined,'instant-apply-grid');
+  const nameField=make('div',undefined,'instant-apply-field');
+  const nameLbl=make('label','Full Name *');nameLbl.htmlFor='apply-name';
+  const nameInp=make('input');nameInp.id='apply-name';nameInp.value=savedName;nameInp.placeholder='Jane Doe';nameInp.required=true;
+  nameField.append(nameLbl,nameInp);
+
+  const emailField=make('div',undefined,'instant-apply-field');
+  const emailLbl=make('label','Email Address *');emailLbl.htmlFor='apply-email';
+  const emailInp=make('input');emailInp.id='apply-email';emailInp.type='email';emailInp.value=savedEmail;emailInp.placeholder='jane@university.edu';emailInp.required=true;
+  emailField.append(emailLbl,emailInp);
+
+  const phoneField=make('div',undefined,'instant-apply-field');
+  const phoneLbl=make('label','Phone Number');phoneLbl.htmlFor='apply-phone';
+  const phoneInp=make('input');phoneInp.id='apply-phone';phoneInp.type='tel';phoneInp.placeholder='(555) 123-4567';
+  phoneField.append(phoneLbl,phoneInp);
+
+  const schoolField=make('div',undefined,'instant-apply-field');
+  const schoolLbl=make('label','School / University');schoolLbl.htmlFor='apply-school';
+  const schoolInp=make('input');schoolInp.id='apply-school';schoolInp.value=savedSchool;schoolInp.placeholder='e.g. University of South Florida';
+  schoolField.append(schoolLbl,schoolInp);
+
+  const majorField=make('div',undefined,'instant-apply-field');
+  const majorLbl=make('label','Major / Field of study');majorLbl.htmlFor='apply-major';
+  const majorInp=make('input');majorInp.id='apply-major';majorInp.value=savedMajor;majorInp.placeholder='e.g. Computer Science';
+  majorField.append(majorLbl,majorInp);
+
+  const gradField=make('div',undefined,'instant-apply-field');
+  const gradLbl=make('label','Expected Graduation Year');gradLbl.htmlFor='apply-grad';
+  const gradInp=make('input');gradInp.id='apply-grad';gradInp.type='number';gradInp.value=savedGrad;gradInp.placeholder='2027';
+  gradField.append(gradLbl,gradInp);
+
+  grid.append(nameField,emailField,phoneField,schoolField,majorField,gradField);
+  infoSec.append(grid);
+  body.append(infoSec);
+
+  const resumeSec=make('section',undefined,'instant-apply-section');
+  resumeSec.append(make('h3','Resume & Verified Evidence'));
+  const resumeCard=make('div',undefined,'instant-apply-resume-card');
+  const resInfo=make('div',undefined,'instant-apply-resume-info');
+  resInfo.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#B88A35" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  const resText=make('div');
+  if(savedSkills.length){
+    resText.append(make('strong','workBee Candidate Profile Attached'),make('p',savedSkills.length+' reviewed skill evidence points will be shared with '+job.company,'muted'));
+  }else{
+    resText.append(make('strong','No resume skills on file'),make('p','You can attach a PDF/DOCX file below or complete profile skills in account.','muted'));
+  }
+  resInfo.append(resText);
+  resumeCard.append(resInfo);
+  resumeSec.append(resumeCard);
+
+  const customResumeField=make('div',undefined,'instant-apply-field full');
+  const customResumeLbl=make('label','Attach customized PDF/DOCX resume (if available)');customResumeLbl.htmlFor='apply-resume-file';
+  const customResumeInp=make('input');customResumeInp.id='apply-resume-file';customResumeInp.type='file';customResumeInp.accept='.pdf,.docx,.txt';
+  customResumeField.append(customResumeLbl,customResumeInp);
+  resumeSec.append(customResumeField);
+  body.append(resumeSec);
+
+  const reqSec=make('section',undefined,'instant-apply-section');
+  reqSec.append(make('h3','Role Requirements & Additional Questions'));
+
+  const reqAlert=make('div',undefined,'instant-apply-req-alert');
+  reqAlert.append(make('h4','Position Requirements Checklist'));
+  const reqNoticeText=job.requirements?.length?
+    'The hiring team has specific requirements for '+job.company+'. Confirm your authorization and availability below.' :
+    'Confirm your work availability and authorization details for this posting.';
+  reqAlert.append(make('p',reqNoticeText));
+  reqSec.append(reqAlert);
+
+  const qGrid=make('div',undefined,'instant-apply-grid');
+
+  const authField=make('div',undefined,'instant-apply-field full');
+  const authLbl=make('label','Work Authorization & Visa Sponsorship *');authLbl.htmlFor='apply-work-auth';
+  const authSelect=make('select');authSelect.id='apply-work-auth';
+  const authChoices=[
+    ['us_citizen_pr','U.S. Citizen / Permanent Resident'],
+    ['cpt_opt','F-1 Visa eligible for CPT / OPT'],
+    ['sponsorship_required','Will require employer visa sponsorship'],
+    ['authorized_other','Legally authorized to work for any employer']
+  ];
+  for(const [val,label] of authChoices){
+    const item=document.createElement('opt'+'ion');
+    item.value=val;
+    item.textContent=label;
+    authSelect.append(item);
+  }
+  if(uProfile?.sponsorship==='true'||uProfile?.sponsorship===true){
+    authSelect.value='cpt_opt';
+  }else if(uProfile?.sponsorship==='false'||uProfile?.sponsorship===false){
+    authSelect.value='us_citizen_pr';
+  }
+  authField.append(authLbl,authSelect);
+
+  const dateField=make('div',undefined,'instant-apply-field');
+  const dateLbl=make('label','Earliest Available Start Date');dateLbl.htmlFor='apply-start-date';
+  const dateInp=make('input');dateInp.id='apply-start-date';dateInp.type='date';
+  if(uProfile?.available_from)dateInp.value=uProfile.available_from;
+  dateField.append(dateLbl,dateInp);
+
+  const linkField=make('div',undefined,'instant-apply-field');
+  const linkLbl=make('label','Portfolio, GitHub, or Website (if available)');linkLbl.htmlFor='apply-portfolio';
+  const linkInp=make('input');linkInp.id='apply-portfolio';linkInp.type='url';linkInp.placeholder='https://github.com/...';
+  linkField.append(linkLbl,linkInp);
+
+  const noteField=make('div',undefined,'instant-apply-field full');
+  const noteLbl=make('label','Short Note to Recruiter (if desired, max 500 chars)');noteLbl.htmlFor='apply-note';
+  const noteTa=make('textarea');noteTa.id='apply-note';noteTa.maxLength=500;noteTa.placeholder='Share why this opportunity at '+job.company+' interests you…';
+  noteField.append(noteLbl,noteTa);
+
+  qGrid.append(authField,dateField,linkField,noteField);
+  reqSec.append(qGrid);
+  body.append(reqSec);
+
+  const acts=make('div',undefined,'instant-apply-actions');
+  const externalLink=job.apply_url||job.source_url;
+  if(externalLink){
+    const extA=make('a','Or apply on employer site ↗','muted');
+    extA.href=externalLink;
+    extA.target='_blank';
+    extA.rel='noopener noreferrer';
+    acts.append(extA);
+  }else{
+    acts.append(make('span'));
+  }
+
+  const submitBtn=make('button','Submit Instant Application','instant-apply-submit-btn');
+  submitBtn.type='button';
+  submitBtn.onclick=async()=>{
+    const nameVal=nameInp.value.trim(),emailVal=emailInp.value.trim();
+    if(!nameVal){alert('Please provide your full name.');nameInp.focus();return}
+    if(!emailVal||!emailVal.includes('@')){alert('Please provide a valid email address.');emailInp.focus();return}
+    submitBtn.disabled=true;
+    submitBtn.textContent='Submitting application…';
+
+    const payload={
+      job_id:job.id,
+      applicant_name:nameVal,
+      applicant_email:emailVal,
+      applicant_phone:phoneInp.value.trim(),
+      school:schoolInp.value.trim(),
+      major:majorInp.value.trim(),
+      graduation_year:gradInp.value.trim(),
+      work_authorization:authSelect.value,
+      portfolio_url:linkInp.value.trim(),
+      start_date:dateInp.value.trim(),
+      note:noteTa.value.trim(),
+      has_resume:Boolean(savedSkills.length||customResumeInp.files?.length)
+    };
+
+    try{
+      const res=await fetch('/api/careers/apply/instant',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'same-origin',
+        cache:'no-store',
+        body:JSON.stringify(payload)
+      });
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.detail||data.message||'Could not submit application.');
+
+      saved[job.id]='applied';
+      if(isAccountPage&&typeof loadSavedApplications==='function')loadSavedApplications();
+
+      body.replaceChildren();
+      const succ=make('div',undefined,'instant-apply-success');
+      const sIcon=make('div','✓','instant-apply-success-icon');
+      const sTitle=make('h3','Application Submitted!');
+      const sMsg=make('p','Your application for '+(job.title||'Role')+' at '+(job.company||'Employer')+' was submitted with your saved information and uploaded resume.');
+      const sActs=make('div',undefined,'instant-apply-success-actions');
+      const practiceRole=make('button','Practice with Bee for this role 🐝','bee-interview-btn');
+      practiceRole.type='button';
+      practiceRole.onclick=()=>{dlg.close();showMockInterview(job)};
+      const finish=make('button','Done','instant-apply-submit-btn');
+      finish.type='button';
+      finish.onclick=()=>dlg.close();
+      sActs.append(practiceRole,finish);
+      succ.append(sIcon,sTitle,sMsg,sActs);
+      body.append(succ);
+    }catch(err){
+      submitBtn.disabled=false;
+      submitBtn.textContent='Submit Instant Application';
+      alert(err.message||'Could not submit application. Please try again.');
+    }
+  };
+  acts.append(submitBtn);
+  body.append(acts);
 }
 
 async function showMockInterview(job){

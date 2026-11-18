@@ -263,3 +263,15 @@ test('interview-dialog id is unique in page.html', async () => {
   const matches = [...html.matchAll(/id="interview-dialog"/g)];
   assert.strictEqual(matches.length, 1, 'interview-dialog id must appear exactly once in page.html');
 });
+
+test('instant apply dialog element exists in page.html and account.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="instant-apply-dialog"'), 'instant-apply-dialog must exist in page.html');
+  assert.ok(accHtml.includes('id="instant-apply-dialog"'), 'instant-apply-dialog must exist in account.html');
+});
+
+test('global practice button exists outside application cards in page.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="global-practice-btn"'), 'global-practice-btn must exist in page.html');
+});

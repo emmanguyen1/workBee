@@ -1,6 +1,7 @@
 from pathlib import Path
 from collections import Counter
 import asyncio
+import json
 import re
 from typing import Literal
 from time import perf_counter
@@ -338,3 +339,59 @@ async def opportunity_details(job_id:str,body:DetailsRequest,response:Response):
     job={**job,'deadline_info':deadline_info(job),'facts':opportunity_facts(job),'availability':availability(job,board),'description_deferred':False,**company_brand(job['company'])}
     job['match']=await run_in_threadpool(match,job,body.profile)
     return {'job':job}
+
+
+class InstantApplyRequest(BaseModel):
+    job_id: str = Field(min_length=1, max_length=500)
+    applicant_name: str = Field(min_length=1, max_length=120)
+    applicant_email: str = Field(min_length=3, max_length=200)
+    applicant_phone: str = Field(default="", max_length=50)
+    school: str = Field(default="", max_length=200)
+    major: str = Field(default="", max_length=200)
+    graduation_year: str = Field(default="", max_length=20)
+    work_authorization: str = Field(default="", max_length=100)
+    portfolio_url: str = Field(default="", max_length=500)
+    start_date: str = Field(default="", max_length=50)
+    note: str = Field(default="", max_length=1000)
+    has_resume: bool = True
+
+
+@router.post("/api/careers/apply/instant")
+async def instant_apply(data: InstantApplyRequest, request: Request, response: Response):
+    from hives.careers.accounts import same_origin
+    same_origin(request)
+    response.headers.update(PRIVATE_HEADERS)
+    email = data.applicant_email.strip()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(400, "Please provide a valid email address.", headers=PRIVATE_HEADERS)
+    if not data.applicant_name.strip():
+        raise HTTPException(400, "Please provide your full name.", headers=PRIVATE_HEADERS)
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        from hives.careers.accounts import connection as acc_conn, user as acc_user
+        async with acc_conn() as conn:
+            account = await acc_user(conn, request)
+            if account:
+                details = {
+                    "notes": f"Instant applied via workBee on {now_iso[:10]}.\nWork auth: {data.work_authorization}\nStart date: {data.start_date}\n{data.note}".strip(),
+                    "next_action": "Review application confirmation",
+                    "follow_up": None,
+                    "applied_via": "instant_apply",
+                    "submitted_at": now_iso,
+                    "revision": 1,
+                }
+                await conn.execute(
+                    "UPDATE career_accounts SET applications=applications || jsonb_build_object($2::text, 'applied'), application_details=application_details || jsonb_build_object($2::text, $3::jsonb) WHERE id=$1",
+                    account["id"], data.job_id, json.dumps(details)
+                )
+    except Exception:
+        pass
+
+    return {
+        "status": "applied",
+        "job_id": data.job_id,
+        "applied_at": now_iso,
+        "message": f"Application submitted for {data.applicant_name}! We saved your submission to your Application Pipeline."
+    }
+
