@@ -275,3 +275,20 @@ test('global practice button exists outside application cards in page.html', asy
   const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
   assert.ok(pageHtml.includes('id="global-practice-btn"'), 'global-practice-btn must exist in page.html');
 });
+
+test('header navigation tabs and practice dropdown exist in page.html and account.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="practice-dropdown-btn"'), 'practice-dropdown-btn in page.html');
+  assert.ok(pageHtml.includes('id="practice-menu-sandbox"'), 'practice-menu-sandbox in page.html');
+  assert.ok(pageHtml.includes('id="nav-pipeline-tab"'), 'nav-pipeline-tab in page.html');
+  assert.ok(accHtml.includes('id="practice-dropdown-btn"'), 'practice-dropdown-btn in account.html');
+  assert.ok(accHtml.includes('id="practice-menu-sandbox"'), 'practice-menu-sandbox in account.html');
+});
+
+test('sandbox dialog element exists in page.html and account.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in page.html');
+  assert.ok(accHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in account.html');
+});

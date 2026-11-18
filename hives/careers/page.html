@@ -7,7 +7,53 @@
   <link rel="stylesheet" href="/careers/assets/styles.css">
 </head>
 <body data-page="search"><main>
-  <header><a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a><nav aria-label="App navigation"><a class="nav-link" href="#results">Explore opportunities ↗</a><a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a></nav></header>
+  <header class="site-header">
+    <a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a>
+    <nav aria-label="App navigation" class="main-nav">
+      <div class="nav-tabs">
+        <a class="nav-tab active" href="#results">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Explore opportunities
+        </a>
+        <div class="nav-dropdown" id="practice-dropdown-container">
+          <button type="button" class="nav-tab nav-dropdown-btn" id="practice-dropdown-btn" aria-expanded="false" aria-haspopup="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4h-2V7h2z"/></svg>
+            Practice with Bee <span class="nav-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu hidden" id="practice-menu" role="menu">
+            <button type="button" class="nav-menu-item" id="practice-menu-interview" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Mock Interview & Roleplay</strong>
+                <small>STAR-method behavioral & technical screening</small>
+              </div>
+            </button>
+            <button type="button" class="nav-menu-item" id="practice-menu-sandbox" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Technical & SQL Sandbox</strong>
+                <small>Interactive coding, SQL queries & algorithm challenges</small>
+              </div>
+            </button>
+            <button type="button" class="nav-menu-item" id="practice-menu-prep" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Prep Pack & ATS Strategy</strong>
+                <small>Keyword matching, outreach & interview talking points</small>
+              </div>
+            </button>
+          </div>
+        </div>
+        <a class="nav-tab" id="nav-pipeline-tab" href="/account#pipeline">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Application pipeline
+        </a>
+      </div>
+      <div class="nav-actions">
+        <a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a>
+      </div>
+    </nav>
+  </header>
   <div class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A little direction. A world of possibility.</div>
   <h1>Good work starts<br><span>with a little curiosity.</span></h1>
   <div class="hero-intro"><p class="hero-copy">From public health to policy, business to the laboratory.<br>Find your place, compare your options, and make your next move.</p></div>
@@ -109,6 +155,7 @@
   <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
   <dialog id="interview-dialog" class="interview-dialog" aria-labelledby="interview-dialog-title"><div id="interview-content"></div></dialog>
   <dialog id="instant-apply-dialog" class="instant-apply-dialog" aria-labelledby="instant-apply-title"><div id="instant-apply-content"></div></dialog>
+  <dialog id="sandbox-dialog" class="sandbox-dialog" aria-labelledby="sandbox-dialog-title"><div id="sandbox-content"></div></dialog>
   <dialog id="sources-dialog" class="sources-dialog" aria-labelledby="sources-dialog-title"><div class="sources-dialog-header"><h2 id="sources-dialog-title">Cited sources & employer feeds</h2><button id="close-sources-dialog" type="button" class="close-dialog" aria-label="Close sources dialog">×</button></div><p class="notice muted">Real-time status of employer career feeds and community discoveries. Checks run on demand.</p><div id="sources" class="sources"></div></dialog>
   <footer class="site-footer">
     <div class="footer-grid">

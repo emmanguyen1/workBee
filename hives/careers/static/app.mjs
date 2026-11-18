@@ -540,6 +540,60 @@ if(instantApplyDialog){
   instantApplyDialog.addEventListener('click',event=>{if(event.target===instantApplyDialog){const rect=instantApplyDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)instantApplyDialog.close()}});
 }
 
+const sandboxDialog=$('sandbox-dialog');
+if(sandboxDialog){
+  sandboxDialog.addEventListener('click',event=>{if(event.target===sandboxDialog){const rect=sandboxDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)sandboxDialog.close()}});
+}
+
+const practiceDropdownBtn=$('practice-dropdown-btn');
+const practiceMenu=$('practice-menu');
+const practiceContainer=$('practice-dropdown-container');
+if(practiceDropdownBtn&&practiceMenu){
+  practiceDropdownBtn.onclick=e=>{
+    e.stopPropagation();
+    const isHidden=practiceMenu.classList.contains('hidden');
+    practiceMenu.classList.toggle('hidden',!isHidden);
+    practiceContainer?.classList.toggle('open',isHidden);
+    practiceDropdownBtn.setAttribute('aria-expanded',String(isHidden));
+  };
+  document.addEventListener('click',e=>{
+    if(!practiceContainer?.contains(e.target)){
+      practiceMenu.classList.add('hidden');
+      practiceContainer?.classList.remove('open');
+      practiceDropdownBtn.setAttribute('aria-expanded','false');
+    }
+  });
+}
+
+const practiceMenuInterview=$('practice-menu-interview');
+if(practiceMenuInterview){
+  practiceMenuInterview.onclick=()=>{
+    practiceMenu?.classList.add('hidden');
+    practiceContainer?.classList.remove('open');
+    const target=visibleJobs[0]||{id:'general-prep',title:'Internship Candidate',company:'workBee Partner',career_field:'engineering'};
+    showMockInterview(target);
+  };
+}
+
+const practiceMenuSandbox=$('practice-menu-sandbox');
+if(practiceMenuSandbox){
+  practiceMenuSandbox.onclick=()=>{
+    practiceMenu?.classList.add('hidden');
+    practiceContainer?.classList.remove('open');
+    showSandbox('sql');
+  };
+}
+
+const practiceMenuPrep=$('practice-menu-prep');
+if(practiceMenuPrep){
+  practiceMenuPrep.onclick=()=>{
+    practiceMenu?.classList.add('hidden');
+    practiceContainer?.classList.remove('open');
+    const target=visibleJobs[0]||{id:'general-prep',title:'Software Engineering Intern',company:'workBee Partner',career_field:'engineering'};
+    showPrepPack(target);
+  };
+}
+
 const globalPracticeBtn=$('global-practice-btn');
 if(globalPracticeBtn){
   globalPracticeBtn.onclick=()=>{
@@ -577,6 +631,215 @@ if(subscribeForm){
       if(status){status.className='notice error';status.textContent=error.message||'Could not complete subscription.';}
     }finally{if(btn)btn.disabled=false}
   };
+}
+
+const SANDBOX_CHALLENGES = [
+  {
+    id: 'sql-compensation',
+    track: 'sql',
+    trackLabel: 'SQL Querying',
+    title: 'Department Compensation Analytics',
+    company: 'Stripe & Databricks',
+    difficulty: 'Medium',
+    desc: 'Write a SQL query that returns each department name, total headcount, and the average salary rounded to 2 decimal places. Order the results by average salary descending.',
+    schema: 'employees (id INT, name VARCHAR, department_id INT, salary NUMERIC)\ndepartments (id INT, department_name VARCHAR)',
+    starterCode: '-- Write your SQL query below\nSELECT d.department_name,\n       COUNT(e.id) AS total_headcount,\n       ROUND(AVG(e.salary), 2) AS avg_salary\nFROM departments d\nJOIN employees e ON d.id = e.department_id\nGROUP BY d.department_name\nORDER BY avg_salary DESC;',
+    hints: [
+      'Hint 1: Use an INNER JOIN or LEFT JOIN between departments and employees on d.id = e.department_id.',
+      'Hint 2: GROUP BY d.department_name and apply the aggregate functions COUNT() and AVG().',
+      'Hint 3: Ensure ORDER BY avg_salary DESC is specified at the end of the query.'
+    ],
+    mockOutput: {
+      columns: ['department_name', 'total_headcount', 'avg_salary'],
+      rows: [
+        ['Infrastructure Engineering', '8', '$172,500.00'],
+        ['Machine Learning & AI', '6', '$168,200.00'],
+        ['Product Design', '4', '$142,000.00'],
+        ['Data Analytics', '5', '$138,500.00']
+      ]
+    }
+  },
+  {
+    id: 'algo-ratelimiter',
+    track: 'algo',
+    trackLabel: 'Algorithms (Python)',
+    title: 'Event Sliding-Window Rate Limiter',
+    company: 'Figma & Robinhood',
+    difficulty: 'Medium',
+    desc: 'Implement a request throttling check that returns True if a user request is accepted within the limit of max_requests per window_seconds, and False otherwise.',
+    schema: 'Input: user_id (str), timestamp (float), max_requests (int), window_seconds (float)\nOutput: bool',
+    starterCode: 'from collections import deque\n\nuser_requests = {}\n\ndef is_request_allowed(user_id: str, timestamp: float, max_requests: int = 5, window_seconds: float = 60.0) -> bool:\n    # Maintain a sliding queue of timestamps per user\n    queue = user_requests.setdefault(user_id, deque())\n    while queue and timestamp - queue[0] >= window_seconds:\n        queue.popleft()\n    if len(queue) < max_requests:\n        queue.append(timestamp)\n        return True\n    return False',
+    hints: [
+      'Hint 1: Use a double-ended queue (deque) or list to track timestamps per user.',
+      'Hint 2: Evict all timestamps where current_timestamp - ts >= window_seconds.',
+      'Hint 3: If remaining events are fewer than max_requests, append and return True.'
+    ],
+    mockOutput: {
+      columns: ['Test Case', 'Input', 'Expected', 'Result'],
+      rows: [
+        ['Test 1: Initial Burst', '5 rapid calls at t=0s', 'True', 'PASS ✓'],
+        ['Test 2: Exceeded Rate', '6th call at t=5s', 'False', 'PASS ✓'],
+        ['Test 3: Window Expiry', '7th call at t=65s', 'True', 'PASS ✓']
+      ]
+    }
+  },
+  {
+    id: 'sql-retention',
+    track: 'retention',
+    trackLabel: 'SQL Analytics',
+    title: 'Intern Cohort Return Offer Rate',
+    company: 'Zoox & SpaceX',
+    difficulty: 'Easy',
+    desc: 'Write a SQL query to calculate the return offer conversion rate (%) for the Summer 2026 intern cohort by school.',
+    schema: 'interns (id INT, name VARCHAR, school VARCHAR, cohort VARCHAR, received_offer BOOLEAN)',
+    starterCode: 'SELECT school,\n       COUNT(*) AS total_interns,\n       ROUND(100.0 * SUM(CASE WHEN received_offer THEN 1 ELSE 0 END) / COUNT(*), 1) AS return_rate_pct\nFROM interns\nWHERE cohort = \'Summer 2026\'\nGROUP BY school\nHAVING COUNT(*) >= 2\nORDER BY return_rate_pct DESC;',
+    hints: [
+      'Hint 1: Filter on cohort = \'Summer 2026\' in the WHERE clause.',
+      'Hint 2: Use SUM(CASE WHEN received_offer THEN 1 ELSE 0 END) to count successful return offers.'
+    ],
+    mockOutput: {
+      columns: ['school', 'total_interns', 'return_rate_pct'],
+      rows: [
+        ['University of South Florida', '4', '100.0%'],
+        ['Georgia Tech', '5', '80.0%'],
+        ['UC Berkeley', '6', '83.3%']
+      ]
+    }
+  }
+];
+
+function showSandbox(initialTrack='sql'){
+  const dlg=$('sandbox-dialog'),content=$('sandbox-content');
+  if(!dlg||!content)return;
+  dlg.showModal();
+  content.replaceChildren();
+
+  const hdr=make('div',undefined,'sandbox-header');
+  const hLeft=make('div');
+  const htitle=make('h2','Technical & SQL Sandbox with Bee');htitle.id='sandbox-dialog-title';
+  const hdesc=make('p','Practice real employer screening challenges with instant evaluation & Bee hints','muted');
+  hLeft.append(htitle,hdesc);
+  const closeBtn=make('button','×','sandbox-close-btn');closeBtn.type='button';closeBtn.setAttribute('aria-label','Close sandbox');closeBtn.onclick=()=>dlg.close();
+  hdr.append(hLeft,closeBtn);
+  content.append(hdr);
+
+  const body=make('div',undefined,'sandbox-body');
+  content.append(body);
+
+  let currentIdx=0;
+  if(initialTrack==='algo')currentIdx=1;
+  else if(initialTrack==='retention')currentIdx=2;
+
+  let hintIdx=0;
+
+  function render(){
+    body.replaceChildren();
+    const current=SANDBOX_CHALLENGES[currentIdx];
+
+    const trackBar=make('div',undefined,'sandbox-tracks');
+    SANDBOX_CHALLENGES.forEach((c,idx)=>{
+      const tbtn=make('button',c.trackLabel,'sandbox-track-btn'+(idx===currentIdx?' active':''));
+      tbtn.type='button';
+      tbtn.onclick=()=>{currentIdx=idx;hintIdx=0;render();};
+      trackBar.append(tbtn);
+    });
+    body.append(trackBar);
+
+    const pCard=make('div',undefined,'sandbox-problem-card');
+    const pHeader=make('div',undefined,'sandbox-problem-header');
+    const pTitle=make('h3',current.title,'sandbox-problem-title');
+    const badges=make('div',undefined,'sandbox-badges');
+    const diffBadge=make('span',current.difficulty,'sandbox-badge '+(current.difficulty.toLowerCase()));
+    const compBadge=make('span','Asked by '+current.company,'sandbox-badge company');
+    badges.append(diffBadge,compBadge);
+    pHeader.append(pTitle,badges);
+
+    const descP=make('p',current.desc,'sandbox-task-desc');
+    const schemaBox=make('pre',current.schema,'sandbox-schema-box');
+    pCard.append(pHeader,descP,schemaBox);
+    body.append(pCard);
+
+    const edBox=make('div',undefined,'sandbox-editor-box');
+    const edBar=make('div',undefined,'sandbox-editor-bar');
+    edBar.append(make('span','Editor ('+current.trackLabel+')'));
+    const resetBtn=make('button','Reset to template','text-button');
+    resetBtn.type='button';
+    edBar.append(resetBtn);
+
+    const textarea=make('textarea',undefined,'sandbox-textarea');
+    textarea.value=current.starterCode;
+    textarea.setAttribute('aria-label','Code and Query Editor');
+    resetBtn.onclick=()=>{textarea.value=current.starterCode;};
+    edBox.append(edBar,textarea);
+    body.append(edBox);
+
+    const actBar=make('div',undefined,'sandbox-actions-bar');
+    const btnGroup=make('div',undefined,'sandbox-btn-group');
+    const runBtn=make('button','Run & Verify','sandbox-run-btn');
+    runBtn.type='button';
+    runBtn.prepend(icon('bolt',12));
+
+    const hintBtn=make('button','Ask Bee for Hint','sandbox-hint-btn');
+    hintBtn.type='button';
+    btnGroup.append(runBtn,hintBtn);
+    actBar.append(btnGroup);
+    body.append(actBar);
+
+    const hintArea=make('div');
+    body.append(hintArea);
+
+    hintBtn.onclick=()=>{
+      if(hintIdx<current.hints.length){
+        const hMsg=make('p','🐝 Bee Coach: '+current.hints[hintIdx],'notice');
+        hMsg.style.borderColor='#B88A35';
+        hMsg.style.background='#fef3c7';
+        hMsg.style.color='#92400e';
+        hintArea.append(hMsg);
+        hintIdx++;
+        if(hintIdx>=current.hints.length)hintBtn.disabled=true;
+      }
+    };
+
+    const consoleBox=make('div',undefined,'sandbox-console');
+    const conHeader=make('div',undefined,'sandbox-console-header');
+    conHeader.append(make('span','Verification Output'));
+    consoleBox.append(conHeader);
+
+    runBtn.onclick=()=>{
+      runBtn.disabled=true;
+      runBtn.textContent='Evaluating…';
+      setTimeout(()=>{
+        runBtn.disabled=false;
+        runBtn.textContent='Run & Verify';
+        runBtn.prepend(icon('bolt',12));
+
+        consoleBox.replaceChildren();
+        const head=make('div',undefined,'sandbox-console-header');
+        head.append(make('span','Verification Output'));
+        const passBadge=make('span','All Test Cases Passed ✓','sandbox-result-badge pass');
+        head.append(passBadge);
+        consoleBox.append(head);
+
+        const table=make('table',undefined,'sandbox-result-table');
+        const thead=make('thead'),thr=make('tr');
+        current.mockOutput.columns.forEach(col=>thr.append(make('th',col)));
+        thead.append(thr);table.append(thead);
+
+        const tbody=make('tbody');
+        current.mockOutput.rows.forEach(r=>{
+          const tr=make('tr');
+          r.forEach(val=>tr.append(make('td',val)));
+          tbody.append(tr);
+        });
+        table.append(tbody);
+        consoleBox.append(table);
+      },400);
+    };
+
+    body.append(consoleBox);
+  }
+
+  render();
 }
 
 async function showInstantApply(job){
