@@ -292,3 +292,32 @@ test('sandbox dialog element exists in page.html and account.html', async () => 
   assert.ok(pageHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in page.html');
   assert.ok(accHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in account.html');
 });
+
+test('header tabs open another browser tab via target="_blank" in all pages', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  
+  assert.ok(pageHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'page.html explore tab target="_blank"');
+  assert.ok(accHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'account.html explore tab target="_blank"');
+  assert.ok(pracHtml.includes('href="/" target="_blank" rel="noopener noreferrer"'), 'practice.html explore tab target="_blank"');
+
+  assert.ok(pageHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'page.html practice studio target="_blank"');
+  assert.ok(accHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'account.html practice studio target="_blank"');
+  assert.ok(pracHtml.includes('href="/practice" target="_blank" rel="noopener noreferrer"'), 'practice.html practice studio target="_blank"');
+});
+
+test('practice studio contains industry and career customization controls', async () => {
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  assert.ok(pracHtml.includes('id="practice-customizer-form"'), 'customizer form');
+  assert.ok(pracHtml.includes('id="industry-pills"'), 'industry pills container');
+  assert.ok(pracHtml.includes('data-field="software"'), 'software track pill');
+  assert.ok(pracHtml.includes('data-field="data"'), 'data track pill');
+  assert.ok(pracHtml.includes('data-field="health"'), 'health track pill');
+  assert.ok(pracHtml.includes('id="practice-role-title"'), 'role title input');
+  assert.ok(pracHtml.includes('id="practice-company-name"'), 'company name input');
+  assert.ok(pracHtml.includes('id="stage-pills"'), 'stage pills container');
+  assert.ok(pracHtml.includes('id="launch-custom-interview"'), 'launch interview button');
+  assert.ok(pracHtml.includes('id="launch-custom-sandbox"'), 'launch sandbox button');
+  assert.ok(pracHtml.includes('id="launch-custom-prep"'), 'launch prep button');
+});

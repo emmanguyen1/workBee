@@ -381,11 +381,20 @@ def local_interview_questions(
     req_summary = ', '.join(requirements[:5]) if requirements else 'relevant skills'
     field = (career_field or '').lower()
 
-    if field in {'software', 'engineering', 'data'}:
+    if field in {'data', 'ml', 'ai', 'data science'}:
+        q2_type = 'technical'
+        q2_text = (
+            f'Describe an end-to-end data science or machine learning workflow you built involving {req_summary}. '
+            'How did you validate data quality, choose evaluation metrics, and prevent model drift?'
+        )
+        q2_ctx = (
+            f'Evaluates statistical reasoning, model validation, and practical ML engineering for {job_title}.'
+        )
+    elif field in {'software', 'engineering'}:
         q2_type = 'technical'
         q2_text = (
             f'Walk me through how you would design or debug a system that involves {req_summary}. '
-            'What trade-offs would you consider?'
+            'What architectural trade-offs would you consider?'
         )
         q2_ctx = (
             f'Interviewers use this to assess depth of technical knowledge for a {job_title} role. '
@@ -401,15 +410,50 @@ def local_interview_questions(
             'This reveals your scientific rigor, adaptability, and ability to reason under uncertainty. '
             'Mention specific variables, controls, and what you concluded.'
         )
-    elif field in {'business', 'finance', 'consulting'}:
-        q2_type = 'technical'
+    elif field in {'healthcare', 'health', 'medicine', 'nursing', 'clinical'}:
+        q2_type = 'domain'
         q2_text = (
-            f'Give an example of a data-driven or analytical project you led or contributed to '
-            f'that is relevant to a {job_title} position. What was your process?'
+            f'Describe a situation where you had to manage patient care, clinical data, or protocol compliance '
+            f'with high precision under pressure. How did you ensure accuracy and teamwork?'
         )
         q2_ctx = (
-            'Demonstrates quantitative reasoning and business acumen. '
-            'Highlight the metrics, tools, and outcome.'
+            'Assesses clinical diligence, empathy, and procedural standards for healthcare roles.'
+        )
+    elif field in {'product', 'design', 'ux'}:
+        q2_type = 'domain'
+        q2_text = (
+            f'Walk me through how you prioritize user experience and make design trade-offs '
+            f'when user feedback conflicts with technical constraints in a {job_title} project.'
+        )
+        q2_ctx = (
+            'Tests product intuition, user-centric empathy, and cross-functional communication.'
+        )
+    elif field in {'hardware', 'aerospace', 'robotics', 'mechanical'}:
+        q2_type = 'technical'
+        q2_text = (
+            f'Tell me about a hardware or robotics project where you had to troubleshoot an unexpected '
+            f'system or component failure. How did you isolate the root cause?'
+        )
+        q2_ctx = (
+            'Demonstrates hands-on engineering principles, physical debugging, and safety verification.'
+        )
+    elif field in {'finance', 'fintech', 'quantitative'}:
+        q2_type = 'technical'
+        q2_text = (
+            f'Describe a quantitative analysis, financial model, or ledger system you analyzed for {company}. '
+            'How did you stress-test your assumptions and handle market or data anomalies?'
+        )
+        q2_ctx = (
+            'Tests financial acumen, risk awareness, and quantitative rigor.'
+        )
+    elif field in {'business', 'consulting', 'strategy', 'operations'}:
+        q2_type = 'domain'
+        q2_text = (
+            f'Give an example of a strategic business or operational challenge you analyzed. '
+            'How did you structure the problem, gather stakeholder input, and measure outcomes?'
+        )
+        q2_ctx = (
+            'Demonstrates problem structuring, cross-functional leadership, and business impact.'
         )
     else:
         q2_type = 'domain'

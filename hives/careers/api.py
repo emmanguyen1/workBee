@@ -313,6 +313,12 @@ async def account_page(response: Response):
     return Path(__file__).with_name('account.html').read_text()
 
 
+@router.get('/practice',response_class=HTMLResponse)
+async def practice_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('practice.html').read_text()
+
+
 def compact_card(job):
     if not job.get('description_deferred'):return job
     result={key:value for key,value in job.items() if key not in {'requirements','qualification_snapshot','application_key'}}

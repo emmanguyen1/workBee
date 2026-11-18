@@ -8,12 +8,12 @@
 </head>
 <body data-page="search"><main>
   <header class="site-header">
-    <a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a>
+    <a class="brand" href="/" target="_blank" rel="noopener noreferrer"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a>
     <nav aria-label="App navigation" class="main-nav">
       <div class="nav-tabs">
-        <a class="nav-tab active" href="#results">
+        <a class="nav-tab active" href="/" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Explore opportunities
+          Explore opportunities ↗
         </a>
         <div class="nav-dropdown" id="practice-dropdown-container">
           <button type="button" class="nav-tab nav-dropdown-btn" id="practice-dropdown-btn" aria-expanded="false" aria-haspopup="true">
@@ -21,36 +21,43 @@
             Practice with Bee <span class="nav-chevron" aria-hidden="true">▾</span>
           </button>
           <div class="nav-dropdown-menu hidden" id="practice-menu" role="menu">
-            <button type="button" class="nav-menu-item" id="practice-menu-interview" role="menuitem">
+            <a class="nav-menu-item" id="practice-menu-studio" href="/practice" target="_blank" rel="noopener noreferrer" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Practice Studio & Customizer ↗</strong>
+                <small>Customize simulations by industry & career field</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-interview" href="/practice?mode=interview" target="_blank" rel="noopener noreferrer" role="menuitem">
               <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
               <div class="menu-item-text">
-                <strong>Mock Interview & Roleplay</strong>
+                <strong>Mock Interview & Roleplay ↗</strong>
                 <small>STAR-method behavioral & technical screening</small>
               </div>
-            </button>
-            <button type="button" class="nav-menu-item" id="practice-menu-sandbox" role="menuitem">
+            </a>
+            <a class="nav-menu-item" id="practice-menu-sandbox" href="/practice?mode=sandbox" target="_blank" rel="noopener noreferrer" role="menuitem">
               <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
               <div class="menu-item-text">
-                <strong>Technical & SQL Sandbox</strong>
+                <strong>Technical & SQL Sandbox ↗</strong>
                 <small>Interactive coding, SQL queries & algorithm challenges</small>
               </div>
-            </button>
-            <button type="button" class="nav-menu-item" id="practice-menu-prep" role="menuitem">
+            </a>
+            <a class="nav-menu-item" id="practice-menu-prep" href="/practice?mode=prep" target="_blank" rel="noopener noreferrer" role="menuitem">
               <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
               <div class="menu-item-text">
-                <strong>Prep Pack & ATS Strategy</strong>
+                <strong>Prep Pack & ATS Strategy ↗</strong>
                 <small>Keyword matching, outreach & interview talking points</small>
               </div>
-            </button>
+            </a>
           </div>
         </div>
-        <a class="nav-tab" id="nav-pipeline-tab" href="/account#pipeline">
+        <a class="nav-tab" id="nav-pipeline-tab" href="/account#pipeline" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Application pipeline
+          Application pipeline ↗
         </a>
       </div>
       <div class="nav-actions">
-        <a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a>
+        <a href="/account" id="account-toggle" class="account-toggle" target="_blank" rel="noopener noreferrer"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile ↗</span></a>
       </div>
     </nav>
   </header>
