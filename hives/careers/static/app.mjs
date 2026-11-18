@@ -415,7 +415,7 @@ function card(job) {
   }
   article.append(matchBox(job.match));
   if(job.match.has_conflict)article.append(make('p','Possible qualification conflict · review before applying','notice conflict'));
-  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
+  const actions=make('div',undefined,'card-actions'),details=make('button','View match & details','secondary');details.type='button';details.onclick=()=>showDetails(job);actions.append(details);const prep=make('button','Prep with Bee','secondary bee-prep-btn');prep.type='button';prep.prepend(icon('bolt',11));prep.onclick=()=>showPrepPack(job);actions.append(prep);const practice=make('button','Practice','secondary bee-interview-btn');practice.type='button';practice.onclick=()=>showMockInterview(job);actions.append(practice);const apply=applicationLink(job);if(apply)actions.append(apply);const compare=make('button',compared.has(job.id)?'In shortlist ✓':'Compare','secondary compare-toggle');compare.type='button';compare.setAttribute('aria-pressed',String(compared.has(job.id)));compare.onclick=()=>toggleCompare(job);actions.append(compare);article.append(actions,tracking(job));
   const stale=Date.now()-Date.parse(job.last_seen)>30*60000;
   const fresh=make('div',undefined,'job-freshness'+(stale?' stale':''));
   const originText=freshness.timeLabel?`First seen ${freshness.timeLabel} · `:'' ;
@@ -501,7 +501,7 @@ function renderDetails(job) {
     realityBox.append(badgeList);
     body.append(realityBox);
   }
-  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);body.append(actions);
+  const actions=make('div',undefined,'actions'),apply=applicationLink(job,'Open employer application ↗');actions.setAttribute('data-application-actions','');if(apply)actions.append(apply);const prepDetail=make('button','Prep with Bee','secondary');prepDetail.type='button';prepDetail.prepend(icon('bolt',12));prepDetail.onclick=()=>{dialog.close();showPrepPack(job)};actions.append(prepDetail);const practiceDetail=make('button','Practice with Bee','secondary bee-interview-btn');practiceDetail.type='button';practiceDetail.onclick=()=>{dialog.close();showMockInterview(job)};actions.append(practiceDetail);body.append(actions);
   if(job.listing_status==='community_listed')body.append(make('p','Community-listed opportunity. Confirm that applications are open on the employer website.','notice unknown'));
   const references=[...(job.source_references||[]),...(job.source_url?[{url:job.source_url,label:job.attribution||'Source list'}]:[])];for(const reference of references){try{if(new URL(reference.url).protocol==='https:'){const link=make('a',reference.label,'notice');link.href=reference.url;link.target='_blank';link.rel='noopener noreferrer';body.append(link)}}catch{}}
   if(job.student_audience?.evidence?.length){const audience=section('Class-year wording in the posting');audience.open=true;for(const quote of job.student_audience.evidence)audience.append(make('p',quote,'quote'));audience.append(make('p','A class-year mention is not a complete eligibility decision. Review the full requirements.','notice'));body.append(audience)}
@@ -528,6 +528,11 @@ dialog.addEventListener('click',event=>{if(event.target===dialog){const rect=dia
 const prepDialog=$('prep-dialog');
 if(prepDialog){
   prepDialog.addEventListener('click',event=>{if(event.target===prepDialog){const rect=prepDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)prepDialog.close()}});
+}
+
+const interviewDialog=$('interview-dialog');
+if(interviewDialog){
+  interviewDialog.addEventListener('click',event=>{if(event.target===interviewDialog){const rect=interviewDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)interviewDialog.close()}});
 }
 
 const sourcesDialog=$('sources-dialog');
@@ -559,6 +564,127 @@ if(subscribeForm){
       if(status){status.className='notice error';status.textContent=error.message||'Could not complete subscription.';}
     }finally{if(btn)btn.disabled=false}
   };
+}
+
+async function showMockInterview(job){
+  const dlg=$('interview-dialog'),content=$('interview-content');
+  if(!dlg||!content)return;
+  dlg.showModal();
+  content.replaceChildren();
+  const hdr=make('div',undefined,'interview-dialog-header');
+  const htitle=make('h2','Practice with Bee');htitle.id='interview-dialog-title';
+  const closeBtn=make('button','×','interview-close-btn');closeBtn.type='button';closeBtn.setAttribute('aria-label','Close interview practice');closeBtn.onclick=()=>dlg.close();
+  const jobLabel=make('p',(job.title||'Role')+' · '+(job.company||'Employer'),'muted');jobLabel.style.margin='0';jobLabel.style.fontSize='.85rem';
+  const hLeft=make('div');hLeft.append(htitle,jobLabel);
+  hdr.append(hLeft,closeBtn);content.append(hdr);
+  const body=make('div',undefined,'interview-body');content.append(body);
+  let sessionId=null,currentQ=0,totalQ=3,questions=[],feedbacks=[];
+  function stepIcon(i){const s=make('div',(i+1).toString(),'interview-step');return s}
+  function renderProgress(active){
+    const prog=make('div',undefined,'interview-progress');
+    for(let i=0;i<totalQ;i++){
+      const s=stepIcon(i);
+      if(i<active)s.className='interview-step done';
+      else if(i===active)s.className='interview-step active';
+      prog.append(s);
+      if(i<totalQ-1){const line=make('div',undefined,'interview-step-line'+(i<active?' done':''));prog.append(line)}
+    }
+    return prog;
+  }
+  function beeMascotAvatar(){
+    const wrap=make('div',undefined,'interview-bee-avatar');
+    wrap.innerHTML=`<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="#B88A35"/><ellipse cx="18" cy="20" rx="8" ry="9" fill="#FDE68A"/><ellipse cx="18" cy="20" rx="8" ry="9" fill="none" stroke="#92400E" stroke-width="1.2"/><rect x="13" y="17" width="10" height="2.5" rx="1.25" fill="#92400E"/><rect x="13" y="21" width="10" height="2.5" rx="1.25" fill="#92400E"/><ellipse cx="15.2" cy="14.5" rx="2.2" ry="2.5" fill="white" opacity=".9"/><ellipse cx="20.8" cy="14.5" rx="2.2" ry="2.5" fill="white" opacity=".9"/><circle cx="15.2" cy="14.5" r="1.3" fill="#0E1D35"/><circle cx="20.8" cy="14.5" r="1.3" fill="#0E1D35"/></svg>`;
+    return wrap;
+  }
+  function typeBadgeText(type){
+    if(type==='behavioral')return 'Behavioral';
+    if(type==='technical'||type==='domain')return 'Domain / Technical';
+    if(type==='motivational'||type==='situational')return 'Motivational';
+    return type||'Interview';
+  }
+  function renderQuestionCard(q,idx){
+    const card=make('div',undefined,'interview-question-card');
+    card.append(beeMascotAvatar());
+    const qt=make('div',undefined,'interview-question-text');
+    const badge=make('span',typeBadgeText(q.type),'interview-type-badge');
+    const qtext=make('p',q.text);
+    qt.append(badge,qtext);
+    if(q.context){const ctx=make('small','Tip: '+q.context);qt.append(ctx)}
+    card.append(qt);
+    return card;
+  }
+  function renderFeedback(fb){
+    const card=make('div',undefined,'interview-feedback-card');
+    const score=Math.max(1,Math.min(5,Math.round(fb.score||3)));
+    const scoreRow=make('div',undefined,'interview-feedback-score');
+    const stars=make('div',undefined,'interview-score-stars');
+    for(let i=1;i<=5;i++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 16 16');s.setAttribute('class','interview-score-star'+(i>score?' empty':''));const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');p.setAttribute('points','8,1 10.2,6 15.5,6.6 11.5,10.3 12.7,15.5 8,12.8 3.3,15.5 4.5,10.3 0.5,6.6 5.8,6');s.append(p);stars.append(s)}
+    scoreRow.append(stars,document.createTextNode('Score: '+score+' / 5'));
+    card.append(scoreRow);
+    if(fb.strengths?.length){const sec=make('div',undefined,'interview-feedback-section strengths');sec.append(make('h4','Strengths'));const ul=make('ul');fb.strengths.forEach(s=>ul.append(make('li',s)));sec.append(ul);card.append(sec)}
+    if(fb.improvements?.length){const sec=make('div',undefined,'interview-feedback-section improvements');sec.append(make('h4','Areas to improve'));const ul=make('ul');fb.improvements.forEach(s=>ul.append(make('li',s)));sec.append(ul);card.append(sec)}
+    if(fb.star_example){const sec=make('div',undefined,'interview-feedback-section star-example');sec.append(make('h4','Stronger STAR response'));sec.append(make('p',fb.star_example));card.append(sec)}
+    return card;
+  }
+  function renderAnswerBox(onSubmit){
+    const box=make('div',undefined,'interview-answer-box');
+    const lbl=make('label','Your answer');lbl.htmlFor='interview-answer-textarea';
+    const ta=make('textarea');ta.id='interview-answer-textarea';ta.maxLength=3000;ta.placeholder='Describe your experience using the STAR method: Situation, Task, Action, Result…';ta.setAttribute('aria-label','Your interview answer');
+    const charCount=make('span','0 / 3000','char-count');
+    ta.oninput=()=>charCount.textContent=ta.value.length+' / 3000';
+    const submitBtn=make('button','Submit answer','interview-submit-btn');submitBtn.type='button';
+    submitBtn.onclick=()=>onSubmit(ta.value.trim(),submitBtn);
+    box.append(lbl,ta,charCount,submitBtn);
+    return box;
+  }
+  async function showQuestion(q,idx){
+    body.replaceChildren(renderProgress(idx),renderQuestionCard(q,idx),renderAnswerBox(async(answer,btn)=>{
+      if(answer.length<10){alert('Please write at least a few sentences before submitting.');return}
+      btn.disabled=true;btn.textContent='Evaluating…';
+      const thinkEl=make('div',undefined,'interview-thinking');thinkEl.innerHTML='<span>Bee is evaluating your answer</span><span class="interview-thinking-dots"><span></span><span></span><span></span></span>';
+      body.append(thinkEl);
+      try{
+        const res=await fetch('/api/bee/interview/answer',{method:'POST',credentials:'same-origin',cache:'no-cache',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,question_index:idx,answer_text:answer})});
+        const data=await res.json();if(!res.ok)throw new Error(data.detail||'Could not evaluate answer');
+        feedbacks.push(data.feedback);
+        thinkEl.remove();
+        const fb=renderFeedback(data.feedback);
+        body.replaceChildren(renderProgress(idx),renderQuestionCard(q,idx),fb);
+        if(data.completed){
+          const nextBtn=make('button','See your summary','interview-next-btn');nextBtn.onclick=()=>showCompletion();body.append(nextBtn);
+        } else if(data.next_question){
+          questions.push(data.next_question);
+          const nextBtn=make('button','Next question →','interview-next-btn');nextBtn.onclick=()=>{currentQ++;showQuestion(data.next_question,currentQ)};body.append(nextBtn);
+        }
+      }catch(err){thinkEl.remove();btn.disabled=false;btn.textContent='Submit answer';body.append(make('p',err.message||'Something went wrong. Please try again.','notice error'))}
+    }));
+  }
+  function showCompletion(){
+    const avgScore=feedbacks.length?Math.round(feedbacks.reduce((s,f)=>s+(f.score||3),0)/feedbacks.length):3;
+    body.replaceChildren();
+    const comp=make('div',undefined,'interview-complete');
+    comp.append(make('h3','Practice session complete!'));
+    comp.append(make('p','You completed all '+totalQ+' questions. Average score: '+avgScore+' / 5'));
+    const acts=make('div',undefined,'interview-complete-actions');
+    const retry=make('button','Practice again','interview-submit-btn');retry.type='button';retry.onclick=()=>startSession();
+    const close=make('button','Close','interview-next-btn');close.type='button';close.onclick=()=>dlg.close();
+    acts.append(retry,close);comp.append(acts);body.append(comp);
+  }
+  async function startSession(){
+    body.replaceChildren();
+    questions=[];feedbacks=[];currentQ=0;
+    const thinking=make('div',undefined,'interview-thinking');thinking.innerHTML='<span>Bee is preparing your interview questions</span><span class="interview-thinking-dots"><span></span><span></span><span></span></span>';
+    body.append(thinking);
+    try{
+      const res=await fetch('/api/bee/interview/start',{method:'POST',credentials:'same-origin',cache:'no-cache',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_id:job.id||'',job_title:job.title||'Role',company:job.company||'Employer',job_description:(job.description||'').slice(0,3000),requirements:(job.requirements||[]).map(r=>r.quote||r).filter(Boolean).slice(0,15),career_field:job.career_field||''})});
+      const data=await res.json();if(!res.ok)throw new Error(data.detail||'Could not start interview');
+      sessionId=data.session_id;totalQ=data.total_questions||3;
+      questions.push(data.question);
+      thinking.remove();
+      showQuestion(data.question,0);
+    }catch(err){thinking.remove();body.append(make('p',err.message||'Could not start the practice session. Please try again.','notice error'))}
+  }
+  await startSession();
 }
 
 async function showPrepPack(job){
@@ -785,6 +911,10 @@ function renderKanbanBoard() {
           moveBtn.onclick = () => moveJobStage(job, colDef.next);
           actions.append(moveBtn);
         }
+        const practiceKanban = make('button', 'Practice', 'secondary bee-interview-btn');
+        practiceKanban.type = 'button';
+        practiceKanban.onclick = () => showMockInterview(job);
+        actions.append(practiceKanban);
         const select = make('select', undefined, 'kanban-quick-select');
         select.setAttribute('aria-label', 'Change stage for ' + job.title);
         for (const [val, txt] of [
