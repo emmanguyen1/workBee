@@ -336,3 +336,31 @@ test('dedicated sandbox, prep, and behavioral pages exist with distinct content'
   assert.ok(behavHtml.includes('id="behavioral-competency-pills"'), 'behavioral competency filters');
   assert.ok(behavHtml.includes('id="behavioral-questions-grid"'), 'behavioral question grid');
 });
+
+test('behavioral question bank deep links scenarios to practice mock interview studio', async () => {
+  const behavHtml = await fs.readFile(new URL('../hives/careers/behavioral.html', import.meta.url), 'utf8');
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+
+  // Verify behavioral page deep link queries
+  assert.ok(behavHtml.includes('href="/practice?competency=conflict&prompt='), 'conflict deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=leadership&prompt='), 'leadership deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=ambiguity&prompt='), 'ambiguity deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=failure&prompt='), 'failure deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=tradeoffs&prompt='), 'tradeoffs deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=impact&prompt='), 'impact deep link');
+
+  // Verify practice page contains the scenario banner container
+  assert.ok(pracHtml.includes('id="practice-scenario-banner"'), 'scenario banner container');
+  assert.ok(pracHtml.includes('id="scenario-banner-badge"'), 'scenario banner badge');
+  assert.ok(pracHtml.includes('id="scenario-banner-text"'), 'scenario banner text');
+  assert.ok(pracHtml.includes('id="scenario-clear-btn"'), 'scenario clear button');
+});
+
+test('practice studio inline simulation viewer and launch action are properly wired', async () => {
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  assert.ok(pracHtml.includes('id="practice-simulation-view"'), 'practice page simulation view element');
+  assert.ok(pracHtml.includes('id="simulation-body"'), 'practice page simulation body');
+  assert.ok(pracHtml.includes('id="simulation-heading"'), 'simulation heading');
+  assert.ok(pracHtml.includes('id="simulation-reset-btn"'), 'simulation reset button');
+  assert.ok(pracHtml.includes('id="launch-custom-interview"'), 'launch interview button');
+});

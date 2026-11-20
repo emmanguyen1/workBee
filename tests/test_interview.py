@@ -134,6 +134,35 @@ class TestInterview(unittest.TestCase):
         self.assertEqual(len(q_fin), 3)
         self.assertIn('quantitative analysis, financial model, or ledger system', q_fin[1]['text'])
 
+    def test_interview_start_with_initial_question_and_competency(self):
+        scenario_prompt = 'Tell me about a time you had a fundamental disagreement with a colleague or manager.'
+        resp = self._start(
+            initial_question=scenario_prompt,
+            competency='conflict',
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn('question', data)
+        q = data['question']
+        self.assertEqual(q['index'], 0)
+        self.assertEqual(q['type'], 'behavioral')
+        self.assertEqual(q['text'], scenario_prompt)
+        self.assertIn('STAR Competency: Conflict', q['context'])
+
+    def test_practice_page_has_scenario_banner(self):
+        resp = self.client.get('/practice')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('id="practice-scenario-banner"', resp.text)
+        self.assertIn('id="scenario-banner-text"', resp.text)
+        self.assertIn('id="scenario-clear-btn"', resp.text)
+
+    def test_behavioral_page_has_deep_link_scenarios(self):
+        resp = self.client.get('/behavioral')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('href="/practice?competency=conflict&prompt=', resp.text)
+        self.assertIn('data-competency="tradeoffs"', resp.text)
+        self.assertIn('data-competency="impact"', resp.text)
+
 
 if __name__ == '__main__':
     unittest.main()

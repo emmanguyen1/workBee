@@ -359,6 +359,8 @@ class InterviewStartRequest(BaseModel):
     job_description: str = Field(default='', max_length=5000)
     requirements: list[str] = Field(default_factory=list, max_length=20)
     career_field: str = Field(default='', max_length=100)
+    initial_question: str | None = Field(default=None, max_length=1000)
+    competency: str | None = Field(default=None, max_length=100)
 
 
 class InterviewAnswerRequest(BaseModel):
@@ -688,12 +690,32 @@ async def interview_start(data: InterviewStartRequest, request: Request, respons
         )
 
     session_id = str(uuid.uuid4())
+    if data.initial_question:
+        comp_title = (
+            data.competency.replace('_', ' ').replace('-', ' ').title()
+            if data.competency
+            else 'STAR Scenario'
+        )
+        custom_q = {
+            'type': 'behavioral',
+            'text': data.initial_question.strip(),
+            'context': f"STAR Competency: {comp_title}. Focus your response on Situation, Task, Action, and measurable Result.",
+        }
+        questions = [custom_q] + [q for q in questions if q.get('text') != custom_q['text']][:2]
+        if len(questions) < 3:
+            questions.extend(
+                local_interview_questions(
+                    data.job_title, data.company, data.career_field, data.requirements
+                )[len(questions):3]
+            )
+
     _INTERVIEW_SESSIONS[session_id] = {
         'job': {
             'id': data.job_id,
             'title': data.job_title,
             'company': data.company,
             'career_field': data.career_field,
+            'competency': data.competency,
         },
         'questions': questions,
         'created_at': monotonic(),
