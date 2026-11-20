@@ -244,3 +244,22 @@ test('detectOccupation identifies occupation and getBeeMascotSvg generates disti
     assert.ok(svg.endsWith('</svg>'));
   }
 });
+
+import { readFile as fsReadFile } from 'node:fs/promises';
+const fs = { readFile: fsReadFile };
+
+test('interview dialog element exists in page.html', async () => {
+  const html = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="interview-dialog"'), 'interview-dialog must exist in page.html');
+});
+
+test('interview dialog element exists in account.html', async () => {
+  const html = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="interview-dialog"'), 'interview-dialog must exist in account.html');
+});
+
+test('interview-dialog id is unique in page.html', async () => {
+  const html = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const matches = [...html.matchAll(/id="interview-dialog"/g)];
+  assert.strictEqual(matches.length, 1, 'interview-dialog id must appear exactly once in page.html');
+});

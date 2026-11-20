@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import uuid
 from collections import OrderedDict,deque
 from datetime import datetime,timezone
 from urllib.parse import urlsplit
@@ -330,3 +331,376 @@ async def prep_pack(data:PrepRequest,request:Request,response:Response):
             pass
     return local_prep_pack(job,data.profile)
 
+
+
+# ---------------------------------------------------------------------------
+# Interactive Mock Interview session store
+# ---------------------------------------------------------------------------
+_INTERVIEW_SESSIONS: dict = {}
+_SESSION_TTL_SECONDS = 7200  # 2 hours
+
+
+def _evict_old_sessions() -> None:
+    """Remove sessions created more than 2 hours ago."""
+    cutoff = monotonic() - _SESSION_TTL_SECONDS
+    stale = [sid for sid, s in _INTERVIEW_SESSIONS.items() if s['created_at'] < cutoff]
+    for sid in stale:
+        del _INTERVIEW_SESSIONS[sid]
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
+
+class InterviewStartRequest(BaseModel):
+    job_id: str = Field(min_length=1, max_length=500)
+    job_title: str = Field(default='Role', max_length=200)
+    company: str = Field(default='Employer', max_length=200)
+    job_description: str = Field(default='', max_length=5000)
+    requirements: list[str] = Field(default_factory=list, max_length=20)
+    career_field: str = Field(default='', max_length=100)
+
+
+class InterviewAnswerRequest(BaseModel):
+    session_id: str = Field(min_length=1, max_length=100)
+    question_index: int = Field(ge=0, le=2)
+    answer_text: str = Field(min_length=10, max_length=3000)
+
+
+# ---------------------------------------------------------------------------
+# Local fallback helpers
+# ---------------------------------------------------------------------------
+
+def local_interview_questions(
+    job_title: str,
+    company: str,
+    career_field: str,
+    requirements: list[str],
+) -> list[dict]:
+    """Return 3 interview questions without calling an external API."""
+    req_summary = ', '.join(requirements[:5]) if requirements else 'relevant skills'
+    field = (career_field or '').lower()
+
+    if field in {'software', 'engineering', 'data'}:
+        q2_type = 'technical'
+        q2_text = (
+            f'Walk me through how you would design or debug a system that involves {req_summary}. '
+            'What trade-offs would you consider?'
+        )
+        q2_ctx = (
+            f'Interviewers use this to assess depth of technical knowledge for a {job_title} role. '
+            'Be concrete and structure your answer around a real project or academic work.'
+        )
+    elif field in {'science', 'research', 'biology', 'chemistry'}:
+        q2_type = 'technical'
+        q2_text = (
+            'Describe an experiment or research project where you encountered unexpected results. '
+            'How did you adjust your methodology?'
+        )
+        q2_ctx = (
+            'This reveals your scientific rigor, adaptability, and ability to reason under uncertainty. '
+            'Mention specific variables, controls, and what you concluded.'
+        )
+    elif field in {'business', 'finance', 'consulting'}:
+        q2_type = 'technical'
+        q2_text = (
+            f'Give an example of a data-driven or analytical project you led or contributed to '
+            f'that is relevant to a {job_title} position. What was your process?'
+        )
+        q2_ctx = (
+            'Demonstrates quantitative reasoning and business acumen. '
+            'Highlight the metrics, tools, and outcome.'
+        )
+    else:
+        q2_type = 'domain'
+        q2_text = (
+            f'Describe a project or experience that best prepared you for the responsibilities '
+            f'of a {job_title} at {company}.'
+        )
+        q2_ctx = (
+            'This shows alignment between your background and the role. '
+            'Be specific about your contribution and what you delivered.'
+        )
+
+    return [
+        {
+            'type': 'behavioral',
+            'text': (
+                'Tell me about a time you had to collaborate with people who had very different '
+                'working styles or perspectives. How did you handle it, and what was the result?'
+            ),
+            'context': (
+                'Behavioral questions reveal how you have acted in real situations. '
+                'Use the STAR format: Situation, Task, Action, Result. '
+                'Focus on what you personally did and the concrete outcome.'
+            ),
+        },
+        {
+            'type': q2_type,
+            'text': q2_text,
+            'context': q2_ctx,
+        },
+        {
+            'type': 'motivational',
+            'text': (
+                f'Why are you drawn to {company} specifically, and what excites you most '
+                f'about this {job_title} role compared to similar positions?'
+            ),
+            'context': (
+                'This tests genuine interest and research into the employer. '
+                f'Reference something concrete about {company} such as its mission, '
+                'recent projects, or team culture.'
+            ),
+        },
+    ]
+
+
+def local_star_feedback(question_text: str, answer_text: str) -> dict:
+    """Return basic STAR-method feedback without calling an external API."""
+    words = answer_text.split()
+    word_count = len(words)
+
+    has_situation = any(w in answer_text.lower() for w in ('when', 'during', 'at my', 'in my', 'while', 'worked on'))
+    has_action = any(w in answer_text.lower() for w in ('i did', 'i led', 'i built', 'i wrote', 'i created', 'i helped', 'i decided', 'so i', 'then i'))
+    has_result = any(w in answer_text.lower() for w in ('result', 'outcome', 'achieved', 'improved', 'reduced', 'increased', 'learned', 'final'))
+
+    strengths = []
+    improvements = []
+
+    if word_count >= 80:
+        strengths.append('Your answer has enough depth to tell a complete story.')
+    else:
+        improvements.append('Expand your answer to at least 80 words so each STAR component gets proper attention.')
+
+    if has_situation:
+        strengths.append('You set up context, which helps the interviewer follow your narrative.')
+    else:
+        improvements.append('Open with a clear Situation: briefly state the context, team size, and what was at stake.')
+
+    if has_action:
+        strengths.append('You described specific actions you took, which is the core of a strong behavioral answer.')
+    else:
+        improvements.append('Make your personal contribution explicit. Use "I" statements to describe concrete steps you took.')
+
+    if has_result:
+        strengths.append('You included an outcome, which makes your impact tangible.')
+    else:
+        improvements.append('Close with a measurable Result. Quantify the impact wherever possible (time saved, score improved, team size led).')
+
+    if not strengths:
+        strengths = ['You attempted to address the question directly.']
+    if not improvements:
+        improvements = ['Practice delivering this answer aloud to ensure it flows naturally within 2 minutes.']
+
+    score = 1 + sum([has_situation, has_action, has_result, word_count >= 80])
+
+    snippet = ' '.join(words[:12]) + ('...' if word_count > 12 else '')
+    star_example = (
+        f'Situation: Briefly state the specific context in which the event occurred. '
+        f'Task: Explain what you were responsible for achieving. '
+        f'Action: Describe the precise steps you personally took - for example, "{snippet}". '
+        f'Result: Close with the concrete outcome and what you learned from the experience.'
+    )
+
+    return {
+        'strengths': strengths[:3],
+        'improvements': improvements[:3],
+        'star_example': star_example,
+        'score': max(1, min(5, score)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# AI helpers for interview
+# ---------------------------------------------------------------------------
+
+async def _ai_interview_questions(
+    job_title: str,
+    company: str,
+    career_field: str,
+    requirements: list[str],
+    job_description: str,
+) -> list[dict]:
+    req_text = ', '.join(requirements[:10]) if requirements else 'not specified'
+    prompt = json.dumps({
+        'task': 'Generate exactly 3 interview questions for the following internship/job.',
+        'job_title': job_title,
+        'company': company,
+        'career_field': career_field,
+        'requirements': req_text,
+        'job_description': job_description[:2000],
+        'format': (
+            'Return ONLY a valid JSON array of exactly 3 objects. '
+            'Each object must have keys: "type" (string), "text" (string), "context" (string). '
+            'Q1 type must be "behavioral" and begin with "Tell me about a time". '
+            'Q2 type must be "technical" or "domain" and be specific to the career_field and requirements. '
+            'Q3 type must be "motivational" and ask why this company and role. '
+            'No extra keys. No markdown fences. No commentary outside the JSON array.'
+        ),
+    })
+    system_instruction = (
+        'You are an expert technical recruiter creating realistic, specific interview questions. '
+        'Follow the format instructions exactly. Return only the JSON array and nothing else.'
+    )
+    model = (os.getenv('WORKBEE_AI_MODEL') or 'gemini-4-hydrogen').strip()
+    client = genai.Client(api_key=api_key())
+    interaction = await client.aio.interactions.create(
+        model=model,
+        input=prompt,
+        system_instruction=system_instruction,
+        store=False,
+        generation_config={'max_output_tokens': 1200},
+        timeout=40.0,
+    )
+    ans = provider_answer(interaction)
+    text = ans['answer'].strip()
+    match = re.search(r'\[[\s\S]*\]', text)
+    if match:
+        parsed = json.loads(match.group(0))
+        if (
+            isinstance(parsed, list)
+            and len(parsed) == 3
+            and all(isinstance(q, dict) and {'type', 'text', 'context'} <= q.keys() for q in parsed)
+        ):
+            return parsed
+    raise ValueError('Model did not return a valid 3-question array')
+
+
+async def _ai_star_feedback(question_text: str, answer_text: str) -> dict:
+    prompt = json.dumps({
+        'task': 'Evaluate this interview answer using the STAR method.',
+        'question': question_text,
+        'answer': answer_text,
+        'format': (
+            'Return ONLY a valid JSON object with exactly these keys: '
+            '"strengths" (list of 2-3 strings, each a specific strength of this answer), '
+            '"improvements" (list of 2-3 strings, each concrete and actionable), '
+            '"star_example" (string: a 3-4 sentence rewrite of the answer that clearly demonstrates '
+            'Situation, Task, Action, and Result), '
+            '"score" (integer 1-5, where 5 is an outstanding STAR answer). '
+            'No extra keys. No markdown fences. No commentary outside the JSON object.'
+        ),
+    })
+    system_instruction = (
+        'You are an experienced career coach giving structured feedback on interview answers. '
+        'Follow the format instructions exactly. Return only the JSON object and nothing else.'
+    )
+    model = (os.getenv('WORKBEE_AI_MODEL') or 'gemini-4-hydrogen').strip()
+    client = genai.Client(api_key=api_key())
+    interaction = await client.aio.interactions.create(
+        model=model,
+        input=prompt,
+        system_instruction=system_instruction,
+        store=False,
+        generation_config={'max_output_tokens': 900},
+        timeout=40.0,
+    )
+    ans = provider_answer(interaction)
+    parsed = extract_json(ans['answer'])
+    if (
+        parsed
+        and isinstance(parsed.get('strengths'), list)
+        and isinstance(parsed.get('improvements'), list)
+        and isinstance(parsed.get('star_example'), str)
+        and isinstance(parsed.get('score'), int)
+    ):
+        return {
+            'strengths': parsed['strengths'][:3],
+            'improvements': parsed['improvements'][:3],
+            'star_example': parsed['star_example'],
+            'score': max(1, min(5, parsed['score'])),
+        }
+    raise ValueError('Model did not return valid STAR feedback JSON')
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+@router.post('/interview/start')
+async def interview_start(data: InterviewStartRequest, request: Request, response: Response):
+    same_origin(request)
+    throttle(request)
+    response.headers['Cache-Control'] = 'no-store'
+    _evict_old_sessions()
+
+    questions: list[dict]
+    if enabled():
+        try:
+            questions = await _ai_interview_questions(
+                job_title=data.job_title,
+                company=data.company,
+                career_field=data.career_field,
+                requirements=data.requirements,
+                job_description=data.job_description,
+            )
+        except Exception:
+            questions = local_interview_questions(
+                data.job_title, data.company, data.career_field, data.requirements
+            )
+    else:
+        questions = local_interview_questions(
+            data.job_title, data.company, data.career_field, data.requirements
+        )
+
+    session_id = str(uuid.uuid4())
+    _INTERVIEW_SESSIONS[session_id] = {
+        'job': {
+            'id': data.job_id,
+            'title': data.job_title,
+            'company': data.company,
+            'career_field': data.career_field,
+        },
+        'questions': questions,
+        'created_at': monotonic(),
+    }
+
+    first = questions[0]
+    return {
+        'session_id': session_id,
+        'question': {'index': 0, 'type': first['type'], 'text': first['text'], 'context': first['context']},
+        'total_questions': 3,
+    }
+
+
+@router.post('/interview/answer')
+async def interview_answer(data: InterviewAnswerRequest, request: Request, response: Response):
+    same_origin(request)
+    throttle(request)
+    response.headers['Cache-Control'] = 'no-store'
+    _evict_old_sessions()
+
+    session = _INTERVIEW_SESSIONS.get(data.session_id)
+    if not session:
+        raise HTTPException(404, 'Interview session not found or has expired. Please start a new session.')
+
+    questions: list[dict] = session['questions']
+    if data.question_index >= len(questions):
+        raise HTTPException(400, 'Question index is out of range for this session.')
+
+    current_question = questions[data.question_index]
+
+    feedback: dict
+    if enabled():
+        try:
+            feedback = await _ai_star_feedback(current_question['text'], data.answer_text)
+        except Exception:
+            feedback = local_star_feedback(current_question['text'], data.answer_text)
+    else:
+        feedback = local_star_feedback(current_question['text'], data.answer_text)
+
+    next_index = data.question_index + 1
+    completed = next_index >= len(questions)
+    next_question = None
+    if not completed:
+        nq = questions[next_index]
+        next_question = {'index': next_index, 'type': nq['type'], 'text': nq['text'], 'context': nq['context']}
+
+    if completed:
+        _INTERVIEW_SESSIONS.pop(data.session_id, None)
+
+    return {
+        'feedback': feedback,
+        'next_question': next_question,
+        'completed': completed,
+    }
