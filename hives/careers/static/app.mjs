@@ -1,4 +1,4 @@
-import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges, kanbanColumns, BEE_PERSONAS, detectOccupation, getBeeMascotSvg} from './logic.mjs';
+import {parseSkills, apiError, assessmentLabel, relativeTime, freshnessWindow, comparisonPreferences, mergeProfileSkills, preferenceChoices, applicationsCSV, formatPayPill, eligibilityBadges, kanbanColumns, BEE_PERSONAS, detectOccupation, getBeeMascotSvg, googleCalendarUrl, pipelineCalendarIcs} from './logic.mjs';
 
 const $=id=>document.getElementById(id), make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 let offset=0,total=0,requestId=0;
@@ -547,17 +547,16 @@ if(subscribeForm){
     if(!email)return;
     const btn=$('subscribe-btn'),status=$('subscribe-status');
     if(btn)btn.disabled=true;
-    if(status){status.className='notice';status.textContent='Subscribing…';}
+    if(status){status.className='notice';status.textContent='Subscribing for weekly drop alerts…';}
     try{
-      const response=await fetch('/api/careers/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const response=await fetch('/api/careers/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,target_term:'summer-2027'})});
       const data=await response.json();
       if(!response.ok)throw new Error(apiError(data,'Could not subscribe.'));
       localStorage.setItem('workbee.subscriber.email',email);
-      if(status){status.className='notice success';status.textContent=data.message||'Subscribed! You will receive new drop alerts.';}
+      if(status){status.className='notice success';status.textContent='✓ '+(data.message||'Subscribed! You will receive weekly drop alerts.');}
       if($('subscribe-email'))$('subscribe-email').value='';
     }catch(error){
-      localStorage.setItem('workbee.subscriber.email',email);
-      if(status){status.className='notice success';status.textContent='Subscribed! You will receive early drop alerts.';}
+      if(status){status.className='notice error';status.textContent=error.message||'Could not complete subscription.';}
     }finally{if(btn)btn.disabled=false}
   };
 }
@@ -933,6 +932,24 @@ function renderSavedApplications(){
       card.append(make('p',job.open?'Active employer posting · confirm availability':'Archived or no longer in the source feed','notice'+(job.open?'':' muted')));
       const link=applicationLink(job,'View employer posting ↗');
       if(job.open&&link)card.append(link);
+      const appDeadline = job.deadline_date || job.deadline;
+      if (appDeadline) {
+        const gUrl = googleCalendarUrl({
+          company: job.company,
+          title: job.title,
+          deadline: appDeadline,
+          deadline_at: job.deadline_at,
+          apply_url: job.apply_url,
+          notes: job.details?.notes
+        });
+        if (gUrl) {
+          const gLink = make('a', 'Add to Google Calendar ↗', 'gcal-calendar-link');
+          gLink.href = gUrl;
+          gLink.target = '_blank';
+          gLink.rel = 'noopener noreferrer';
+          card.append(gLink);
+        }
+      }
       card.append(tracking(job),noteEditor(job));
       return card;
     }));
@@ -982,6 +999,12 @@ if(isAccountPage){
   if ($('export-tracker-btn')) {
     $('export-tracker-btn').onclick = () => download(applicationsCSV(savedApplications), 'workbee-applications.csv', 'text/csv;charset=utf-8');
   }
+  const exportDeadlinesIcs = () => {
+    const ics = pipelineCalendarIcs(savedApplications);
+    download(ics, 'workbee-deadlines.ics', 'text/calendar;charset=utf-8');
+  };
+  if ($('export-deadlines-ics')) $('export-deadlines-ics').onclick = exportDeadlinesIcs;
+  if ($('settings-deadlines-ics')) $('settings-deadlines-ics').onclick = exportDeadlinesIcs;
   if ($('target-term')) {
     $('target-term').value = localStorage.getItem('workbee.target_term') || 'summer-2027';
     $('target-term').onchange = () => localStorage.setItem('workbee.target_term', $('target-term').value);

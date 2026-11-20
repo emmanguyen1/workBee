@@ -295,6 +295,104 @@ export function deadlineCalendar(program, now = new Date()) {
   return lines.join('\r\n')+'\r\n';
 }
 
+export function googleCalendarUrl({ title = '', company = '', deadline = '', deadline_at = '', apply_url = '', notes = '' }) {
+  if (!deadline && !deadline_at) return '';
+  const dateStr = deadline_at
+    ? new Date(deadline_at).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+    : deadline.replace(/-/g, '');
+  const dates = deadline_at ? `${dateStr}/${dateStr}` : `${dateStr}/${dateStr}`;
+  const eventTitle = `[Apply] ${company ? company + ' - ' : ''}${title || 'Application Deadline'}`;
+  const details = [
+    company ? `Company: ${company}` : '',
+    title ? `Role: ${title}` : '',
+    apply_url ? `Job Link: ${apply_url}` : '',
+    notes ? `Notes: ${notes}` : '',
+    'Tracked with workBee'
+  ].filter(Boolean).join('\n\n');
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: eventTitle,
+    dates,
+    details
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+export function pipelineCalendarIcs(applications = [], now = new Date()) {
+  const escape = text => String(text || '').replaceAll('\\', '\\\\').replaceAll('\n', '\\n').replaceAll(',', '\\,').replaceAll(';', '\\;');
+  const utc = date => new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+
+  const events = [];
+  for (const job of applications) {
+    const deadline = job.deadline_date || job.deadline || job.details?.deadline || job.details?.follow_up;
+    if (!deadline) continue;
+
+    const company = job.company || 'Employer';
+    const title = job.title || 'Role';
+    const url = job.apply_url || job.source_url || '';
+    const notes = job.details?.notes || '';
+    const jobId = job.id || `${company}-${title}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    // 1. Due Date Event
+    const eventLines = [
+      'BEGIN:VEVENT',
+      `UID:${escape(jobId)}-deadline@workbee.local`,
+      `DTSTAMP:${utc(now)}`
+    ];
+
+    if (job.deadline_at) {
+      eventLines.push(`DTSTART:${utc(job.deadline_at)}`);
+    } else {
+      const nextDay = new Date(deadline + 'T00:00:00Z');
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      eventLines.push(`DTSTART;VALUE=DATE:${deadline.replaceAll('-', '')}`);
+      eventLines.push(`DTEND;VALUE=DATE:${nextDay.toISOString().slice(0, 10).replaceAll('-', '')}`);
+    }
+
+    eventLines.push(
+      `SUMMARY:${escape(`[Deadline] ${company} - ${title}`)}`,
+      `DESCRIPTION:${escape(`Application deadline for ${title} at ${company}.\nStatus: ${job.status || 'Applied'}\n${url ? 'Link: ' + url + '\n' : ''}${notes ? 'Notes: ' + notes + '\n' : ''}Tracked on workBee.`)}`,
+      'END:VEVENT'
+    );
+    events.push(eventLines.join('\r\n'));
+
+    // 2. Prep Milestone Reminder (3 days prior if deadline is a standard YYYY-MM-DD date)
+    try {
+      const dDate = new Date(job.deadline_at || deadline + 'T00:00:00Z');
+      if (!isNaN(dDate.getTime())) {
+        const reminderDate = new Date(dDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+        const reminderDay = reminderDate.toISOString().slice(0, 10);
+        const reminderNext = new Date(reminderDay + 'T00:00:00Z');
+        reminderNext.setUTCDate(reminderNext.getUTCDate() + 1);
+
+        const reminderLines = [
+          'BEGIN:VEVENT',
+          `UID:${escape(jobId)}-prep3d@workbee.local`,
+          `DTSTAMP:${utc(now)}`,
+          `DTSTART;VALUE=DATE:${reminderDay.replaceAll('-', '')}`,
+          `DTEND;VALUE=DATE:${reminderNext.toISOString().slice(0, 10).replaceAll('-', '')}`,
+          `SUMMARY:${escape(`[Prep Milestone] 3 days until ${company} (${title}) deadline`)}`,
+          `DESCRIPTION:${escape(`Reminder: 3 days remaining before ${company} application closes (${deadline}).\nReview your materials and submit on ${url || 'the official portal'}.`)}`,
+          'END:VEVENT'
+        ];
+        events.push(reminderLines.join('\r\n'));
+      }
+    } catch {}
+  }
+
+  const calendarLines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//workBee//Pipeline Deadlines//EN',
+    'CALSCALE:GREGORIAN',
+    'X-WR-CALNAME:workBee Application Deadlines',
+    ...events,
+    'END:VCALENDAR'
+  ];
+
+  return calendarLines.join('\r\n') + '\r\n';
+}
+
 export function mergeProfileSkills(existing, imported, replace=false) {
   const merged=new Map();
   const example=text=>/\b(built|developed|designed|created|analy[sz]ed|implemented|managed|automated|conducted|taught|wrote|coordinated|interviewed|collected|project|coursework|capstone|thesis|laboratory)\b/i.test(text||'');
