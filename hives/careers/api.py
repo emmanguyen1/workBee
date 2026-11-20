@@ -313,6 +313,35 @@ async def account_page(response: Response):
     return Path(__file__).with_name('account.html').read_text()
 
 
+@router.get('/practice',response_class=HTMLResponse)
+@router.get('/interview',response_class=HTMLResponse)
+@router.get('/practice/interview',response_class=HTMLResponse)
+async def practice_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('practice.html').read_text()
+
+
+@router.get('/sandbox',response_class=HTMLResponse)
+@router.get('/practice/sandbox',response_class=HTMLResponse)
+async def sandbox_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('sandbox.html').read_text()
+
+
+@router.get('/prep',response_class=HTMLResponse)
+@router.get('/practice/prep',response_class=HTMLResponse)
+async def prep_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('prep.html').read_text()
+
+
+@router.get('/behavioral',response_class=HTMLResponse)
+@router.get('/practice/behavioral',response_class=HTMLResponse)
+async def behavioral_page(response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    return Path(__file__).with_name('behavioral.html').read_text()
+
+
 def compact_card(job):
     if not job.get('description_deferred'):return job
     result={key:value for key,value in job.items() if key not in {'requirements','qualification_snapshot','application_key'}}

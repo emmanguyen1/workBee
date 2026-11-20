@@ -30,7 +30,7 @@ class PageTests(unittest.TestCase):
             def handle_starttag(self,tag,attrs):
                 for key,value in attrs:
                     if key=='id':self.ids.append(value)
-        for page in ['page.html','account.html']:
+        for page in ['page.html','account.html','practice.html','sandbox.html','prep.html','behavioral.html']:
             markup=(Path('hives/careers')/page).read_text();parser=IDs();parser.feed(markup)
             self.assertEqual(len(parser.ids),len(set(parser.ids)),page)
         search=Path('hives/careers/page.html').read_text()

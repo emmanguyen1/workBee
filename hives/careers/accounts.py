@@ -64,7 +64,12 @@ async def connection():
 def same_origin(request):
     origin = request.headers.get("origin")
     expected = str(request.base_url).rstrip("/")
-    if (origin and origin != expected) or request.headers.get("sec-fetch-site") == "cross-site":
+    if origin:
+        norm_origin = origin.replace("localhost", "127.0.0.1")
+        norm_expected = expected.replace("localhost", "127.0.0.1")
+        if norm_origin != norm_expected:
+            raise HTTPException(403, "Account changes must come from this site.", headers=PRIVATE)
+    if request.headers.get("sec-fetch-site") == "cross-site":
         raise HTTPException(403, "Account changes must come from this site.", headers=PRIVATE)
 
 

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F8FAFC"><title>Technical & SQL Sandbox · workBee</title>
+  <link rel="icon" type="image/png" href="/careers/assets/workbee-logo.png">
+  <link rel="stylesheet" href="/careers/assets/styles.css">
+</head>
+<body data-page="sandbox"><main>
+  <header class="site-header">
+    <a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a>
+    <nav aria-label="App navigation" class="main-nav">
+      <div class="nav-tabs">
+        <a class="nav-tab" href="/">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Explore opportunities
+        </a>
+        <div class="nav-dropdown" id="practice-dropdown-container">
+          <button type="button" class="nav-tab nav-dropdown-btn active" id="practice-dropdown-btn" aria-expanded="false" aria-haspopup="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4h-2V7h2z"/></svg>
+            Practice with Bee <span class="nav-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu hidden" id="practice-menu" role="menu">
+            <a class="nav-menu-item" id="practice-menu-interview" href="/practice" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Mock Interview Studio</strong>
+                <small>Tailored STAR behavioral & domain interview simulation</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-sandbox" href="/sandbox" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Technical & SQL Sandbox</strong>
+                <small>Interactive coding, SQL queries & algorithm challenges</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-prep" href="/prep" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Prep Pack & ATS Strategy</strong>
+                <small>Keyword matching, outreach & interview talking points</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-behavioral" href="/behavioral" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Behavioral STAR Bank</strong>
+                <small>Scenario vault by competency: conflict, leadership & trade-offs</small>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a class="nav-tab" id="nav-pipeline-tab" href="/account#pipeline">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Application pipeline
+        </a>
+      </div>
+      <div class="nav-actions">
+        <a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="sandbox-page-hero">
+    <div class="sandbox-page-header">
+      <span class="eyebrow-pill">Bee Technical Sandbox</span>
+      <h1>Technical & SQL Sandbox</h1>
+      <p class="hero-subtext">Solve real employer screening challenges. Practice SQL window aggregations, rate limiters, and algorithms with instant execution, test cases, and progressive hints.</p>
+    </div>
+
+    <!-- Main Sandbox Container -->
+    <div class="sandbox-page-card" id="sandbox-page-container">
+      <!-- Track switcher -->
+      <div class="sandbox-tracks" id="page-sandbox-tracks">
+        <button type="button" class="sandbox-track-btn active" data-track="0">SQL: Compensation Analytics</button>
+        <button type="button" class="sandbox-track-btn" data-track="1">Algorithms: Sliding-Window Limiter</button>
+        <button type="button" class="sandbox-track-btn" data-track="2">SQL: Intern Cohort Return Rate</button>
+      </div>
+
+      <!-- Problem info -->
+      <div class="sandbox-problem-card">
+        <div class="sandbox-problem-header">
+          <h2 id="page-problem-title" class="sandbox-problem-title">Department Compensation Analytics</h2>
+          <div class="sandbox-badges">
+            <span id="page-problem-diff" class="sandbox-badge medium">Medium</span>
+            <span id="page-problem-company" class="sandbox-badge company">Asked by Stripe & Databricks</span>
+          </div>
+        </div>
+        <p id="page-problem-desc" class="sandbox-task-desc">Write a SQL query that returns each department name, total headcount, and the average salary rounded to 2 decimal places. Order the results by average salary descending.</p>
+        <pre id="page-problem-schema" class="sandbox-schema-box">employees (id INT, name VARCHAR, department_id INT, salary NUMERIC)
+departments (id INT, department_name VARCHAR)</pre>
+      </div>
+
+      <!-- Code editor box -->
+      <div class="sandbox-editor-wrapper">
+        <div class="sandbox-editor-header">
+          <span>Solution Editor</span>
+          <span class="editor-lang-badge" id="page-editor-lang">SQL</span>
+        </div>
+        <textarea id="page-sandbox-editor" class="sandbox-editor-textarea" spellcheck="false" aria-label="Code solution editor"></textarea>
+      </div>
+
+      <!-- Action controls -->
+      <div class="sandbox-action-bar">
+        <button type="button" id="page-sandbox-run" class="sandbox-run-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run & Evaluate Solution
+        </button>
+        <button type="button" id="page-sandbox-hint-btn" class="sandbox-hint-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"/></svg>
+          Get Bee Hint (<span id="page-hint-count">0/3</span>)
+        </button>
+        <button type="button" id="page-sandbox-reset" class="sandbox-reset-btn">Reset starter code</button>
+      </div>
+
+      <!-- Hint display -->
+      <div id="page-sandbox-hint-box" class="sandbox-hint-box hidden"></div>
+
+      <!-- Console output -->
+      <div class="sandbox-console" id="page-sandbox-console">
+        <div class="sandbox-console-header">
+          <span>Test Execution Console</span>
+          <span id="page-console-badge" class="sandbox-result-badge pass hidden">PASS ✓</span>
+        </div>
+        <div id="page-console-output">
+          <p class="muted" style="margin: .5rem 0;">Click "Run & Evaluate Solution" to verify against test fixtures.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dialog containers -->
+  <dialog id="interview-dialog" class="interview-dialog" aria-labelledby="interview-dialog-title"><div id="interview-content"></div></dialog>
+  <dialog id="sandbox-dialog" class="sandbox-dialog" aria-labelledby="sandbox-dialog-title"><div id="sandbox-content"></div></dialog>
+  <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
+  <dialog id="instant-apply-dialog" class="instant-apply-dialog" aria-labelledby="instant-apply-title"><div id="instant-apply-content"></div></dialog>
+  <div hidden id="search-storage"><div id="jobs"></div><div id="status"></div></div>
+</main>
+<script type="module" src="/careers/assets/app.mjs"></script>
+</body>
+</html>

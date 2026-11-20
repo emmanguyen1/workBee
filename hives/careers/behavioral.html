@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F8FAFC"><title>Behavioral STAR Question Bank · workBee</title>
+  <link rel="icon" type="image/png" href="/careers/assets/workbee-logo.png">
+  <link rel="stylesheet" href="/careers/assets/styles.css">
+</head>
+<body data-page="behavioral"><main>
+  <header class="site-header">
+    <a class="brand" href="/"><img class="bee-logo" src="/careers/assets/workbee-logo.png" alt="workBee professional bee" width="64" height="64"><span>workBee<small>Find your way forward</small></span></a>
+    <nav aria-label="App navigation" class="main-nav">
+      <div class="nav-tabs">
+        <a class="nav-tab" href="/">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Explore opportunities
+        </a>
+        <div class="nav-dropdown" id="practice-dropdown-container">
+          <button type="button" class="nav-tab nav-dropdown-btn active" id="practice-dropdown-btn" aria-expanded="false" aria-haspopup="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4h-2V7h2z"/></svg>
+            Practice with Bee <span class="nav-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu hidden" id="practice-menu" role="menu">
+            <a class="nav-menu-item" id="practice-menu-interview" href="/practice" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Mock Interview Studio</strong>
+                <small>Tailored STAR behavioral & domain interview simulation</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-sandbox" href="/sandbox" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Technical & SQL Sandbox</strong>
+                <small>Interactive coding, SQL queries & algorithm challenges</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-prep" href="/prep" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Prep Pack & ATS Strategy</strong>
+                <small>Keyword matching, outreach & interview talking points</small>
+              </div>
+            </a>
+            <a class="nav-menu-item" id="practice-menu-behavioral" href="/behavioral" role="menuitem">
+              <span class="menu-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+              <div class="menu-item-text">
+                <strong>Behavioral STAR Bank</strong>
+                <small>Scenario vault by competency: conflict, leadership & trade-offs</small>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a class="nav-tab" id="nav-pipeline-tab" href="/account#pipeline">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Application pipeline
+        </a>
+      </div>
+      <div class="nav-actions">
+        <a href="/account" id="account-toggle" class="account-toggle"><span id="nav-avatar" class="avatar" aria-hidden="true">wB</span><span id="nav-account-label">Sign in / Create profile</span></a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="behavioral-page-hero">
+    <div class="behavioral-page-header">
+      <span class="eyebrow-pill">Bee STAR Scenario Bank</span>
+      <h1>Behavioral STAR Question Bank</h1>
+      <p class="hero-subtext">Master behavioral interviews with structured STAR responses. Explore common scenarios asked by top tech and industry hiring managers.</p>
+    </div>
+
+    <!-- Competency Filter Pills -->
+    <div class="behavioral-filter-bar" id="behavioral-competency-pills">
+      <button type="button" class="industry-pill active" data-competency="all">All Competencies</button>
+      <button type="button" class="industry-pill" data-competency="conflict">Conflict & Collaboration</button>
+      <button type="button" class="industry-pill" data-competency="leadership">Leadership & Initiative</button>
+      <button type="button" class="industry-pill" data-competency="ambiguity">Ambiguity & Decisions</button>
+      <button type="button" class="industry-pill" data-competency="failure">Failure & Resilience</button>
+      <button type="button" class="industry-pill" data-competency="tradeoffs">Trade-offs & Priorities</button>
+      <button type="button" class="industry-pill" data-competency="impact">User Impact & Data</button>
+    </div>
+
+    <!-- Questions Vault Grid -->
+    <div class="behavioral-grid" id="behavioral-questions-grid">
+      <article class="behavioral-card" data-competency="conflict">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">Conflict & Collaboration</span>
+          <span class="behavioral-freq">High Frequency</span>
+        </div>
+        <h3>Tell me about a time you had a fundamental disagreement with a colleague or manager. How did you resolve it?</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Assesses emotional maturity, focus on shared team goals over ego, and constructive communication.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Focus on the data and principles used to evaluate differing approaches rather than personal friction.
+        </div>
+        <a href="/practice?competency=conflict&prompt=Tell%20me%20about%20a%20time%20you%20had%20a%20fundamental%20disagreement%20with%20a%20colleague%20or%20manager.%20How%20did%20you%20resolve%20it%3F" class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+
+      <article class="behavioral-card" data-competency="leadership">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">Leadership & Initiative</span>
+          <span class="behavioral-freq">High Frequency</span>
+        </div>
+        <h3>Describe a project where you took ownership of a problem outside your official scope.</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Evaluates proactive mindset, agency, and capacity to deliver impact without waiting for explicit instructions.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Clarify how you identified the gap, aligned stakeholders, and measured the positive outcome.
+        </div>
+        <a href="/practice?competency=leadership&prompt=Describe%20a%20project%20where%20you%20took%20ownership%20of%20a%20problem%20outside%20your%20official%20scope." class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+
+      <article class="behavioral-card" data-competency="ambiguity">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">Ambiguity & Decisions</span>
+          <span class="behavioral-freq">Core Competency</span>
+        </div>
+        <h3>Walk me through a situation where you had to make an important decision with incomplete or conflicting information.</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Measures structured problem breakdown, risk tolerance, and bias for action under uncertainty.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Outline your decision framework, how you mitigated downside risk, and what feedback loop verified the outcome.
+        </div>
+        <a href="/practice?competency=ambiguity&prompt=Walk%20me%20through%20a%20situation%20where%20you%20had%20to%20make%20an%20important%20decision%20with%20incomplete%20or%20conflicting%20information." class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+
+      <article class="behavioral-card" data-competency="failure">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">Failure & Resilience</span>
+          <span class="behavioral-freq">Core Competency</span>
+        </div>
+        <h3>Tell me about a time a project failed, missed a deadline, or fell short of expectations. What did you learn?</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Tests accountability, honest self-reflection, and whether you turn setbacks into systemic improvements.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Own your part transparently, avoid blaming others, and highlight the permanent process upgrade you implemented.
+        </div>
+        <a href="/practice?competency=failure&prompt=Tell%20me%20about%20a%20time%20a%20project%20failed%2C%20missed%20a%20deadline%2C%20or%20fell%20short%20of%20expectations.%20What%20did%20you%20learn%3F" class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+
+      <article class="behavioral-card" data-competency="tradeoffs">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">Trade-offs & Priorities</span>
+          <span class="behavioral-freq">High Frequency</span>
+        </div>
+        <h3>Describe a time when you had to make a tough trade-off between speed, scope, and technical debt to meet a deadline.</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Evaluates pragmatic execution, prioritization, and communication with stakeholders during crunch time.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Explain what you deprioritized, how you secured stakeholder consensus, and how you tracked post-launch remediation.
+        </div>
+        <a href="/practice?competency=tradeoffs&prompt=Describe%20a%20time%20when%20you%20had%20to%20make%20a%20tough%20trade-off%20between%20speed%2C%20scope%2C%20and%20technical%20debt%20to%20meet%20a%20deadline." class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+
+      <article class="behavioral-card" data-competency="impact">
+        <div class="behavioral-card-top">
+          <span class="behavioral-badge">User Impact & Data</span>
+          <span class="behavioral-freq">Core Competency</span>
+        </div>
+        <h3>Give an example of how you used user data or feedback to pivot a project direction or challenge an initial assumption.</h3>
+        <p class="behavioral-why"><strong>Why interviewers ask this:</strong> Probes customer empathy, data-informed rigor, and willingness to adapt when facts contradict intuition.</p>
+        <div class="behavioral-star-tip">
+          <strong>STAR Advice:</strong> Specify the exact metric or qualitative signal analyzed, the hypothesis tested, and the quantifiable outcome achieved.
+        </div>
+        <a href="/practice?competency=impact&prompt=Give%20an%20example%20of%20how%20you%20used%20user%20data%20or%20feedback%20to%20pivot%20a%20project%20direction%20or%20challenge%20an%20initial%20assumption." class="behavioral-practice-link">Practice in Mock Interview Studio →</a>
+      </article>
+    </div>
+  </section>
+
+  <!-- Dialog containers -->
+  <dialog id="interview-dialog" class="interview-dialog" aria-labelledby="interview-dialog-title"><div id="interview-content"></div></dialog>
+  <dialog id="sandbox-dialog" class="sandbox-dialog" aria-labelledby="sandbox-dialog-title"><div id="sandbox-content"></div></dialog>
+  <dialog id="prep-dialog" class="prep-dialog" aria-labelledby="prep-title"><div id="prep-content"></div></dialog>
+  <dialog id="instant-apply-dialog" class="instant-apply-dialog" aria-labelledby="instant-apply-title"><div id="instant-apply-content"></div></dialog>
+  <div hidden id="search-storage"><div id="jobs"></div><div id="status"></div></div>
+</main>
+<script type="module" src="/careers/assets/app.mjs"></script>
+</body>
+</html>

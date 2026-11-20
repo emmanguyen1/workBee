@@ -275,3 +275,92 @@ test('global practice button exists outside application cards in page.html', asy
   const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
   assert.ok(pageHtml.includes('id="global-practice-btn"'), 'global-practice-btn must exist in page.html');
 });
+
+test('header navigation tabs and practice dropdown exist in page.html and account.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="practice-dropdown-btn"'), 'practice-dropdown-btn in page.html');
+  assert.ok(pageHtml.includes('id="practice-menu-sandbox"'), 'practice-menu-sandbox in page.html');
+  assert.ok(pageHtml.includes('id="nav-pipeline-tab"'), 'nav-pipeline-tab in page.html');
+  assert.ok(accHtml.includes('id="practice-dropdown-btn"'), 'practice-dropdown-btn in account.html');
+  assert.ok(accHtml.includes('id="practice-menu-sandbox"'), 'practice-menu-sandbox in account.html');
+});
+
+test('sandbox dialog element exists in page.html and account.html', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  assert.ok(pageHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in page.html');
+  assert.ok(accHtml.includes('id="sandbox-dialog"'), 'sandbox-dialog in account.html');
+});
+
+test('header tabs navigate directly to distinct pages without opening new browser tabs', async () => {
+  const pageHtml = await fs.readFile(new URL('../hives/careers/page.html', import.meta.url), 'utf8');
+  const accHtml = await fs.readFile(new URL('../hives/careers/account.html', import.meta.url), 'utf8');
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  
+  const getHeader = html => html.slice(0, html.indexOf('</header>'));
+  assert.ok(!getHeader(pageHtml).includes('target="_blank"'), 'page.html header should not have target="_blank"');
+  assert.ok(!getHeader(accHtml).includes('target="_blank"'), 'account.html header should not have target="_blank"');
+  assert.ok(!getHeader(pracHtml).includes('target="_blank"'), 'practice.html header should not have target="_blank"');
+
+  assert.ok(pageHtml.includes('href="/practice"'), 'page.html has link to /practice');
+  assert.ok(pageHtml.includes('href="/sandbox"'), 'page.html has link to /sandbox');
+  assert.ok(pageHtml.includes('href="/prep"'), 'page.html has link to /prep');
+  assert.ok(pageHtml.includes('href="/behavioral"'), 'page.html has link to /behavioral');
+});
+
+test('practice studio contains industry and career customization controls', async () => {
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  assert.ok(pracHtml.includes('id="practice-customizer-form"'), 'customizer form');
+  assert.ok(pracHtml.includes('id="industry-pills"'), 'industry pills container');
+  assert.ok(pracHtml.includes('data-field="software"'), 'software track pill');
+  assert.ok(pracHtml.includes('data-field="data"'), 'data track pill');
+  assert.ok(pracHtml.includes('data-field="health"'), 'health track pill');
+  assert.ok(pracHtml.includes('id="practice-role-title"'), 'role title input');
+  assert.ok(pracHtml.includes('id="practice-company-name"'), 'company name input');
+  assert.ok(pracHtml.includes('id="stage-pills"'), 'stage pills container');
+  assert.ok(pracHtml.includes('id="launch-custom-interview"'), 'launch interview button');
+  assert.ok(pracHtml.includes('href="/sandbox"'), 'direct link to /sandbox');
+  assert.ok(pracHtml.includes('href="/prep"'), 'direct link to /prep');
+});
+
+test('dedicated sandbox, prep, and behavioral pages exist with distinct content', async () => {
+  const sandHtml = await fs.readFile(new URL('../hives/careers/sandbox.html', import.meta.url), 'utf8');
+  const prepHtml = await fs.readFile(new URL('../hives/careers/prep.html', import.meta.url), 'utf8');
+  const behavHtml = await fs.readFile(new URL('../hives/careers/behavioral.html', import.meta.url), 'utf8');
+
+  assert.ok(sandHtml.includes('id="page-sandbox-editor"'), 'sandbox page code editor');
+  assert.ok(sandHtml.includes('id="page-sandbox-run"'), 'sandbox page run button');
+  assert.ok(prepHtml.includes('id="prep-builder-form"'), 'prep page builder form');
+  assert.ok(prepHtml.includes('id="prep-generate-btn"'), 'prep page generate button');
+  assert.ok(behavHtml.includes('id="behavioral-competency-pills"'), 'behavioral competency filters');
+  assert.ok(behavHtml.includes('id="behavioral-questions-grid"'), 'behavioral question grid');
+});
+
+test('behavioral question bank deep links scenarios to practice mock interview studio', async () => {
+  const behavHtml = await fs.readFile(new URL('../hives/careers/behavioral.html', import.meta.url), 'utf8');
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+
+  // Verify behavioral page deep link queries
+  assert.ok(behavHtml.includes('href="/practice?competency=conflict&prompt='), 'conflict deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=leadership&prompt='), 'leadership deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=ambiguity&prompt='), 'ambiguity deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=failure&prompt='), 'failure deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=tradeoffs&prompt='), 'tradeoffs deep link');
+  assert.ok(behavHtml.includes('href="/practice?competency=impact&prompt='), 'impact deep link');
+
+  // Verify practice page contains the scenario banner container
+  assert.ok(pracHtml.includes('id="practice-scenario-banner"'), 'scenario banner container');
+  assert.ok(pracHtml.includes('id="scenario-banner-badge"'), 'scenario banner badge');
+  assert.ok(pracHtml.includes('id="scenario-banner-text"'), 'scenario banner text');
+  assert.ok(pracHtml.includes('id="scenario-clear-btn"'), 'scenario clear button');
+});
+
+test('practice studio inline simulation viewer and launch action are properly wired', async () => {
+  const pracHtml = await fs.readFile(new URL('../hives/careers/practice.html', import.meta.url), 'utf8');
+  assert.ok(pracHtml.includes('id="practice-simulation-view"'), 'practice page simulation view element');
+  assert.ok(pracHtml.includes('id="simulation-body"'), 'practice page simulation body');
+  assert.ok(pracHtml.includes('id="simulation-heading"'), 'simulation heading');
+  assert.ok(pracHtml.includes('id="simulation-reset-btn"'), 'simulation reset button');
+  assert.ok(pracHtml.includes('id="launch-custom-interview"'), 'launch interview button');
+});
