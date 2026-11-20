@@ -165,6 +165,8 @@ class Identity(BaseModel):
     display_name: str = Field(default="", max_length=80)
     school: str = Field(default="", max_length=120)
     headline: str = Field(default="", max_length=160)
+    mascot: str = Field(default="scholar", max_length=50)
+    custom_avatar: str = Field(default="", max_length=400000)
 
 
 class SavedState(BaseModel):

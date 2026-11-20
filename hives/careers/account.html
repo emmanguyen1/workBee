@@ -19,9 +19,9 @@
     Back to opportunities
   </a>
 </section>
-<div class="google-workspace-layout">
+<div class="google-workspace-layout unauthenticated" id="workspace-layout">
   <!-- Left Category Navigation Sidebar (Google Account style) -->
-  <aside class="account-sidebar" aria-label="Account navigation">
+  <aside class="account-sidebar hidden" id="account-sidebar" aria-label="Account navigation">
     <div class="account-sidebar-nav" role="tablist">
       <button type="button" class="sidebar-pill-tab active" data-tab="tab-personal" role="tab" id="nav-tab-personal" aria-selected="true" aria-controls="tab-personal">
         <span class="pill-icon green" aria-hidden="true">
@@ -62,6 +62,16 @@
           <span class="pill-desc">Password & connected providers</span>
         </span>
       </button>
+
+      <button type="button" class="sidebar-pill-tab" data-tab="tab-settings" role="tab" id="nav-tab-settings" aria-selected="false" aria-controls="tab-settings">
+        <span class="pill-icon orange" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </span>
+        <span class="pill-text">
+          <span class="pill-title">Data & settings</span>
+          <span class="pill-desc">Target term & account backup</span>
+        </span>
+      </button>
     </div>
   </aside>
 
@@ -78,7 +88,17 @@
       </div>
 
       <div class="user-profile-card">
-        <span class="avatar large mascot-avatar-box" id="profile-avatar" aria-hidden="true"></span>
+        <div class="avatar-manager">
+          <span class="avatar large mascot-avatar-box" id="profile-avatar" aria-hidden="true"></span>
+          <div class="avatar-action-row">
+            <label for="avatar-file-input" class="avatar-chip-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Upload photo
+            </label>
+            <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+            <button type="button" id="reset-avatar-btn" class="text-button reset-avatar-btn hidden">Reset to mascot</button>
+          </div>
+        </div>
         <div class="profile-details">
           <h3 id="profile-display-name">Guest Candidate</h3>
           <p id="profile-handle" class="muted">@guest</p>
@@ -263,7 +283,7 @@
                 <button type="button" class="auth-tab-btn" id="tab-register" role="tab" aria-selected="false">Create Account</button>
               </div>
               <form id="auth-form" class="auth-form-clean">
-                <select id="auth-mode" class="sr-only" tabindex="-1"><option value="login" selected>Sign in</option><option value="register">Create account</option></select>
+                <select id="auth-mode" style="display:none;" aria-hidden="true"><option value="login" selected>Sign in</option><option value="register">Create account</option></select>
                 <div class="auth-input-group">
                   <label for="account-username">Username</label>
                   <input id="account-username" autocomplete="username" minlength="3" maxlength="40" required placeholder="Letters, numbers, underscores">
@@ -279,6 +299,13 @@
                 <div id="social-signin-buttons" class="social-buttons"></div>
                 <p id="oauth-availability" class="notice muted"></p>
               </div>
+              <div class="guest-continue-section">
+                <div class="guest-divider"><span>or explore opportunities without an account</span></div>
+                <a href="/" id="continue-guest-btn" class="guest-continue-btn">
+                  <span>Continue as guest</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 5"></polyline></svg>
+                </a>
+              </div>
             </div>
           </details>
           <div id="account-private" class="hidden">
@@ -293,6 +320,51 @@
         </div>
       </details>
       <p id="oauth-message" class="notice oauth-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- CATEGORY 5: Data & Settings -->
+    <section id="tab-settings" class="account-category-panel hidden" role="tabpanel" aria-labelledby="nav-tab-settings">
+      <div class="category-header">
+        <div>
+          <h2 class="section-title">Data & settings</h2>
+          <p class="section-desc">Manage recruiting term targets, export data backups, and configure workspace preferences.</p>
+        </div>
+      </div>
+
+      <div class="settings-card panel">
+        <h3 class="card-subtitle">Recruiting target & term</h3>
+        <p class="card-hint">Help Bee personalize opportunity timelines based on when you plan to work.</p>
+        <div class="settings-form-grid">
+          <div>
+            <label for="target-term">Target internship term</label>
+            <select id="target-term">
+              <option value="summer-2027">Summer 2027 (Peak season)</option>
+              <option value="fall-2026">Fall 2026</option>
+              <option value="spring-2027">Spring 2027</option>
+              <option value="co-op">Co-op / Year-round</option>
+              <option value="immediate">Immediate / Part-time</option>
+            </select>
+          </div>
+          <div>
+            <label for="work-environment">Workplace preference</label>
+            <select id="work-environment">
+              <option value="any">Any (In-person, hybrid, or remote)</option>
+              <option value="remote">Remote only</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="in_person">In-person only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card panel">
+        <h3 class="card-subtitle">Account data backup</h3>
+        <p class="card-hint">Download a complete verified copy of your profile and tracked job pipeline.</p>
+        <div class="actions">
+          <button id="backup-json-btn" type="button" class="secondary">Download account JSON backup ↓</button>
+          <button id="export-tracker-btn" type="button" class="secondary">Download applications CSV ↓</button>
+        </div>
+      </div>
     </section>
 
   </div>
