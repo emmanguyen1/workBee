@@ -379,11 +379,18 @@ def local_interview_questions(
     career_field: str,
     requirements: list[str],
 ) -> list[dict]:
-    """Return 3 interview questions without calling an external API."""
-    req_summary = ', '.join(requirements[:5]) if requirements else 'relevant skills'
+    """Return 3 interview questions without calling an external API, tailored to career field and employer."""
+    req_summary = ', '.join(requirements[:5]) if requirements else 'relevant domain tools'
     field = (career_field or '').lower()
 
-    if field in {'data', 'ml', 'ai', 'data science'}:
+    if field in {'data', 'ml', 'ai', 'data science', 'analytics'}:
+        q1_text = (
+            'Tell me about a time you identified a critical data anomaly, model bias, or pipeline failure '
+            'close to a deadline. How did you investigate it and communicate the findings to stakeholders?'
+        )
+        q1_ctx = (
+            'Evaluates data integrity, diagnostic rigor, and transparent communication under pressure.'
+        )
         q2_type = 'technical'
         q2_text = (
             f'Describe an end-to-end data science or machine learning workflow you built involving {req_summary}. '
@@ -392,94 +399,227 @@ def local_interview_questions(
         q2_ctx = (
             f'Evaluates statistical reasoning, model validation, and practical ML engineering for {job_title}.'
         )
-    elif field in {'software', 'engineering'}:
+        q3_text = (
+            f'How do you see {company}\'s data and AI strategy creating competitive differentiation, '
+            f'and what machine learning problem would you want to tackle first as a {job_title}?'
+        )
+        q3_ctx = (
+            f'Tests understanding of {company}\'s technical landscape and how AI drives their core products.'
+        )
+    elif field in {'software', 'engineering', 'web', 'backend', 'cloud', 'security', 'devops'}:
+        q1_text = (
+            'Tell me about a time you faced a difficult production bug, architecture bottleneck, or engineering disagreement '
+            'during a critical release. How did you triage the problem and align your team on the fix?'
+        )
+        q1_ctx = (
+            'Evaluates technical ownership, constructive code debate, and composure during outages or release crunch.'
+        )
         q2_type = 'technical'
         q2_text = (
             f'Walk me through how you would design or debug a system that involves {req_summary}. '
-            'What architectural trade-offs would you consider?'
+            'What architectural trade-offs would you consider for scalability, latency, and reliability?'
         )
         q2_ctx = (
             f'Interviewers use this to assess depth of technical knowledge for a {job_title} role. '
-            'Be concrete and structure your answer around a real project or academic work.'
+            'Be concrete and structure your answer around a real project or production system.'
         )
-    elif field in {'science', 'research', 'biology', 'chemistry'}:
-        q2_type = 'technical'
-        q2_text = (
-            'Describe an experiment or research project where you encountered unexpected results. '
-            'How did you adjust your methodology?'
+        q3_text = (
+            f'What specific technical challenges or engineering standards at {company} excite you most, '
+            f'and how does your background prepare you to contribute to their codebase as a {job_title}?'
         )
-        q2_ctx = (
-            'This reveals your scientific rigor, adaptability, and ability to reason under uncertainty. '
-            'Mention specific variables, controls, and what you concluded.'
+        q3_ctx = (
+            f'Assesses genuine curiosity about {company}\'s architecture, open-source work, and engineering culture.'
         )
-    elif field in {'healthcare', 'health', 'medicine', 'nursing', 'clinical'}:
+    elif field in {'product', 'design', 'ux', 'product management', 'ui'}:
+        q1_text = (
+            'Tell me about a time user research or customer feedback strongly contradicted an internal hypothesis '
+            'or executive request. How did you advocate for user needs while balancing technical and business constraints?'
+        )
+        q1_ctx = (
+            'Assesses user empathy, cross-functional stakeholder management, and objective prioritization.'
+        )
         q2_type = 'domain'
         q2_text = (
-            f'Describe a situation where you had to manage patient care, clinical data, or protocol compliance '
-            f'with high precision under pressure. How did you ensure accuracy and teamwork?'
+            f'Walk me through how you prioritize user experience and make product trade-offs '
+            f'when building workflows around {req_summary} for a {job_title} project.'
         )
         q2_ctx = (
-            'Assesses clinical diligence, empathy, and procedural standards for healthcare roles.'
+            'Tests product intuition, user-centric wireframing, and metric definition (retention, adoption, task completion).'
         )
-    elif field in {'product', 'design', 'ux'}:
-        q2_type = 'domain'
-        q2_text = (
-            f'Walk me through how you prioritize user experience and make design trade-offs '
-            f'when user feedback conflicts with technical constraints in a {job_title} project.'
+        q3_text = (
+            f'Looking at {company}\'s current product portfolio, what is one customer journey or workflow '
+            f'you would be most eager to research and iterate on as a {job_title}?'
         )
-        q2_ctx = (
-            'Tests product intuition, user-centric empathy, and cross-functional communication.'
+        q3_ctx = (
+            f'Demonstrates critical product analysis of {company}\'s interface and empathy for their user base.'
         )
-    elif field in {'hardware', 'aerospace', 'robotics', 'mechanical'}:
+    elif field in {'finance', 'fintech', 'quantitative', 'quant', 'banking', 'accounting'}:
+        q1_text = (
+            'Tell me about a time you had to deliver high-stakes financial analysis, model validation, or ledger changes '
+            'under tight market or regulatory deadlines. How did you ensure zero errors and stress-test assumptions?'
+        )
+        q1_ctx = (
+            'Measures analytical accuracy, risk management, and composure in high-volatility financial environments.'
+        )
         q2_type = 'technical'
         q2_text = (
-            f'Tell me about a hardware or robotics project where you had to troubleshoot an unexpected '
-            f'system or component failure. How did you isolate the root cause?'
-        )
-        q2_ctx = (
-            'Demonstrates hands-on engineering principles, physical debugging, and safety verification.'
-        )
-    elif field in {'finance', 'fintech', 'quantitative'}:
-        q2_type = 'technical'
-        q2_text = (
-            f'Describe a quantitative analysis, financial model, or ledger system you analyzed for {company}. '
-            'How did you stress-test your assumptions and handle market or data anomalies?'
+            f'Describe a quantitative analysis, financial model, or ledger system you analyzed involving {req_summary}. '
+            'How did you stress-test your assumptions and handle market volatility or data anomalies?'
         )
         q2_ctx = (
             'Tests financial acumen, risk awareness, and quantitative rigor.'
         )
-    elif field in {'business', 'consulting', 'strategy', 'operations'}:
+        q3_text = (
+            f'Given {company}\'s market positioning and the evolving FinTech landscape, '
+            f'what market trends or risk factors make this {job_title} role compelling to you?'
+        )
+        q3_ctx = (
+            f'Evaluates awareness of {company}\'s economic moat, revenue streams, and macro financial dynamics.'
+        )
+    elif field in {'healthcare', 'health', 'medicine', 'nursing', 'clinical', 'biotech', 'pharma'}:
+        q1_text = (
+            'Tell me about a time you encountered a protocol ambiguity, compliance deviation, or high-pressure clinical situation. '
+            'How did you prioritize patient safety and collaborate with multidisciplinary colleagues?'
+        )
+        q1_ctx = (
+            'Probes patient-first ethics, regulatory compliance (e.g. HIPAA/GCP), and interprofessional collaboration.'
+        )
         q2_type = 'domain'
         q2_text = (
-            f'Give an example of a strategic business or operational challenge you analyzed. '
+            f'Describe a situation where you had to manage patient care, clinical data, or protocol compliance '
+            f'with high precision under pressure involving {req_summary}. How did you ensure accuracy and teamwork?'
+        )
+        q2_ctx = (
+            'Assesses clinical diligence, empathy, and procedural standards for healthcare roles.'
+        )
+        q3_text = (
+            f'How does {company}\'s healthcare mission, patient community, or therapeutic pipeline '
+            f'align with your personal dedication and values as a {job_title}?'
+        )
+        q3_ctx = (
+            f'Demonstrates authentic commitment to healthcare delivery, health equity, or clinical research at {company}.'
+        )
+    elif field in {'hardware', 'aerospace', 'robotics', 'mechanical', 'electrical'}:
+        q1_text = (
+            'Tell me about a hardware, robotics, or test-stand project where unexpected telemetry or physical failure occurred. '
+            'How did you systematically isolate the root cause across mechanical, electrical, or firmware domains?'
+        )
+        q1_ctx = (
+            'Assesses first-principles physical debugging, lab safety, and methodical fault tree analysis.'
+        )
+        q2_type = 'technical'
+        q2_text = (
+            f'Tell me about a hardware or robotics project involving {req_summary} where you had to troubleshoot '
+            'an unexpected system or component failure. How did you isolate the root cause and verify the redesign?'
+        )
+        q2_ctx = (
+            'Demonstrates hands-on engineering principles, physical debugging, tolerancing, and safety verification.'
+        )
+        q3_text = (
+            f'What extreme operating conditions (thermal, vibration, radiation, or latency) at {company} '
+            f'inspire you to engineer hardware solutions as a {job_title}?'
+        )
+        q3_ctx = (
+            f'Shows passion for {company}\'s physical missions, launch cadences, or autonomous robotics systems.'
+        )
+    elif field in {'business', 'consulting', 'strategy', 'operations', 'marketing'}:
+        q1_text = (
+            'Tell me about a time you were tasked with solving an ambiguous business or operational bottleneck. '
+            'How did you gather fragmented qualitative and quantitative data to drive consensus among conflicting stakeholders?'
+        )
+        q1_ctx = (
+            'Evaluates structured problem breakdown, stakeholder negotiation, and executive storytelling.'
+        )
+        q2_type = 'domain'
+        q2_text = (
+            f'Give an example of a strategic business or operational challenge you analyzed involving {req_summary}. '
             'How did you structure the problem, gather stakeholder input, and measure outcomes?'
         )
         q2_ctx = (
             'Demonstrates problem structuring, cross-functional leadership, and business impact.'
         )
-    else:
-        q2_type = 'domain'
+        q3_text = (
+            f'How would you contribute to {company}\'s strategic growth and operational delivery as a {job_title} '
+            'in today\'s competitive market environment?'
+        )
+        q3_ctx = (
+            f'Tests commercial awareness, organizational understanding, and long-term business vision for {company}.'
+        )
+    elif field in {'science', 'research', 'biology', 'chemistry', 'physics'}:
+        q1_text = (
+            'Tell me about a research study or scientific experiment where your initial hypothesis was completely disproven. '
+            'How did you separate experimental noise from signal and refine your scientific approach?'
+        )
+        q1_ctx = (
+            'Tests intellectual honesty, data skepticism, and adherence to the scientific method.'
+        )
+        q2_type = 'technical'
         q2_text = (
-            f'Describe a project or experience that best prepared you for the responsibilities '
-            f'of a {job_title} at {company}.'
+            f'Describe an experiment or research project involving {req_summary} where you encountered unexpected results. '
+            'How did you adjust your methodology and validate your controls?'
         )
         q2_ctx = (
-            'This shows alignment between your background and the role. '
-            'Be specific about your contribution and what you delivered.'
+            'This reveals your scientific rigor, adaptability, and ability to reason under uncertainty.'
+        )
+        q3_text = (
+            f'What recent research publications, laboratory discoveries, or experimental directions at {company} '
+            f'most excite you as a prospective {job_title}?'
+        )
+        q3_ctx = (
+            f'Assesses genuine engagement with {company}\'s scientific contributions and scientific literature.'
+        )
+    elif field in {'nonprofit', 'policy', 'education', 'advocacy', 'legal', 'law'}:
+        q1_text = (
+            'Tell me about a time you had to build consensus among community partners, students, or advocacy groups '
+            'with deeply conflicting priorities. How did you build trust and drive meaningful community outcomes?'
+        )
+        q1_ctx = (
+            'Evaluates coalition building, cultural competency, and diplomatic advocacy in public-serving roles.'
+        )
+        q2_type = 'domain'
+        q2_text = (
+            f'Walk me through how you evaluate the impact of a program, curriculum, or policy initiative involving {req_summary}. '
+            'What qualitative feedback loops and quantitative outcome metrics do you design?'
+        )
+        q2_ctx = (
+            'Measures program evaluation, community listening, and equitable policy implementation.'
+        )
+        q3_text = (
+            f'What draws you to {company}\'s public mission and community values, '
+            f'and how do you envision creating sustainable impact as a {job_title}?'
+        )
+        q3_ctx = (
+            f'Shows authentic commitment to civic engagement, educational access, or systemic reform at {company}.'
+        )
+    else:
+        q1_text = (
+            f'Tell me about a time you had to collaborate across functions to deliver a complex project under tight constraints. '
+            'How did you handle differing working styles and ensure quality execution?'
+        )
+        q1_ctx = (
+            'Reveals situational awareness, proactive communication, and commitment to shared team goals.'
+        )
+        q2_type = 'domain'
+        q2_text = (
+            f'Describe a project or technical experience that best prepared you for the core responsibilities '
+            f'of a {job_title} at {company}, specifically incorporating {req_summary}.'
+        )
+        q2_ctx = (
+            f'This shows alignment between your background and the role at {company}.'
+        )
+        q3_text = (
+            f'Why are you drawn to {company} specifically, and what excites you most '
+            f'about this {job_title} role compared to similar positions?'
+        )
+        q3_ctx = (
+            f'Tests genuine interest, employer research, and alignment with {company}\'s mission.'
         )
 
     return [
         {
             'type': 'behavioral',
-            'text': (
-                'Tell me about a time you had to collaborate with people who had very different '
-                'working styles or perspectives. How did you handle it, and what was the result?'
-            ),
-            'context': (
-                'Behavioral questions reveal how you have acted in real situations. '
-                'Use the STAR format: Situation, Task, Action, Result. '
-                'Focus on what you personally did and the concrete outcome.'
-            ),
+            'text': q1_text,
+            'context': f"{q1_ctx} Structure your answer using the STAR format: Situation, Task, Action, and Result.",
         },
         {
             'type': q2_type,
@@ -488,15 +628,8 @@ def local_interview_questions(
         },
         {
             'type': 'motivational',
-            'text': (
-                f'Why are you drawn to {company} specifically, and what excites you most '
-                f'about this {job_title} role compared to similar positions?'
-            ),
-            'context': (
-                'This tests genuine interest and research into the employer. '
-                f'Reference something concrete about {company} such as its mission, '
-                'recent projects, or team culture.'
-            ),
+            'text': q3_text,
+            'context': q3_ctx,
         },
     ]
 
@@ -569,7 +702,7 @@ async def _ai_interview_questions(
 ) -> list[dict]:
     req_text = ', '.join(requirements[:10]) if requirements else 'not specified'
     prompt = json.dumps({
-        'task': 'Generate exactly 3 interview questions for the following internship/job.',
+        'task': f'Generate exactly 3 deeply tailored interview questions for a {job_title} role at {company} in the {career_field} industry.',
         'job_title': job_title,
         'company': company,
         'career_field': career_field,
@@ -578,15 +711,15 @@ async def _ai_interview_questions(
         'format': (
             'Return ONLY a valid JSON array of exactly 3 objects. '
             'Each object must have keys: "type" (string), "text" (string), "context" (string). '
-            'Q1 type must be "behavioral" and begin with "Tell me about a time". '
-            'Q2 type must be "technical" or "domain" and be specific to the career_field and requirements. '
-            'Q3 type must be "motivational" and ask why this company and role. '
+            f'Q1 type must be "behavioral", begin with "Tell me about a time", and feature a high-stakes scenario authentic to the {career_field} field (e.g. clinical protocols in healthcare, data leakage in AI, latency/concurrency in software, stakeholder trade-offs in product, or market risk in finance). '
+            f'Q2 type must be "technical" or "domain" and probe hands-on decision making with: {req_text}. '
+            f'Q3 type must be "motivational" and ask about {company}\'s specific products, architecture, or mission in this sector. '
             'No extra keys. No markdown fences. No commentary outside the JSON array.'
         ),
     })
     system_instruction = (
-        'You are an expert technical recruiter creating realistic, specific interview questions. '
-        'Follow the format instructions exactly. Return only the JSON array and nothing else.'
+        f'You are an expert hiring manager and technical interviewer specializing in {career_field} and recruiting for {company}. '
+        'Generate rigorous, realistic, role-specific interview questions. Follow the format instructions exactly. Return only the JSON array and nothing else.'
     )
     model = (os.getenv('WORKBEE_AI_MODEL') or 'gemini-4-hydrogen').strip()
     client = genai.Client(api_key=api_key())

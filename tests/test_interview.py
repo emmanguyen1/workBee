@@ -112,27 +112,58 @@ class TestInterview(unittest.TestCase):
         # Test Data & AI customization
         q_data = local_interview_questions('Machine Learning Intern', 'Databricks', 'data', ['PyTorch', 'SQL'])
         self.assertEqual(len(q_data), 3)
+        self.assertIn('data anomaly, model bias, or pipeline failure', q_data[0]['text'])
         self.assertIn('data science or machine learning workflow', q_data[1]['text'])
+        self.assertIn('data and AI strategy', q_data[2]['text'])
+
+        # Test Software & Tech customization
+        q_soft = local_interview_questions('Backend Engineer Intern', 'Stripe', 'software', ['Python', 'Postgres'])
+        self.assertEqual(len(q_soft), 3)
+        self.assertIn('production bug, architecture bottleneck, or engineering disagreement', q_soft[0]['text'])
+        self.assertIn('design or debug a system', q_soft[1]['text'])
+        self.assertIn('engineering standards at Stripe', q_soft[2]['text'])
 
         # Test Healthcare customization
         q_health = local_interview_questions('Clinical Research Associate', 'Pfizer', 'healthcare', ['GCP', 'Protocols'])
         self.assertEqual(len(q_health), 3)
+        self.assertIn('protocol ambiguity, compliance deviation', q_health[0]['text'])
         self.assertIn('patient care, clinical data, or protocol compliance', q_health[1]['text'])
+        self.assertIn('healthcare mission', q_health[2]['text'])
 
         # Test Product & UX customization
         q_prod = local_interview_questions('Product Designer', 'Figma', 'product', ['Figma', 'UX'])
         self.assertEqual(len(q_prod), 3)
-        self.assertIn('user experience and make design trade-offs', q_prod[1]['text'])
+        self.assertIn('user research or customer feedback strongly contradicted', q_prod[0]['text'])
+        self.assertIn('user experience and make product trade-offs', q_prod[1]['text'])
+        self.assertIn('product portfolio', q_prod[2]['text'])
 
         # Test Hardware & Aerospace customization
         q_aero = local_interview_questions('Robotics Engineer', 'SpaceX', 'hardware', ['ROS', 'C++'])
         self.assertEqual(len(q_aero), 3)
-        self.assertIn('hardware or robotics project', q_aero[1]['text'])
+        self.assertIn('hardware, robotics, or test-stand project', q_aero[0]['text'])
+        self.assertIn('hardware or robotics project involving', q_aero[1]['text'])
+        self.assertIn('extreme operating conditions', q_aero[2]['text'])
 
         # Test Finance customization
         q_fin = local_interview_questions('Quant Analyst', 'Citadel', 'finance', ['Python', 'Stochastic'])
         self.assertEqual(len(q_fin), 3)
+        self.assertIn('high-stakes financial analysis', q_fin[0]['text'])
         self.assertIn('quantitative analysis, financial model, or ledger system', q_fin[1]['text'])
+        self.assertIn('FinTech landscape', q_fin[2]['text'])
+
+        # Test Business & Consulting customization
+        q_biz = local_interview_questions('Strategy Associate', 'McKinsey', 'business', ['Excel', 'Market Sizing'])
+        self.assertEqual(len(q_biz), 3)
+        self.assertIn('ambiguous business or operational bottleneck', q_biz[0]['text'])
+        self.assertIn('strategic business or operational challenge', q_biz[1]['text'])
+        self.assertIn('strategic growth and operational delivery', q_biz[2]['text'])
+
+        # Test Nonprofit & Policy customization
+        q_policy = local_interview_questions('Policy Analyst Intern', 'ACLU', 'policy', ['Research', 'Advocacy'])
+        self.assertEqual(len(q_policy), 3)
+        self.assertIn('community partners, students, or advocacy groups', q_policy[0]['text'])
+        self.assertIn('program, curriculum, or policy initiative', q_policy[1]['text'])
+        self.assertIn('public mission and community values', q_policy[2]['text'])
 
     def test_interview_start_with_initial_question_and_competency(self):
         scenario_prompt = 'Tell me about a time you had a fundamental disagreement with a colleague or manager.'
