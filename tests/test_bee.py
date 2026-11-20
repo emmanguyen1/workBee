@@ -56,6 +56,20 @@ class BeeTests(unittest.TestCase):
             self.assertIn("Acme Corp", data["outreach"]["message"])
             self.assertEqual(len(data["interview_prep"]), 3)
 
+    def test_email_subscription_endpoint(self):
+        with TestClient(app) as c:
+            # Valid email
+            res = c.post('/api/careers/subscribe', json={'email': 'student@mit.edu'})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data['status'], 'subscribed')
+            self.assertEqual(data['email'], 'student@mit.edu')
+            self.assertIn('drop alerts', data['message'])
+
+            # Invalid email format
+            res_bad = c.post('/api/careers/subscribe', json={'email': 'not-an-email'})
+            self.assertEqual(res_bad.status_code, 400)
+
 class ProviderTests(unittest.IsolatedAsyncioTestCase):
     async def test_responses_request_does_not_store_or_attach_private_state(self):
         mock_interaction=MagicMock()

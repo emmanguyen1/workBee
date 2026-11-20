@@ -249,6 +249,19 @@ class VerifyOpportunity(BaseModel):
     job_id: str = Field(min_length=1, max_length=500)
 
 
+class SubscribeRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=254)
+
+
+@router.post("/api/careers/subscribe")
+async def subscribe_alerts(request: SubscribeRequest, response: Response):
+    response.headers.update(PRIVATE_HEADERS)
+    email = request.email.strip()
+    if "@" not in email or "." not in email.split("@")[-1] or len(email.split("@")[0]) < 1:
+        raise HTTPException(400, "Please provide a valid email address.", headers=PRIVATE_HEADERS)
+    return {"status": "subscribed", "email": email, "message": "Subscribed! You will receive weekly early drop alerts for new internships."}
+
+
 @router.post("/api/careers/verify")
 async def verify_opportunity(request: VerifyOpportunity, response: Response):
     response.headers.update(PRIVATE_HEADERS)
